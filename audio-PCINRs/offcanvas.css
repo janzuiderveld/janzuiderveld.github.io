@@ -7,6 +7,7 @@ body {
   overflow-x: hidden;  /*Prevent scroll on narrow devices */
   padding-top: 30px;
     text-align: justify;
+  margin: 25px;
 }
 footer {
   padding: 10px 0;
