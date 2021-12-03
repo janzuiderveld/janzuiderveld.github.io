@@ -5,34 +5,71 @@
 html,
 body {
   overflow-x: hidden;  /*Prevent scroll on narrow devices */
-  padding-top: 5px;
+  padding-top: 10px;
     text-align: justify;
-  margin: 5%;
+    /* padding-left: 5%; */
+    /* padding-right: 5%; */
+  }
+  footer {
+    padding: 10px 0;
+    text-align: center;
+    align: center;
+  }
+  .authors {
+    font-size: 20px;
+  }
+  /*.container {
+    max-width: 768px;
+  }*/
+  .container {
+    max-width: 10000px;
 }
-footer {
-  padding: 10px 0;
+/* .stripe {
+  position: relative;
+  display: grid;
 }
-.authors {
-  font-size: 20px;
-}
-/*.container {
-  max-width: 768px;
-}*/
-.container {
-  max-width: 1000px;
-}
+.stripe:before {
+  content:"";
+  background-color:#000;
+  position: absolute;
+  top:0;
+  right:0;
+  bottom:0;
+  left:0;
+  width: 100vw;
+  margin-left: -50%;
+  transform: translateX(-50%);
+  z-index: -1;
+} */
+
 p {
   font-size: 16px;
   /*padding-bottom: 20px;*/
+  padding-left: 5%;
+  padding-right: 5%;
 }
 
 li {
   font-size: 16px;
+  padding-left: 5%;
+  padding-right: 5%;
 }
 
 h2 {
-    text-align: center;
-    align: center;
+  text-align: center;
+  align: center;
+}
+h5 {
+  text-align: left;
+  align: left;
+  padding-left: 5%;
+  padding-right: 5%;
+}
+h4 {
+  text-align: left;
+  align: left;
+  padding-left: 5%;
+  padding-right: 5%;
 }
 
 .jumbotron{

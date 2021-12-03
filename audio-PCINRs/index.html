@@ -50,26 +50,30 @@
             <br>
             
             In generative modelling data is generally represented by discrete arrays. However, the true underlying signal is often continuous. Implicit neural representations (INRs) are neural networks used to approximate low-dimensional functions, trained to represent a single geometric object by mapping input coordinates to structural information at input locations. INRs have several benefits compared to most discrete representations:
-            <li>The required amount of parameters to faithfully represent an object is independent of resolution, and only scales with its complexity. </li> 
-            <li>Object samples are calculated independently, allowing sequential or targeted synthesis in memory- or computationally limited environments.</li>
-            
-            <br>
-
-            
+        </p>
+        
+        <li>The required amount of parameters to faithfully represent an object is independent of resolution, and only scales with its complexity. </li> 
+        <li>Object samples are calculated independently, allowing sequential or targeted synthesis in memory- or computationally limited environments.</li>
+        
+        <br>
+        
+        
+        <p>
             Our experiments show that Periodic Conditional INRs (PCINRs) learn faster and generally produce quantitatively better audio reconstructions than Transposed Convolutional Neural Networks with equal parameter counts. However, their performance is very sensitive to activation scaling hyperparameters. When learning to represent more uniform sets, PCINRs tend to introduce artificial high-frequency components in reconstructions. We validate this noise can be minimized by applying standard weight regularization during training or decreasing the compositional depth of PCINRs, and suggest directions for future research.
             
-            
         </p>
-    </div>
-    
-    
-    <div class="section">
-        <h2>Reconstructing Sets of Waveforms as Continuous Functions </h3>
-            <hr>
+        
+        </div>
+        
+        
+        <div class="section">
+            <h2>Reconstructing Sets of Waveforms as Continuous Functions </h3>
+                <hr>
                 <center>
-                <img src="images/architecture_long_block.png" class="img" style="max-width:1040px; max-height:1000px; width:100%; height:100%;">
+                    <img src="images/architecture_long_block.png" class="img" style="max-width:1040px; max-height:1000px; width:100%; height:100%;">
                 </center>
-        <p>
+                <p>
+                <br>
 
                 To apply INRs in the generative domain we frame generative modelling as learning a distribution of continuous functions. This can be achieved by introducing conditioning methods to INRs. We refer to this family of architectures as conditional INRs (CINRs). In this work we focus on layer activation modulation [1] as the conditioning method.
                 <br>
@@ -90,30 +94,36 @@
         <h5>Quantitative Results</h5>
             <p>
                 Three quantitative evaluation metrics are reported based on our metric correlation comparison [5]: CDPAM [6], Multi STFT MSE and MSE. The table below shows these scores for NSYNTH Diverse and NSYNTH Keyboard over all set items, calculated over 3 training runs.  
-
-                <br>
-                <br>
-                <center>
+                
+            </p>
+            
+            <br>
+            <br>
+            <center>
                 <img src="images/table1.png" class="img" style="max-width:1040px; max-height:200; width:100%; height:100%;">
             </center>
-                <br>
+            <br>
                 <br>
 
-            PCINRs outperform baseline TCNNs consistently on MSE.
             
-            
-            For the other, more perceptual metrics, PCINRs are outperformed by TCNNs in reconstructing the NSYNTH keyboard dataset. 
-            
-            
-            With regularization (L2 weight regularization for INR weights or reducing INR compositional depth) PCINRs beat TCNNs in these scenarios.
-            
+
+            <p>
+                PCINRs outperform baseline TCNNs consistently on MSE.
+                For the other, more perceptual metrics, PCINRs are outperformed by TCNNs in reconstructing the NSYNTH keyboard dataset. 
+                
+                
+                With regularization (L2 weight regularization for INR weights or reducing INR compositional depth) PCINRs beat TCNNs in these scenarios.
+            </p>
+                
             <a id="samples"></a>
             <div class="section">
                 <h5> Samples </h5>
                     <p>
                         Comparing results qualitatively, PCINR outputs are less muffled than TCNN outputs, but contain some high frequency noise. Regularized PCINR outputs contain less noise, but also sound more muffled.         
+                    <br>
+                    <br>
                     </p>
-
+                    
                     <table width="468" cellspacing="0" cellpadding="0" border="0" style="width: 100%; height: 100%;">
                         <tbody>
                             <tr>
@@ -374,6 +384,7 @@
 
     <h4>References </h3>
         <hr>
+    <p>
     [1] Perez et al. (2017). “FiLM: Visual Reasoning with a General Conditioning Layer.” arXiv: 1709 . 07871
     <br>
     [2] Sitzmann et al. (2020). “Implicit Neural Representations with Periodic Activation Functions.” arXiv: 2006.09661
@@ -381,7 +392,7 @@
     [3] Chan et al. (2020). “Pi-GAN: Periodic Implicit Generative Adversarial Networks for 3D-Aware Image Synthesis.” arXiv: 2012.00926 
     <br>
     [4] Donahue et al. (2019). “Adversarial Audio Synthesis.” arXiv: 1802.04208
-
+    </p>
     <hr>
 
     <footer>
