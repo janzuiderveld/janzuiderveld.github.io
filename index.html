@@ -31,11 +31,16 @@
             padding:60px;
           }
           #portrait {
+            width: 60%;
+            border: 3px solid white;
+          }
+          #paper {
+            width: 100%;
             border: 3px solid white;
           }
           #header-text {
             margin-top: 60px;
-            margin-left: 220px;
+            margin-left: 10px;
           }
           #header-text-name {
             font-size: 40px;
@@ -71,12 +76,13 @@
 <body>
     <div id='header'>
         <div class='container'>
-            <div class='row'>
-                <!-- <div class="col-sm-3 offset-sm-1">
+            <div class='row vspace-top'>
+            <!-- <div class='row'> -->
+                <!-- <div class="col-sm-3 offset-sm-1 desktop-div">
                     <img src='imgs/portrait.jpeg' class='img-fluid' id='portrait'>
                 </div> -->
 
-                <div class="col">
+                <div class="col offset-sm-1">
                   <div id='header-text-name'>
                       Jan Zuiderveld
                   </div>
@@ -84,10 +90,10 @@
                     janzuiderveld@gmail.com
                   </div>
                   <div>
-                    <a href="https://github.com/janzuiderveld">[GitHub]</a>
-                    <a href="https://scholar.google.com/citations?user=mTZpgswAAAAJ&hl=en">[Google Scholar]</a>
-                    <a href="https://www.linkedin.com/in/jan-zuiderveld/">[LinkedIn]</a>
-                    <a href="https://www.instagram.com/_warana/">[Instagram]</a>
+                      <a href="https://www.linkedin.com/in/jan-zuiderveld/">[LinkedIn]</a>
+                      <a href="https://scholar.google.com/citations?user=mTZpgswAAAAJ&hl=en">[Google Scholar]</a>
+                      <a href="https://github.com/janzuiderveld">[GitHub]</a>
+                      <a href="https://www.instagram.com/_warana/">[Instagram]</a>
                     <!-- <a href="docs/jzuiderveld_CV.pdf">[Download CV]</a> -->
                   </div>
 
@@ -105,8 +111,7 @@
                 </h1>
 
                 <p>
-                    I'm a recent graduate of the MSc Artificial Intelligence at the University of Amsterdam. Currently I'm researching applications of machine learning in art at the Royal Conservatoire and the Royal Academy of Art in The Hague. 
-                    
+                    I'm a recent graduate of the MSc Artificial Intelligence at the University of Amsterdam. Currently I'm researching applications of machine learning in art at the Royal Conservatoire and the Royal Academy of Art in The Hague.                     
                 </p>
 
 
@@ -126,7 +131,7 @@
                         <br>
 
 
-                        My work "MIDIalogue" is selected to be featured in the <a href="https://neuripscreativityworkshop.github.io/2021/">Machine Learning for Creativity and Design</a> art selection.
+                        My work "MIDIalogue" is selected to be featured in the NeurIPS <a href="https://neuripscreativityworkshop.github.io/2021/">Machine Learning for Creativity and Design</a> art gallery.
                     </div>
                 </div>
                     
@@ -173,7 +178,7 @@
                 
                 <div class='row vspace-top'>
                     <div class="col-sm-3">
-                        <img src='imgs/audio_PCINRs_thumb.png' class='img-fluid'>
+                        <img src='imgs/audio_PCINRs_thumb.png' class='img-fluid', id=paper>
                     </div>
 
                     <div class="col">
@@ -212,5 +217,7 @@
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
 </body>
+
+
 
 </html>
