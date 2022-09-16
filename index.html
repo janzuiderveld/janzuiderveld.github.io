@@ -106,7 +106,7 @@
                 </h1>
 
                 <p>
-                    I'm a recent graduate of the MSc Artificial Intelligence at the University of Amsterdam. Currently I'm researching applications of machine learning in art at the Royal Conservatoire and the Royal Academy of Art in The Hague. 
+                    I'm an Artificial Intelligence graduate (University of Amsterdam), currently I'm researching applications of machine learning in art at the Royal Conservatoire and the Royal Academy of Art in The Hague. 
                     
                 </p>
 
@@ -116,6 +116,39 @@
                 </div>
 
                 <!--- List of news ---!>
+                    <div class='row vspace-top-news'>
+                        <div class="col-sm-2 news-date">
+                            June 2022
+                    </div>
+                    <div class="col">
+                        I published my work <a href="https://arxiv.org/pdf/2206.01661.pdf">Style-Content Disentanglement in Language-Image Pretraining Representations for Zero-Shot Sketch-to-Image Synthesis</a> on Arxiv. I found that CLIP embeddings exhibit a similar kind of compositionality as seen in word2vec embeddings, e.g, king - man + woman = queen, a hunch I had based on their sharing of contrastive training. 
+                        <br>
+                        My results demonstrate that this can be exploited to achieve an open-domain sketch-to-image model competitive with state-of-the-art instance-level models, while only depending on pretrained off-the-shelf models and a fraction of the data.
+                        
+                        <br>
+                        <br>
+
+                    </div>
+                </div>
+
+                    <div class='row vspace-top-news'>
+                        <div class="col-sm-2 news-date">
+                            May 2022
+                    </div>
+                    <div class="col">
+                        This month a new installation I made dubbed "Dream Machine" will be exhibited in <a href="https://www.deschoolamsterdam.nl/en/">De School</a> next to MIDIalogue. I'll soon publish a paper about the machine learning techniques I've used for it's sketch-to-image algorithm.
+                                                
+                        <br>
+
+                        The installation consists of a hacked 00's Xerox photocopier. In front of the Xerox machine is a drawing table with paper and markers, inviting visitors to get creative. The machine scans input drawings, generates an artistic image based on the content of the input, and prints the output.
+                        
+                        <br>
+                        <br>
+
+                    </div>
+                </div>
+
+
                     <div class='row vspace-top-news'>
                         <div class="col-sm-2 news-date">
                             December 2021
@@ -137,7 +170,13 @@
                             October 2021
                     </div>
                     <div class="col">
-                        My first installation, MIDIalogue, will be exhibited at <a href="https://www.deschoolamsterdam.nl/en/">De School</a> for the coming editions of the "a Perception of Space and Time" series of events.
+                        My first installation, "MIDIalogue", will be exhibited at <a href="https://www.deschoolamsterdam.nl/en/">De School</a> for the coming editions of the "a Perception of Space and Time" series of events.
+                        
+                        <br>
+
+                        MIDIalogue functions as an interface between visitors and a transformer neural network trained for melody generation and continuation. The interface consists of immaterial, but visible and pluckable strings. Like a virtual harp. The machine listens to visitors' melodic input, produces musical reactions and imposes possible conversation directions accordingly, assuring a harmonious, ever-evolving 
+                        discourse. 
+
                     </div>
                 </div>
 
@@ -192,12 +231,131 @@
                             <a href="https://arxiv.org/abs/2111.08462">[Paper]</a>
                             <a href="https://janzuiderveld.github.io/audio-PCINRs/">[Project page]</a>
                             <a href="https://github.com/janzuiderveld/continuous-audio-representations">[Code]</a>
+
+                            <br>
+                            <br>
+                            In this work, we aim to shed light on the potential of Conditional Implicit Neural Representations (CINRs) as lightweight backbones in generative frameworks for audio synthesis. Our experiments show that small Periodic Conditional INRs (PCINRs) learn faster and generally produce quantitatively better audio reconstructions than Transposed Convolutional Neural Networks with equal parameter counts. However, their performance is very sensitive to activation scaling hyperparameters. We validate noise presence can be minimized by applying standard weight regularization during training or decreasing the compositional depth of PCINRs, and suggest directions for future research.
+
+
+                        </div>
+                    </div>
+                </div>
+               
+
+
+                <div class='row vspace-top'>
+                    <div class="col-sm-3">
+                        <img src='imgs/s2i_thum.png' class='img-fluid'>
+                    </div>
+
+                    <div class="col">
+                        <div class='paper-title'>
+			    Style-Content Disentanglement in Language-Image Pretraining Representations for Zero-Shot Sketch-to-Image Synthesis
+                        </div>
+                        <div class='paper-desc'>
+                    Arxiv
+                        </div>
+                        <div class='paper-authors'>
+                            Jan Zuiderveld
+                        </div>
+                        <div>
+                            <a href="https://arxiv.org/abs/2206.01661">[Paper]</a>
+                            <!-- <a href="https://janzuiderveld.github.io/audio-PCINRs/">[Project page]</a> -->
+                            <a href="https://github.com/janzuiderveld/sketch2image">[Code]</a>
+                        
+                            <br>
+                            <br>
+
+                            In this work, we propose and validate a framework to leverage language-image pretraining representations for training-free zero-shot sketch-to-image synthesis. Our approach for disentangling style and content entails a simple method consisting of elementary arithmetic assuming compositionality of information in representations of input sketches. Our results demonstrate that this approach is competitive with state-of-the-art instance-level open-domain sketch-to-image models, while only depending on pretrained off-the-shelf models and a fraction of the data.
+                        
                         </div>
                     </div>
                 </div>
 
 
 
+
+
+                <div class='vspace-top'>
+                    <h1>Art Projects</h1>
+
+                    <div class='row vspace-top'>
+                        <div class="col-sm-3">
+                            <img src='imgs/cut_3.jpg' class='img-fluid'>
+                        </div>
+    
+                        <div class="col">
+                            <div class='paper-title'>
+                    MIDIalogue
+                            </div>
+                            <div class='paper-desc'>
+                        2021 - Traumburg Festival (Dornburg, NL)
+                        <br>
+                        2021/2022 - De School (Amsterdam, NL)
+                        
+                            </div>
+                            <!-- <div class='paper-authors'>
+                                Jan Zuiderveld
+                            </div> -->
+                            <div>
+                                <a href="https://drive.google.com/drive/folders/1slMSdRrkUQ2sokIXaIfQyUFC2BrqWzUY">[Documentation]</a>
+                            
+                                <br>
+                                <br>
+    
+
+                                Attempting to create a spirited dialogue between man and machine, MIDIalogue functions as an interface between visitors and a transformer neural network trained for melody generation and continuation. The interface consists of immaterial, but visible and pluckable strings. Like a virtual harp. The machine listens to visitors' melodic input, produces musical reactions and imposes possible conversation directions accordingly, assuring a harmonious, ever-evolving 
+                                discourse. 
+                                <br>
+
+                                The physical installation consists of 7 individually moveable lasers combined with freely placeable mirrors to create site-specific patterns. Mounted next to every laser is a lidar sensor for measuring long- and fine-grained distance.
+
+                                    
+    
+                    
+                            
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+             
+             
+                <div class='row vspace-top'>
+                        <div class="col-sm-3">
+                            <img src='imgs/cut_5.jpg' class='img-fluid'>
+                        </div>
+    
+                        <div class="col">
+                            <div class='paper-title'>
+                    Dream Machine
+                            </div>
+                            <div class='paper-desc'>
+                        2022 - De School (Amsterdam, NL)
+                        <br>
+                        2022 - Royal Academy of Art (The Hague, NL)
+                        
+                            </div>
+                            <!-- <div class='paper-authors'>
+                                Jan Zuiderveld
+                            </div> -->
+                            <div>
+                                <a href="https://drive.google.com/drive/folders/19VXNeb9zCwF1-96Wm3_Vp34KcQaZk0vE">[Documentation]</a>
+                            
+                                <br>
+                                <br>
+    
+                                This installation consists of a hacked 00's Xerox photocopier. In front of the Xerox machine is a drawing table with paper and markers, inviting visitors to get creative. To nudge visitors to use the machine, the floor around the machine is filled with drawings and outputs. The machine has a big red button. When pressed, the machine will scan an input drawing, generate an artistic image (painting, 3D render, sculpture, woodcut, etc.) based on the content of the input, and print out the output. Visitors can take their printed AI collaborated artwork home. 
+                                
+                                <br>
+    
+                                The idea behind this installation is to create a space where people can interact with a machine that is itself creative, raising awareness of the potential of machine learning as a tool for creativity. The machine is designed to inspire playfulness and be a fun and easy way for people to create art, without needing any prior experience or knowledge.
+                            
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
 
             
 
