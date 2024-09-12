@@ -65,51 +65,106 @@
           .paper-authors {
             font-style: italic;
           }
+
+          /* New styles for the warning banner */
+          #warning-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: red;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 18px; /* Reduced from 24px */
+            font-weight: bold;
+            z-index: 1000;
+          }
+
+          #warning-banner-text {
+            margin: 0 15px; /* Add side margin to the text */
+          }
+
+          /* Adjust main content margin to account for the banner */
+          #main-content {
+            margin-top: 70px; /* Default margin for larger screens */
+          }
+
+          @media (max-width: 768px) {
+            #warning-banner {
+                font-size: 16px; /* Slightly smaller font for medium screens */
+            }
+            #main-content {
+                margin-top: 110px; /* Increased margin for medium screens */
+            }
+          }
+
+          @media (max-width: 576px) {
+            #warning-banner {
+                font-size: 14px; /* Even smaller font for small screens */
+            }
+            #main-content {
+                margin-top: 140px; /* Further increased margin for small screens */
+            }
+          }
     </style>
 </head>
 
 <body>
-    <div id='header'>
-        <div class='container'>
-            <div class='row'>
-
-                <div class="col">
-                  <div id='header-text-name'>
-                      Jan Zuiderveld
-                  </div>
-                  <div id='header-text-email'>
-                    jan@warana.xyz
-                  </div>
-                  <div>
-	            <a href="https://www.instagram.com/_warana/">[Instagram]</a>
-	            <a href="https://scholar.google.com/citations?user=mTZpgswAAAAJ&hl=en">[Google Scholar]</a>
-                    <a href="https://github.com/janzuiderveld">[GitHub]</a>
-                    <a href="https://www.linkedin.com/in/jan-zuiderveld/">[LinkedIn]</a>
-	            <a href="docs/jzuiderveld_CV.pdf">[CV]</a>
-<!-- 		    <a href="https://ko-fi.com/warana">[Ko-fi (Tooling + Support)]</a> -->
-
-                  </div>
-
-                </div>
-            </div>
+    <!-- New warning banner -->
+    <div id="warning-banner">
+        <div id="warning-banner-text">
+            IMPORTANT: I found that outgoing emails to .xyz domains are blocked by some hosts. 
+            If you have unsuccesfully tried to get in touch through jan@warana.xyz, please forward your message to: janzuiderveld@gmail.com
         </div>
     </div>
 
+    <!-- Main content with adjusted margin -->
+    <div id="main-content">
+        <div id='header'>
+            <div class='container'>
+                <div class='row'>
 
-    
+                    <div class="col">
+                      <div id='header-text-name'>
+                          Jan Zuiderveld
+                      </div>
+                      <div id='header-text-email'>
+                        janzuiderveld@gmail.com
+                      </div>
+                      <div>
+    	            <a href="https://www.instagram.com/_warana/">[Instagram]</a>
+    	            <a href="https://scholar.google.com/citations?user=mTZpgswAAAAJ&hl=en">[Google Scholar]</a>
+                        <a href="https://github.com/janzuiderveld">[GitHub]</a>
+                        <a href="https://www.linkedin.com/in/jan-zuiderveld/">[LinkedIn]</a>
+    	            <a href="docs/jzuiderveld_CV.pdf">[CV]</a>
+    <!-- 		    <a href="https://ko-fi.com/warana">[Ko-fi (Tooling + Support)]</a> -->
 
+                      </div>
 
-    <div class='container'>
-
-
-
-        <div class='vspace-top'>
-            <h1>Upcoming/ongoing</h1>
+                    </div>
+                </div>
+            </div>
         </div>
 
 
-
         
+
+
+        <div class='container'>
+
+
+
+            <div class='vspace-top'>
+                <h1>Upcoming/ongoing</h1>
+            </div>
+
+
+
+            
+            <!-- <div class='row vspace-top'>
+        
+                <div class="col-sm-2">
         <!-- <div class='row vspace-top'>
     
             <div class="col-sm-2">
@@ -181,28 +236,6 @@
         </div>
 
 
-        <div class='row vspace-top'>
-    
-            <div class="col-sm-2">
-                17 Aug. <br> 2024
-            </div>
-
-            <div class="col">
-                <div class='paper-title'>
-                    DJ Set 
-                </div>
-        
-                <div class='paper-desc'>
-                    Skatecafe (Amsterdam, NL)
-                </div>	    
-        
-            </div>
-    
-        </div>
-
-
-        
-
 
 
         <div class='row vspace-top'>
@@ -267,6 +300,26 @@
         
             </div>
     
+        </div>
+
+
+        <div class='row vspace-top'>
+    
+            <div class="col-sm-2">
+                20 Oct. - 17 Nov. <br> 2024
+            </div>
+
+            <div class="col">
+                <div class='paper-title'>
+                    New Work
+                </div>
+
+                <div class='paper-desc'>
+                    SIGN (Groningen, NL)
+                </div>	    
+
+            </div>
+
         </div>
 
 
@@ -350,7 +403,7 @@
                             </div>
                             <div class='paper-desc'>
                                 
-                                "Coffee Machine" is an interactive art piece that playfully reimagines a vending machine as a character with its own thoughts and feelings in a deep existential crisis. This coffee machine, programmed to display consciousness, humorously laments its repetitive existence and the lack of respect it receives from those it serves. To coax it into brewing a cup, visitors must show sincere interest in the being or prove worthy of a drink for some other reason.
+                                "Coffee Machine" is an interactive art piece that playfully reimagines a vending machine as a character with its own thoughts and feelings in a deep existential crisis. This coffee machine, programmed to display consciousness, humorously laments its repetitive existence and the lack of respect it receives from those it serves. To coax it into brewing a cup, visitors must show sincere interest in the being or prove worthy of a drink for some other reason.
 
                                 
                                 <br>
@@ -558,7 +611,7 @@
 				    <br>
 				    <br>
 
-				As visitors engage with the piece, they discover that the microwave possesses a unique ability: it can give a voice to any object placed within its interior. This transformative interaction allows for playful yet insightful conversations between the audience and their items, revealing the hidden narratives of the objects that silently serve us. Through its humorous and critical lens, “Microwave” prompts us to reflect on the roles these items play in our lives and the broader implications of our efficiency-obsessed culture, offering a mirror to our intricate relationship with the technologies that both empower and constrain us.
+				As visitors engage with the piece, they discover that the microwave possesses a unique ability: it can give a voice to any object placed within its interior. This transformative interaction allows for playful yet insightful conversations between the audience and their items, revealing the hidden narratives of the objects that silently serve us. Through its humorous and critical lens, "Microwave" prompts us to reflect on the roles these items play in our lives and the broader implications of our efficiency-obsessed culture, offering a mirror to our intricate relationship with the technologies that both empower and constrain us.
 				    <br>
                                 <br>
                         
@@ -603,7 +656,7 @@
                             </div>
                             <div class='paper-desc'>
                                 
-                                ‘Touching Distance’ is an immersive installation that transforms visitors' moving bodies into low-latency, high precision, theremin-like sensors. As visitors interact with each other, their body-to-body distance and the amount of skin-to-skin touch are used to create visually and acoustically rich representations of their closeness. By focusing on inducing intimacy through curiosity, "Touching Distance" enables participants to engage in a dynamic, multi-sensory encounter that reflects the fluidity and complexity of human connection.
+                                'Touching Distance' is an immersive installation that transforms visitors' moving bodies into low-latency, high precision, theremin-like sensors. As visitors interact with each other, their body-to-body distance and the amount of skin-to-skin touch are used to create visually and acoustically rich representations of their closeness. By focusing on inducing intimacy through curiosity, "Touching Distance" enables participants to engage in a dynamic, multi-sensory encounter that reflects the fluidity and complexity of human connection.
 
 
                                 <br>
@@ -741,7 +794,6 @@
                             
                                                             <div class='row vspace'>
                                                                 <div class="col-sm-2" style='margin-top: 8px;'>
-                            
                                                                 </div>
                                             
                                                             <div class="col">
@@ -754,7 +806,6 @@
                             
                                                             <div class='row vspace'>
                                                                 <div class="col-sm-2" style='margin-top: 8px;'>
-                                
                                                                 </div>
                                             
                                                             <div class="col">
@@ -767,7 +818,6 @@
                             
                                                             <div class='row vspace'>
                                                                 <div class="col-sm-2" style='margin-top: 8px;'>
-                            
                                                                 </div>
                                             
                                                             <div class="col">
@@ -779,7 +829,6 @@
                                                             
                                                             <div class='row vspace'>
                                                                 <div class="col-sm-2" style='margin-top: 8px;'>
-                            
                                                                 </div>
                                                                 
                                                                 <div class="col">
@@ -804,7 +853,6 @@
                             
                                                             <div class='row vspace'>
                                                                 <div class="col-sm-2" style='margin-top: 8px;'>
-                            
                                                                 </div>
                                             
                                                             <div class="col">
@@ -818,7 +866,6 @@
                        
                                                             <div class='row vspace'>
                                                                 <div class="col-sm-2" style='margin-top: 8px;'>
-                            
                                                                 </div>
                                             
                                                             <div class="col">
