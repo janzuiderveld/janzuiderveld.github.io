@@ -1,0 +1,36 @@
+name: Build and Deploy
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 🔧
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'typescript_exp/package-lock.json'
+
+      - name: Install and Build 🔧
+        run: |
+          cd typescript_exp
+          npm ci
+          npm run build
+          # Copy 404.html to dist if it exists in the root
+          [ -f ../404.html ] && cp ../404.html dist/
+          # Ensure CNAME file exists in the build output
+          echo "warana.xyz" > dist/CNAME
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: typescript_exp/dist
+          branch: gh-pages # The branch the action should deploy to
+          clean: true # Automatically remove deleted files from the deployment 
