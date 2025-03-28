@@ -1,8 +1,7 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
   AsciiArtGeneratorProps,
   LinkPosition,
-  TextPositionCache,
   CursorState,
   BlobGridCache,
   SCALE_FACTOR,
@@ -23,7 +22,6 @@ import {
   useBuildBlobCache,
   useTrigTables
 } from './AsciiArtGeneratorHelpers';
-import { renderFormattedText, FontName, parseTextWithStyles } from './ASCII_text_renderer';
 
 // Interface for click animation state
 interface ClickAnimation {
@@ -50,14 +48,12 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
     const [size, setSize] = useState<{ height: number | null; width: number | null }>({ height: null, width: null });
     
     // Scroll state
-    const [scrollOffset, setScrollOffset] = useState(0);
     const scrollOffsetRef = useRef(0);
     const isScrolling = useRef(false);
     const scrollVelocity = useRef(0);
     const lastScrollTime = useRef(0);
     
     // Link state
-    const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
     const linkPositionsRef = useRef<LinkPosition[]>([]);
     
     // Click animation state
@@ -160,7 +156,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
     
-    const prevScrollChunkRef = useRef(0);
     const lastFrameRef = useRef<string[][]>([]);
 
     // Cursor references
@@ -170,7 +165,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
         isInWindow: false,
         isActive: false
     });
-    const [cursor, setCursor] = useState(cursorRef.current);
     
     const lastMouseMoveTime = useRef(0);
 
@@ -192,7 +186,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
     const spatialGridRef = useRef<{[key: string]: Array<{textKey: string, x: number, y: number}>}>({});
     const needsRebuildRef = useRef(true);
     const rebuildCacheTimeoutRef = useRef<number | null>(null);
-    const renderingQuality = useRef('high');
     const scrollTimeoutRef = useRef<number | null>(null);
 
     // Get utilities using custom hooks
@@ -203,10 +196,9 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
 
     // Build the text position cache
     const textPositionCache = useTextPositionCache(
-      size, 
-      textContent, 
-      asciiArtCache, 
-      setLinkPositions, 
+      size,
+      textContent,
+      asciiArtCache,
       linkPositionsRef
     );
 
@@ -235,7 +227,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                             scrollVelocity.current = 0;
                         }
                         scrollOffsetRef.current = newOffset;
-                        setScrollOffset(newOffset);
                         if (Math.abs(scrollVelocity.current) > 5) {
                             needsRebuildRef.current = true;
                         }
@@ -264,7 +255,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
             newScrollOffset = Math.max(0, Math.min(maxScroll, newScrollOffset));
             
             scrollOffsetRef.current = newScrollOffset;
-            requestAnimationFrame(() => setScrollOffset(newScrollOffset));
             
             scrollVelocity.current = delta * 0.8;
             lastScrollTime.current = performance.now();
@@ -760,17 +750,14 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
             };
             
             cursorRef.current = newState;
-            setCursor(newState);
         };
         
         const handleMouseLeave = () => {
             cursorRef.current.isInWindow = false;
-            setCursor({...cursorRef.current, isInWindow: false});
         };
         
         const handleMouseEnter = () => {
             cursorRef.current.isInWindow = true;
-            setCursor({...cursorRef.current, isInWindow: true});
         };
         
         window.addEventListener('mousemove', handleMouseMove);
@@ -813,7 +800,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 let newOffset = scrollOffsetRef.current + deltaY * 2;
                 newOffset = Math.max(0, Math.min(maxScroll, newOffset));
                 scrollOffsetRef.current = newOffset;
-                setScrollOffset(newOffset);
                 
                 scrollVelocity.current = deltaY * 2;
                 lastScrollTime.current = performance.now();

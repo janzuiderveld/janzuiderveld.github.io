@@ -1,7 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   renderFormattedText, 
-  renderText, 
   renderTextString, 
   FontName 
 } from './ASCII_text_renderer';
@@ -88,7 +87,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
     // Link state
     const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
     const linkPositionsRef = useRef<LinkPosition[]>([]);
-    const [linkClicked, setLinkClicked] = useState<string | null>(null);
     
     const prevScrollChunkRef = useRef(0);
     const lastFrameRef = useRef<string[][]>([]);
@@ -105,7 +103,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
         isInWindow: false,
         isActive: false
     });
-    const [cursor, setCursor] = useState(cursorRef.current);
     
     const lastMouseMoveTime = useRef(0);
     const MOUSE_MOVE_THROTTLE = 16; // ~60fps
@@ -134,7 +131,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
     const spatialGridRef = useRef<{[key: string]: Array<{textKey: string, x: number, y: number}>}>({});
     const needsRebuildRef = useRef(true);
     const rebuildCacheTimeoutRef = useRef<number | null>(null);
-    const renderingQuality = useRef('high');
     const scrollTimeoutRef = useRef<number | null>(null);
 
     // Content height and maxScroll
@@ -828,7 +824,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 // For debugging - log when a link is clicked
                 const url = linkElement.getAttribute('href') || '';
                 console.log('Link clicked:', url);
-                setLinkClicked(url);
                 
                 // Don't prevent default - allow the browser to handle the link normally
             }
@@ -1016,9 +1011,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 isInWindow: true,
                 isActive: cursorRef.current.isActive
             };
-            if (now % 100 < MOUSE_MOVE_THROTTLE) {
-                setCursor(cursorRef.current);
-            }
         };
 
         const handleMouseLeave = () => {
@@ -1026,7 +1018,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 ...cursorRef.current,
                 isInWindow: false
             };
-            setCursor(cursorRef.current);
         };
 
         const handleMouseEnter = () => {
@@ -1034,7 +1025,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 ...cursorRef.current,
                 isInWindow: true
             };
-            setCursor(cursorRef.current);
         };
         
         const handleMouseDown = () => {
@@ -1042,7 +1032,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 ...cursorRef.current,
                 isActive: true
             };
-            setCursor(cursorRef.current);
         };
         
         const handleMouseUp = () => {
@@ -1050,7 +1039,6 @@ const AsciiArtGenerator = ({ textContent, maxScrollHeight }: AsciiArtGeneratorPr
                 ...cursorRef.current,
                 isActive: false
             };
-            setCursor(cursorRef.current);
         };
         
         window.addEventListener('mousemove', handleMouseMove, { passive: true });

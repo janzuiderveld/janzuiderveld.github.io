@@ -46,7 +46,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
   );
 
   // Content height calculations - Use the calculated bounds
-  const { contentHeight, maxScroll } = useContentHeight(
+  const { maxScroll } = useContentHeight(
     textPositionCache.bounds, // Pass the bounds from textPositionCache
     size, 
     maxScrollHeight
@@ -85,7 +85,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
   // Scrolling
   const { 
     scrollOffset, 
-    setScrollOffset, 
     isScrolling, 
     scrollVelocity, 
     checkScrollChunk 
@@ -103,7 +102,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
 
   // Links management
   const { 
-    linkOverlays, 
     updateLinkOverlays, 
     handleClick 
   } = useLinks(size, textPositionCache, scrollOffsetRef, (position, url) => {
@@ -321,7 +319,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
   }, [textPositionCache, cursorRef, fastSin, fastCos, blobGridCache]);
 
   // Animation
-  const { lastFrameRef } = useAnimation(
+  const { } = useAnimation(
     textRef,
     size,
     characterCalculator,
@@ -335,13 +333,23 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
   // Resize handling
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      // Use visualViewport if available, fallback to innerWidth/Height
+      const width = window.visualViewport?.width ?? window.innerWidth;
+      const height = window.visualViewport?.height ?? window.innerHeight;
       setSize({ height, width });
     };
-    handleResize();
+
+    handleResize(); // Initial size
+
+    // Listen to both window resize and visualViewport resize
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const visualViewport = window.visualViewport;
+    visualViewport?.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      visualViewport?.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // Build blob cache when size changes
@@ -426,7 +434,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
     document.addEventListener('click', preventDefaultLinkBehavior, { capture: true });
     
     // Update cursor style over links
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (_e: MouseEvent) => {
       if (!element || !size.width || !size.height) return;
       
       // For scrolling areas, we still want to show the appropriate cursor
@@ -462,7 +470,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
         top: 0,
         left: 0,
         width: '100%',
-        height: '100%',
+        height: '100vh',
         margin: 0,
         padding: 0,
         overflow: 'hidden',
@@ -502,6 +510,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ textContent, maxS
           letterSpacing: 0,
           marginLeft: '-1px',
           width: 'calc(100% + 2px)',
+          height: size.height ? `${size.height}px` : '100vh',
           cursor: (cursor.whiteout?.active || cursor.whiteIn?.active) ? 'default' : (maxScroll > 0 ? 'ns-resize' : 'default'),
           transform: `translateY(0)`,
           willChange: 'transform',

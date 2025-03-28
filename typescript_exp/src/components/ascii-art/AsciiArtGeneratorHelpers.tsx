@@ -1,10 +1,8 @@
 import { useCallback, useMemo, MutableRefObject } from 'react';
-import { renderFormattedText, renderTextString, FontName } from './ASCII_text_renderer';
+import { renderFormattedText, renderTextString } from './ASCII_text_renderer';
 import {
   LinkPosition,
   TextPositionCache,
-  CursorState,
-  BlobGridCache,
   CHAR_HEIGHT,
   BLOB_RADIUS,
   BLOB_PADDING,
@@ -14,52 +12,6 @@ import {
   createSinTable,
   createCosTable,
 } from './asciiArtUtils';
-
-/**
- * Wraps text at specified max width, breaking only at spaces
- * @param text The text to wrap
- * @param maxWidth Maximum width for each line
- * @returns Array of wrapped text lines
- */
-function wrapText(text: string, maxWidth: number = 80): string[] {
-  // If no maxWidth provided or invalid, return text split by newlines
-  if (!maxWidth || maxWidth <= 0) {
-    return text.split('\n');
-  }
-
-  const lines: string[] = [];
-  const paragraphs = text.split('\n');
-
-  // Process each paragraph
-  for (const paragraph of paragraphs) {
-    if (paragraph.length <= maxWidth) {
-      lines.push(paragraph);
-      continue;
-    }
-
-    let line = '';
-    const words = paragraph.split(' ');
-
-    // Process each word
-    for (const word of words) {
-      // If adding this word would exceed maxWidth
-      if (line.length + word.length + 1 > maxWidth && line.length > 0) {
-        lines.push(line); // Push current line
-        line = word; // Start new line with current word
-      } else {
-        // Add word to current line with a space if not first word
-        line = line.length === 0 ? word : `${line} ${word}`;
-      }
-    }
-
-    // Add the last line if not empty
-    if (line.length > 0) {
-      lines.push(line);
-    }
-  }
-
-  return lines;
-}
 
 // Build ASCII art cache
 export const useAsciiArtCache = (textContent: any[]) => {
@@ -122,7 +74,6 @@ export const useTextPositionCache = (
   size: { width: number | null; height: number | null },
   textContent: any[],
   asciiArtCache: Record<string, string[]>,
-  setLinkPositions: (links: LinkPosition[]) => void,
   linkPositionsRef: MutableRefObject<LinkPosition[]>
 ) => {
   return useMemo(() => {
@@ -190,8 +141,6 @@ export const useTextPositionCache = (
       if (!textLines || !textLines.length) return;
       
       // Calculate cols based on size.width
-      const fontWidth = GRID_CELL_SIZE * BLOB_RADIUS;
-      const cols2 = size.width ? Math.floor(size.width / fontWidth) : 0;
       
       // Process each line of the text
       let processedTextLines = textLines;
@@ -200,12 +149,6 @@ export const useTextPositionCache = (
       let maxLineLength = 0;
       for (const line of processedTextLines) {
         maxLineLength = Math.max(maxLineLength, line.length);
-      }
-      
-      // For centered text, calculate starting position
-      let textBlockStartX = gridX;
-      if (textItem.centered) {
-        textBlockStartX = Math.floor(cols / 2) - Math.floor(maxLineLength / 2);
       }
       
       // Process links data and store link positions
@@ -321,10 +264,9 @@ export const useTextPositionCache = (
     
     // Update link positions ref
     linkPositionsRef.current = links;
-    setLinkPositions(links);
     
     return { cache, grid: positionGrid, bounds: textBounds, links };
-  }, [textContent, asciiArtCache, size, setLinkPositions, linkPositionsRef]);
+  }, [textContent, asciiArtCache, size, linkPositionsRef]);
 };
 
 // Build blob cache

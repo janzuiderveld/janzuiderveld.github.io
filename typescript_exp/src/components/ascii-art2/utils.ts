@@ -9,7 +9,7 @@ import { GridDimensions } from './types';
  */
 export const getGridDimensions = (width: number, height: number): GridDimensions => {
   const cols = Math.floor(width / CHAR_WIDTH);
-  const rows = Math.floor(height / CHAR_HEIGHT);
+  const rows = Math.ceil(height / CHAR_HEIGHT);
   return { cols, rows };
 };
 

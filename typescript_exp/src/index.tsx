@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 
 // Import components directly
-import HomePage from './HomePage';
+import HomePage from './pages/HomePage';
 import CameraPage from './pages/CameraPage';
 
 console.log("index.tsx is initializing with direct route components");

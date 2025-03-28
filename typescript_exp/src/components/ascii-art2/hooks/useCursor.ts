@@ -474,9 +474,8 @@ export const useCursor = (
     if (!size.width || !size.height || !textRef.current) return;
     
     // Convert normalized coordinates to pixel coordinates
-    const rect = textRef.current.getBoundingClientRect();
-    const pixelX = ((position.x + 1) / 2) * rect.width + rect.left;
-    const pixelY = ((position.y + 1) / 2) * rect.height + rect.top;
+    // const pixelX = ((position.x + 1) / 2) * rect.width + rect.left; // Removed
+    // const pixelY = ((position.y + 1) / 2) * rect.height + rect.top; // Removed
     
     // Generate random parameters for the ripple (similar to handleClick)
     const lifespan = 1000 + Math.random() * 2000;

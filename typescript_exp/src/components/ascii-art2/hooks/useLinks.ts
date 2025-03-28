@@ -2,9 +2,9 @@ import { useState, useRef, useCallback } from 'react';
 import { 
   CHAR_WIDTH, 
   CHAR_HEIGHT, 
-  SAFARI_LINK_Y_OFFSET, 
-  SAFARI_CURSOR_Y_OFFSET, 
-  IS_SAFARI 
+  // SAFARI_LINK_Y_OFFSET, // Removed
+  // SAFARI_CURSOR_Y_OFFSET, // Removed
+  // IS_SAFARI // Removed
 } from '../constants';
 import { LinkPosition, LinkOverlay, Size, TextPositionCacheResult } from '../types';
 
@@ -177,8 +177,8 @@ export const useLinks = (
           Math.abs(gridY - linkY) <= hitSlop) {
         console.log('Link detected via coordinate check:', link.url);
         
-        const normalizedX = (relativeX / (size.width || 1)) * 2 - 1;
-        const normalizedY = (relativeY / (size.height || 1)) * 2 - 1;
+        // const normalizedX = (relativeX / (size.width || 1)) * 2 - 1; // Removed
+        // const normalizedY = (relativeY / (size.height || 1)) * 2 - 1; // Removed
         
         triggerWhiteout(link.url);
         return;

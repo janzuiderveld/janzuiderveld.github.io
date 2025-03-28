@@ -7,7 +7,6 @@ export default defineConfig({
   base: '/',  // Important: Deploy to root
   server: {
     open: '/',
-    historyApiFallback: true,
   },
   // Use this setting instead of historyApiFallback
   preview: {

@@ -1,10 +1,9 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { 
   FRAME_DURATION, 
   BASE_CHUNK_SIZE, 
   CHAR_HEIGHT, 
-  BORDER_FREQUENCY, 
-  HORIZONTAL_PADDING 
+  IS_SAFARI
 } from '../constants';
 import { Size, TextPositionCacheResult } from '../types';
 import { getGridDimensions } from '../utils';
@@ -70,7 +69,15 @@ export const useAnimation = (
     
     element.addEventListener('click', handleLinkClick);
 
-    const { cols, rows } = getGridDimensions(size.width, size.height);
+    let { cols, rows } = getGridDimensions(size.width, size.height);
+    
+    if (IS_SAFARI) {
+      // Calculate a proportional buffer (e.g., 3.5% of height), ensure at least 1 extra row
+      const CHAR_HEIGHT_VAL = 10; // From constants.ts (SCALE_FACTOR)
+      const extraRows = Math.max(1, Math.ceil((size.height * 0.035) / CHAR_HEIGHT_VAL));
+      rows += extraRows;
+    }
+    
     const aspectRatio = size.width / size.height;
     
     // Ensure lastFrameRef has enough rows allocated

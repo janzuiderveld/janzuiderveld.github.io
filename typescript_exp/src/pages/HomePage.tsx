@@ -51,26 +51,28 @@ function HomePage() {
 ==Coffee Machine==
 //KUMU Kunstimuuseum (Tallinn, EE)//`;
 
-        const aboutMeText = `About me
+        // const aboutMeText = `About me // Removed start
 
-I am a researcher, artist and engineer with an academic background counting degrees in Physics, Electrical Engineering, Neuropsychology, Artificial Intelligence and ArtScience. My professional history includes leading a machine learning team specializing in speech-to-intent systems and hands-on experience as both a researcher and an engineer in the field of generative AI.
+        // I am a researcher, artist and engineer with an academic background counting degrees in Physics, Electrical Engineering, Neuropsychology, Artificial Intelligence and ArtScience. My professional history includes leading a machine learning team specializing in speech-to-intent systems and hands-on experience as both a researcher and an engineer in the field of generative AI.
 
-In my artistic endeavors I explore the intersection of technology and life, creating interactive installations that invite reflection on the essence of being. My projects often endow things with a spark of life, challenging perceptions of existence. My approach is characterized by playful engagement with artificial intelligence, seeking to emulate the behaviors of living beings in a way that resonates with and surprises both myself and my audience, blurring the lines between the animate and the inanimate.`;
+        // In my artistic endeavors I explore the intersection of technology and life, creating interactive installations that invite reflection on the essence of being. My projects often endow things with a spark of life, challenging perceptions of existence. My approach is characterized by playful engagement with artificial intelligence, seeking to emulate the behaviors of living beings in a way that resonates with and surprises both myself and my audience, blurring the lines between the animate and the inanimate.`; // Removed end
 
         // Extract individual works from the works text
         const works = [
-          { title: "[[Life on _]](camera)", x: 19, y: 79 },
-          { title: "[[Coffee Machine]](coffee)", x: 80, y: 25 },
-          { title: "[[Copy Machine]](copy)", x: 13, y: 45 },
-          { title: "[[Lasers]](lasers)", x: 90, y: 50 },
-          { title: "[[Touching Distance]](touching)", x: 5, y: 60 },
-          { title: "[[This is not a fish]](camera)", x: 60, y: 80 }
+          { title: "[[Life on _]](camera)", x: 19, y: 22 },
+          { title: "[[Coffee Machine]](coffee)", x: 72, y: 39 },
+          { title: "[[Microwave]](microwave)", x: 85, y: 30 },
+          { title: "[[Copy Machine]](copy)", x: 78, y: 55 },
+          { title: "[[This is not a fish]](fish)", x: 8, y: 39 },
+          { title: "[[Radio Show]](radio)", x: 25, y: 49 },
+          { title: "[[Touching Distance]](touching)", x: 43, y: 80 },
+          { title: "[[Lasers]](lasers)", x: 36, y: 77 },
         ];
         
         const textItems = [
           { text: "WARANA>", x: 0, y: 15, centered: true, fontName: 'ascii'},
           { text: upcomingText, x: 30, y: 25, isTitle: false, centered: true, maxWidthPercent: 45, alignment: "center" as const },
-          { text: "[[About]](about)", x: 70, y: 10, isTitle: false, maxWidthPercent: 40, alignment: "left" as const },
+          { text: "[[About]](about)", x: 60, y: 10, isTitle: false, maxWidthPercent: 40, alignment: "left" as const },
           { text: "", x: 50, y: 40, isTitle: false, centered: true },
           // Add individual works as separate text items positioned around the page
           ...works.map(work => ({ 
