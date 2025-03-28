@@ -5,6 +5,17 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script>
+        // Check if we need to redirect after coming from 404.html
+        (function() {
+          let redirect = sessionStorage.redirect;
+          delete sessionStorage.redirect;
+          if (redirect && redirect !== location.href) {
+            history.replaceState(null, null, redirect);
+          }
+        })();
+    </script>
+
     <title>Jan Zuiderveld</title>
 
     <!-- Meta tags -->

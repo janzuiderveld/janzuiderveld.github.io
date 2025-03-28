@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src", "backup_files/Ascii_paper_bck.tsx", "backup_files/AsciiDemo.tsx"]
 }
