@@ -5,24 +5,33 @@ import React from 'react';
  * Component Props
  */
 export interface AsciiArtGeneratorProps {
-  textContent: Array<{
-    text: string, 
-    x: number, // Percentage of page width (0-100)
-    y: number, // Percentage of page height (0-100)
-    fontName?: FontName, // 'regular', 'ascii', or 'smallAscii'
-    preRenderedAscii?: string,
-    fixed?: boolean,
-    maxWidthPercent?: number,
-    alignment?: 'left' | 'center' | 'right',
-    usePercentPosition?: boolean,
-    centered?: boolean,
-    name?: string, // Unique identifier for the textbox
-    anchorTo?: string, // Name of the textbox to anchor to
-    anchorOffsetX?: number, // Horizontal offset from the anchor (can be negative)
-    anchorOffsetY?: number, // Vertical offset from the anchor (can be negative)
-    anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' // Which point of the anchor textbox to use
-  }>;
+  textContent: TextContentItem[];
   maxScrollHeight?: number;
+}
+
+/**
+ * Text Content Types
+ */
+export interface TextContentItem {
+  text: string;
+  x: number;
+  y: number;
+  fontName?: FontName;
+  preRenderedAscii?: string;
+  fixed?: boolean;
+  maxWidthPercent?: number;
+  alignment?: 'left' | 'center' | 'right';
+  usePercentPosition?: boolean;
+  centered?: boolean;
+  name?: string;
+  anchorTo?: string;
+  anchorOffsetX?: number;
+  anchorOffsetY?: number;
+  anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter';
+}
+
+export interface TextBox extends TextContentItem {
+  maxWidth?: number;
 }
 
 /**
@@ -58,26 +67,37 @@ export interface TextPositionCache {
   }[];
 }
 
+// Represents a single character cell in the main grid
+export type TextGridCell = { 
+  char: string; 
+  fixed: boolean; 
+  isBold?: boolean; 
+  isItalic?: boolean 
+} | null; // Use null for empty cells
+
 export interface TextPositionCacheResult {
   cache: TextPositionCache; 
-  grid: { [key: string]: { char: string; fixed: boolean; isBold?: boolean; isItalic?: boolean } };
+  grid: TextGridCell[]; // Flat array: index = y * cols + x
   bounds: {[key: string]: TextBounds};
   links: LinkPosition[];
+  gridCols: number; // Store grid width (columns)
+  offsetY: number;  // Store vertical offset for grid indexing
 }
 
 export interface SpatialGrid {
-  [key: string]: Array<{textKey: string, x: number, y: number}>;
+  [key: string]: Array<{textKey: string, x: number, y: number, fixed?: boolean}>;
 }
 
 /**
  * Blob Cache
  */
 export interface BlobGridCache {
-  grid: {[key: string]: Uint8Array};
+  grid: (Uint8Array | null)[]; // Flat array of Uint8Array cells: index = gridY * cacheGridWidth + gridX
   startX: number;
   startY: number;
-  width: number;
-  height: number;
+  width: number; // Width in characters
+  height: number; // Height in characters
+  cacheGridWidth: number; // Width of the grid of Uint8Array cells
 }
 
 /**
@@ -140,4 +160,5 @@ export interface CursorState {
   whiteout: WhiteoutState | null;
   whiteIn: WhiteInState | null;
   whiteOverlay: WhiteOverlayState | null;
+  isScrolling?: boolean; // Added to track scrolling state for performance optimizations
 } 

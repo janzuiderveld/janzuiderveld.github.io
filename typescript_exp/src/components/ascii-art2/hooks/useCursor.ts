@@ -252,8 +252,96 @@ export const useCursor = (
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('click', handleClick);
+
+      // Add touch event listeners to the text element
+      const element = textRef.current;
+      if (element) {
+        element.addEventListener('touchstart', handleTouchStart, { passive: true });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false }); // Need passive:false to prevent scroll
+        element.addEventListener('touchend', handleTouchEnd, { passive: true });
+        element.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+      }
     };
   }, [size, textRef]);
+
+  // Touch handlers
+  const handleTouchStart = (e: TouchEvent) => {
+    if (e.touches.length !== 1 || !size.width || !size.height || !textRef.current) return;
+    if (cursorRef.current.whiteout?.active || cursorRef.current.whiteIn?.active) return;
+
+    const touch = e.touches[0];
+    const rect = textRef.current.getBoundingClientRect();
+    const relativeX = touch.clientX - rect.left;
+    const relativeY = touch.clientY - rect.top; // No Safari offset needed for touch?
+
+    const gridX = Math.floor(relativeX / CHAR_WIDTH);
+    const gridY = Math.floor(relativeY / CHAR_HEIGHT);
+    const gridDimensions = getGridDimensions(size.width, size.height);
+    const normalizedX = (gridX / gridDimensions.cols) * 2 - 1;
+    const normalizedY = (gridY / gridDimensions.rows) * 2 - 1;
+
+    cursorRef.current = {
+      ...cursorRef.current,
+      grid: { x: gridX, y: gridY },
+      normalized: { x: normalizedX, y: normalizedY },
+      isInWindow: true,
+      isActive: true, // Mark as active on touch start
+    };
+    setCursor(cursorRef.current);
+    
+    // Optionally, trigger a small ripple on touch start
+    // You might want to adjust ripple logic for touch separately
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (e.touches.length !== 1 || !size.width || !size.height || !textRef.current) return;
+    if (cursorRef.current.whiteout?.active || cursorRef.current.whiteIn?.active) return;
+    
+    // Prevent default scrolling behavior when tracking touch for animation
+    e.preventDefault(); 
+
+    const now = performance.now();
+    if (now - lastMouseMoveTime.current < MOUSE_MOVE_THROTTLE) { // Reuse mouse throttle
+      return;
+    }
+    lastMouseMoveTime.current = now;
+
+    const touch = e.touches[0];
+    const rect = textRef.current.getBoundingClientRect();
+    const relativeX = touch.clientX - rect.left;
+    const relativeY = touch.clientY - rect.top;
+
+    const gridX = Math.floor(relativeX / CHAR_WIDTH);
+    const gridY = Math.floor(relativeY / CHAR_HEIGHT);
+    const gridDimensions = getGridDimensions(size.width, size.height);
+    const normalizedX = (gridX / gridDimensions.cols) * 2 - 1;
+    const normalizedY = (gridY / gridDimensions.rows) * 2 - 1;
+
+    cursorRef.current = {
+      ...cursorRef.current,
+      grid: { x: gridX, y: gridY },
+      normalized: { x: normalizedX, y: normalizedY },
+      isInWindow: true, // Keep isInWindow true during touch drag
+    };
+    
+    // Throttle state updates for performance
+    if (now % 100 < MOUSE_MOVE_THROTTLE) { 
+        setCursor(cursorRef.current);
+    }
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    // Check if it's the final touch point ending
+    if (e.touches.length === 0) { 
+      cursorRef.current = {
+        ...cursorRef.current,
+        isActive: false, // Mark inactive on touch end
+        // Maybe isInWindow should become false here if not interacting?
+        // Decide if a ripple is desired on touch end
+      };
+      setCursor(cursorRef.current);
+    }
+  };
 
   // Function to activate the white overlay
   const activateWhiteOverlay = () => {

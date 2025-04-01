@@ -22,6 +22,13 @@ export const IS_SAFARI = typeof navigator !== 'undefined' &&
 export const SAFARI_LINK_Y_OFFSET = IS_SAFARI ? 5 : 0; // Pixels
 export const SAFARI_CURSOR_Y_OFFSET = IS_SAFARI ? -3 : 0; // Pixels
 
+// Safari-specific constants
+export const SAFARI_LINK_OFFSET_BASE = 30; // Base offset in pixels (increased for visibility)
+export const SAFARI_LINK_OFFSET_FACTOR = 0.; // Proportional factor for scroll-based adjustment (increased)
+
+// Debug constants
+export const DEBUG_LINK_OVERLAYS = false; // Set to true to visualize link overlay areas
+
 // Performance constants
 export const MOUSE_MOVE_THROTTLE = 16; // ~60fps
 export const BASE_CHUNK_SIZE = 15; 

@@ -18,11 +18,12 @@ export const useBlobCache = (
   size: Size
 ) => {
   const blobGridCache = useRef<BlobGridCache>({
-    grid: {},
+    grid: [],
     startX: 0,
     startY: 0,
     width: 0,
-    height: 0
+    height: 0,
+    cacheGridWidth: 0
   });
   
   const spatialGridRef = useRef<SpatialGrid>({});
@@ -37,14 +38,14 @@ export const useBlobCache = (
     
     const padding = BLOB_RADIUS * 3;
     const cacheStartX = -padding;
-    const cacheStartY = scrolledY - rows - padding; 
+    const cacheStartY = -padding;
     const cacheWidth = cols + padding * 2;
     const cacheHeight = rows * 4 + padding * 2;
     
     const gridWidth = Math.ceil(cacheWidth / BLOB_CACHE_GRID_SIZE);
     const gridHeight = Math.ceil(cacheHeight / BLOB_CACHE_GRID_SIZE);
     
-    const newGrid: {[key: string]: Uint8Array} = {};
+    const newGrid: (Uint8Array | null)[] = new Array(gridWidth * gridHeight).fill(null);
      
     const spatialGrid: SpatialGrid = {};
     const cellSize = GRID_CELL_SIZE * BLOB_RADIUS;
@@ -55,7 +56,7 @@ export const useBlobCache = (
       const isFixed = bounds.fixed;
       
       for (const pos of positions) {
-        const effectiveY = isFixed ? pos.y : pos.y;
+        const effectiveY = isFixed ? pos.y : pos.y - scrolledY;
         
         if (effectiveY < cacheStartY - BLOB_RADIUS || 
             effectiveY > cacheStartY + cacheHeight + BLOB_RADIUS) {
@@ -74,7 +75,8 @@ export const useBlobCache = (
         spatialGrid[cellKey].push({
           textKey,
           x: pos.startX,
-          y: effectiveY
+          y: effectiveY,
+          fixed: isFixed
         });
       }
     }
@@ -82,7 +84,8 @@ export const useBlobCache = (
     for (let gy = 0; gy < gridHeight; gy++) {
       for (let gx = 0; gx < gridWidth; gx++) {
         const cellArray = new Uint8Array(BLOB_CACHE_GRID_SIZE * BLOB_CACHE_GRID_SIZE);
-        newGrid[`${gx},${gy}`] = cellArray;
+        const cellIndex = gy * gridWidth + gx;
+        newGrid[cellIndex] = cellArray;
         
         const cellWorldX = cacheStartX + gx * BLOB_CACHE_GRID_SIZE;
         const cellWorldY = cacheStartY + gy * BLOB_CACHE_GRID_SIZE;
@@ -118,9 +121,9 @@ export const useBlobCache = (
               for (const pos of positions) {
                 const dx = worldX - pos.x;
                 const dy = worldY - pos.y;
-                const distanceSquared = dx * dx + dy * dy * 2;
+                const distanceSquared = dx * dx + dy * dy * 1.5;
                 
-                if (distanceSquared < (BLOB_RADIUS - 2) * (BLOB_RADIUS - 2)) {
+                if (distanceSquared < (BLOB_RADIUS - 1.5) * (BLOB_RADIUS - 1.5)) {
                   isInterior = true;
                   break;
                 }
@@ -141,7 +144,8 @@ export const useBlobCache = (
       startX: cacheStartX,
       startY: cacheStartY,
       width: cacheWidth,
-      height: cacheHeight
+      height: cacheHeight,
+      cacheGridWidth: gridWidth
     };
     
     spatialGridRef.current = spatialGrid;

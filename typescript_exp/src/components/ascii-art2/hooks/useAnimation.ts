@@ -165,17 +165,23 @@ export const useAnimation = (
               const key = `${x},${y}`;
               if (!styleMap.has(key) && pos.char && pos.char !== ' ') {
                 // Test if this character should be bold based on the grid entry
-                const gridKey = `${x},${pos.y}`;
-                const gridEntry = textPositionCache.grid[gridKey];
-                
-                if (gridEntry) {
-                  if (gridEntry.isBold && gridEntry.isItalic) {
+                // Calculate index into the flat grid array using original position
+                const originalY = pos.y; 
+                const arrayIndex = (originalY - textPositionCache.offsetY) * textPositionCache.gridCols + x;
+
+                // Check bounds and retrieve cell data
+                const cell = (x >= 0 && x < textPositionCache.gridCols && originalY >= textPositionCache.offsetY && arrayIndex >= 0 && arrayIndex < textPositionCache.grid.length) 
+                             ? textPositionCache.grid[arrayIndex] 
+                             : null;
+
+                if (cell) { // Check if a cell exists at this original position
+                  if (cell.isBold && cell.isItalic) {
                     // Both bold and italic
                     styleMap.set(key, `<span style="font-weight:bold; font-style:italic; text-shadow: 0px 0px 1px #000;">$</span>`);
-                  } else if (gridEntry.isBold) {
+                  } else if (cell.isBold) {
                     // Bold only
                     styleMap.set(key, `<span style="font-weight:bold; text-shadow: 0px 0px 1px #000;">$</span>`);
-                  } else if (gridEntry.isItalic) {
+                  } else if (cell.isItalic) {
                     // Italic only
                     styleMap.set(key, `<span style="font-style:italic;">$</span>`);
                   }
@@ -192,6 +198,7 @@ export const useAnimation = (
           
           for (let y = startRow; y < endRow; y++) {
             for (let x = 0; x < cols; x += skipFactor) {
+              // Call calculateCharacter with the correct signature
               const char = calculateCharacter(x, y, cols, rows, aspectRatio, timestamp);
               rowBuffers[y][x] = char;
               // Fill in skipped positions with the same character if needed

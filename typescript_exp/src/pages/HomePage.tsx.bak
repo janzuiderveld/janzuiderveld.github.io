@@ -117,7 +117,7 @@ function HomePage() {
                 name: work.name,
                 text: work.title,
                 centered: true,
-                x: Math.random() * 20 - 10, // Random x position between -20 and 20
+                x: Math.random() * 40 - 20, // Random x position between -20 and 20
                 y: 5,
                 anchorTo: anchorTo,
                 anchorPoint: 'bottomLeft' as const, // Use 'center' which is a valid type

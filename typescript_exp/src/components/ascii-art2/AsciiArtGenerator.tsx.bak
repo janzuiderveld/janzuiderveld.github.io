@@ -19,7 +19,7 @@ import {
   useContentHeight,
   useAnimation
 } from './hooks';
-import { calculateCharacter, clearCharacterCache } from './renderer';
+import { calculateCharacter } from './renderer';
 
 const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ 
   textContent, 
@@ -77,49 +77,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   // Cursor tracking with white-in/whiteout support
   const { cursor, cursorRef, startWhiteout, startWhiteIn } = useCursor(textRef, size);
 
-  // Track URL changes and trigger white-in effect when needed
-  useEffect(() => {
-    // Check if URL has changed since last render
-    const currentUrl = window.location.href;
-    if (currentUrl !== contentStateRef.current.pageUrl) {
-      // URL changed, we need a new white-in effect
-      contentStateRef.current = {
-        whiteInStarted: false,
-        pageUrl: currentUrl,
-        needsWhiteIn: true
-      };
-      
-      // Reset content loaded state
-      if (contentLoaded) {
-        setContentLoaded(false);
-      }
-    }
-  }, [contentLoaded]);
-
-  // Define updateLinkOverlays function stub for initial use
-  const updateLinkOverlaysRef = useRef<() => void>(() => {});
-
-  // Scrolling - destructure only what we need, pass cursorRef to update scrolling state
-  const { 
-    scrollOffset, 
-    checkScrollChunk, 
-    isScrolling, 
-    scrollVelocity 
-  } = useScrolling(maxScroll, containerRef, () => {
-    // Ensure link overlays update after each scroll chunk
-    updateLinkOverlaysRef.current();
-  }, cursorRef); // Pass cursorRef to useScrolling
-
-  // Update the scrollOffsetRef when scrollOffset changes
-  useEffect(() => {
-    scrollOffsetRef.current = scrollOffset;
-    
-    // Update link positions after scroll changes
-    requestAnimationFrame(() => {
-      updateLinkOverlaysRef.current();
-    });
-  }, [scrollOffset]);
-
   // Links management
   const { 
     updateLinkOverlays, 
@@ -148,11 +105,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       startWhiteout(position, url);
     }
   });
-
-  // Update the ref with the real function
-  useEffect(() => {
-    updateLinkOverlaysRef.current = updateLinkOverlays;
-  }, [updateLinkOverlays]);
 
   // Track content loading state
   useEffect(() => {
@@ -345,7 +297,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     characterCalculator,
     scrollOffsetRef,
     textPositionCache,
-    isScrolling,
+    isScrollingRef,
     scrollVelocity,
     linkPositionsRef
   );
@@ -412,6 +364,10 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       }, 100);
     });
     
+    // ADDED: Direct scroll response - rebuilds the cache on ANY scroll offset change
+    // This ensures blobs stay perfectly aligned with text during scrolling
+    buildBlobCache(scrollOffset);
+    
   }, [scrollOffset, buildBlobCache, checkScrollChunk]);
 
   // Build blob cache on first render
@@ -424,12 +380,11 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   // Clear blob cache on content changes
   useEffect(() => {
     blobGridCache.current = {
-      grid: [] as (Uint8Array | null)[],
+      grid: {},
       startX: 0,
       startY: 0,
       width: 0,
-      height: 0,
-      cacheGridWidth: 0
+      height: 0
     };
   }, [textContent]);
 
@@ -497,41 +452,41 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         }
       });
     };
-
+    
     // Create the scroll handler
     const handleScrollEvent = () => {
       updateLinksOnScroll();
     };
-
+    
     // Use MutationObserver to detect any DOM changes that might affect positioning
     const observer = new MutationObserver(() => {
       updateLinksOnScroll();
     });
-
+    
     if (textRef.current) {
       // Observe the text element for any changes
-      observer.observe(textRef.current, {
-        attributes: true,
-        childList: true,
+      observer.observe(textRef.current, { 
+        attributes: true, 
+        childList: true, 
         subtree: true,
-        characterData: true
+        characterData: true 
       });
-
+      
       // Add scroll listeners to multiple elements to ensure we catch all scroll events
       window.addEventListener('scroll', handleScrollEvent, { passive: true });
       document.addEventListener('scroll', handleScrollEvent, { passive: true });
       textRef.current.addEventListener('scroll', handleScrollEvent, { passive: true });
-
+      
       // Track animation frames to update links during animations
       let animationFrameId: number;
       const updateOnFrame = () => {
         updateLinksOnScroll();
         animationFrameId = requestAnimationFrame(updateOnFrame);
       };
-
+      
       // Use RAF for smoother updates during animations/transitions
       animationFrameId = requestAnimationFrame(updateOnFrame);
-
+      
       return () => {
         window.removeEventListener('scroll', handleScrollEvent);
         document.removeEventListener('scroll', handleScrollEvent);
@@ -543,7 +498,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       };
     }
   }, []);
-
+  
   // Make sure link position updates happen after scroll offset changes
   useEffect(() => {
     // This effect specifically ensures that link overlays update when scroll offset changes
@@ -613,41 +568,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       }
     };
   }, [startWhiteout]);
-
-  // Add a render throttling mechanism when scrolling
-  const frameSkipCountRef = useRef(0);
-  
-  useEffect(() => {
-    let animationFrameId: number;
-    
-    // Animation frame function with performance optimizations
-    const updateFrame = () => {
-      // Only skip every 3rd frame during scrolling to maintain animation quality
-      // This balances performance and visual quality
-      if (cursorRef.current.isScrolling) {
-        frameSkipCountRef.current++;
-        if (frameSkipCountRef.current % 3 === 2) { // Skip every 3rd frame only
-          animationFrameId = requestAnimationFrame(updateFrame);
-          return;
-        }
-      } else {
-        frameSkipCountRef.current = 0;
-      }
-      
-      // Clear the character cache at the beginning of each frame
-      clearCharacterCache();
-      
-      // Rest of animation code...
-      
-      animationFrameId = requestAnimationFrame(updateFrame);
-    };
-    
-    animationFrameId = requestAnimationFrame(updateFrame);
-    
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
   return (
     <div 

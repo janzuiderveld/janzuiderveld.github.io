@@ -1,10 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   CHAR_WIDTH, 
   CHAR_HEIGHT, 
   // SAFARI_LINK_Y_OFFSET, // Removed
   // SAFARI_CURSOR_Y_OFFSET, // Removed
-  // IS_SAFARI // Removed
+  IS_SAFARI,
+  SAFARI_LINK_OFFSET_BASE,
+  SAFARI_LINK_OFFSET_FACTOR
 } from '../constants';
 import { LinkPosition, LinkOverlay, Size, TextPositionCacheResult } from '../types';
 
@@ -18,62 +20,86 @@ export const useLinks = (
   const linkPositionsRef = useRef<LinkPosition[]>([]);
   const [linkClicked, setLinkClicked] = useState<string | null>(null);
   const [linkOverlays, setLinkOverlays] = useState<LinkOverlay[]>([]);
+  const lastScrollOffsetRef = useRef(scrollOffsetRef.current);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<number | null>(null);
 
-  // Update link overlays
+  // Enhanced scroll tracking
+  useEffect(() => {
+    // Track scroll changes and set scrolling state
+    const handleScroll = () => {
+      // If scroll position changed, mark as scrolling
+      if (lastScrollOffsetRef.current !== scrollOffsetRef.current) {
+        isScrollingRef.current = true;
+        
+        // Clear any existing timeout
+        if (scrollTimeoutRef.current !== null) {
+          window.clearTimeout(scrollTimeoutRef.current);
+        }
+        
+        // Set timeout to mark scrolling as complete after a short delay
+        scrollTimeoutRef.current = window.setTimeout(() => {
+          isScrollingRef.current = false;
+          // Update link overlays after scrolling stops
+          requestAnimationFrame(() => updateLinkOverlays());
+        }, 150);
+      }
+      
+      lastScrollOffsetRef.current = scrollOffsetRef.current;
+    };
+    
+    // Check for scroll changes frequently
+    const interval = setInterval(handleScroll, 50);
+    
+    return () => {
+      clearInterval(interval);
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Update link overlays with improved positioning
   const updateLinkOverlays = useCallback(() => {
     if (!size.width || !size.height) return;
     
-    const scrolledY = Math.floor(scrollOffsetRef.current / CHAR_HEIGHT);
+    const currentScrollY = scrollOffsetRef.current;
+    const scrolledY = Math.floor(currentScrollY / CHAR_HEIGHT);
     const newOverlays: LinkOverlay[] = [];
     
     for (const link of linkPositionsRef.current) {
       const isFixed = textPositionCache.bounds[link.textKey]?.fixed || false;
       const linkY = isFixed ? link.y : link.y - scrolledY;
       
-      // Use a wider range to ensure we catch all links
-      if (linkY >= -5 && linkY < (size.height / CHAR_HEIGHT) + 5) {
+      // Use a wider range to ensure we catch all links that might be partially visible
+      if (linkY >= -15 && linkY < (size.height / CHAR_HEIGHT) + 15) {
         // Calculate exact position with pixel precision
         const left = Math.max(0, link.startX * CHAR_WIDTH);
         const top = linkY * CHAR_HEIGHT;
         
-        // Don't apply Safari offset for better precision
         const width = (link.endX - link.startX + 1) * CHAR_WIDTH;
-        // Make clickable area much taller for better hit detection
-        const height = CHAR_HEIGHT * 3; // Consistent larger hit area for all browsers
-        
-        // Position the overlay directly on the text for debugging
-        const adjustedTop = top;
+        // Create a taller clickable area for better hit detection
+        const height = CHAR_HEIGHT * 3;
         
         newOverlays.push({
           url: link.url,
           style: {
             position: 'absolute',
             left: `${left}px`,
-            top: `${adjustedTop}px`,
+            top: `${top}px`,
             width: `${width}px`,
             height: `${height}px`,
-            backgroundColor: 'rgba(255, 0, 0, 0.3)', // Bright red transparent background for debugging
+            backgroundColor: 'transparent',
             cursor: 'pointer',
-            zIndex: 9999, // Very high z-index to ensure it's above everything
+            zIndex: 9999,
             pointerEvents: 'auto',
-            transition: 'none', // Disable transitions for immediate feedback
+            transform: 'translateZ(0)',
             outline: 'none',
             display: 'block',
             padding: 0,
             margin: 0,
             boxSizing: 'border-box',
-            border: '2px solid red', // Very visible red border
-            borderRadius: 0, // No rounded corners for exact positioning
-            boxShadow: '0 0 5px rgba(255, 0, 0, 0.7)', // Red glow
-            userSelect: 'none',
-            textAlign: 'center', // Center text
-            color: 'white', // White text
-            fontWeight: 'bold', // Bold text
-            fontSize: '10px', // Small text
-            lineHeight: '1.2', // Tight line height
-            overflow: 'hidden', // Hide overflow
-            whiteSpace: 'nowrap', // Don't wrap text
-            textOverflow: 'ellipsis', // Ellipsis for overflow
+            userSelect: 'none'
           }
         });
       }
@@ -82,26 +108,124 @@ export const useLinks = (
     setLinkOverlays(newOverlays);
   }, [size, textPositionCache.bounds, scrollOffsetRef]);
 
-  // Link click handling
+  // Add direct DOM event listeners for more reliable click detection
+  useEffect(() => {
+    // Function to handle direct click events on the document
+    const handleDocumentClick = (e: MouseEvent) => {
+      // First check if this is a link click by matching data attributes
+      const target = e.target as HTMLElement;
+      
+      // Try to find the closest link element starting from the click target
+      const getLinkUrl = (element: HTMLElement | null): string | null => {
+        if (!element) return null;
+        
+        // Check for various link indicators in priority order
+        if (element.hasAttribute('data-url')) {
+          return element.getAttribute('data-url');
+        }
+        
+        if (element.hasAttribute('data-href')) {
+          return element.getAttribute('data-href');
+        }
+        
+        if (element.tagName === 'A' && element.hasAttribute('href')) {
+          return element.getAttribute('href');
+        }
+        
+        // Check data-link-overlay attribute
+        if (element.hasAttribute('data-link-overlay')) {
+          const url = element.getAttribute('data-url') || element.getAttribute('data-href');
+          if (url) return url;
+        }
+        
+        // Try parent element up to 3 levels
+        let parent = element.parentElement;
+        let level = 0;
+        while (parent && level < 3) {
+          if (parent.hasAttribute('data-url')) {
+            return parent.getAttribute('data-url');
+          }
+          
+          if (parent.hasAttribute('data-href')) {
+            return parent.getAttribute('data-href');
+          }
+          
+          if (parent.hasAttribute('data-link-overlay')) {
+            const url = parent.getAttribute('data-url') || parent.getAttribute('data-href');
+            if (url) return url;
+          }
+          
+          parent = parent.parentElement;
+          level++;
+        }
+        
+        return null;
+      };
+      
+      // Try to find a link URL from the clicked element or its parents
+      const url = getLinkUrl(target);
+      
+      if (url) {
+        // Found a link! Prevent default navigation and handle it
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Find the position of the click relative to textRef
+        if (!document.body.contains(target)) {
+          return; // Safety check in case the element is no longer in the DOM
+        }
+        
+        // Get approximate normalized position from window coordinates
+        const x = (e.clientX / window.innerWidth) * 2 - 1;
+        const y = (e.clientY / window.innerHeight) * 2 - 1;
+        
+        console.log('Direct DOM click handler found link:', url);
+        startWhiteout({ x, y }, url);
+      }
+    };
+    
+    // Add click handler directly to document to catch all clicks
+    document.addEventListener('click', handleDocumentClick, { capture: true });
+    
+    return () => {
+      document.removeEventListener('click', handleDocumentClick, { capture: true });
+    };
+  }, [startWhiteout]);
+
+  // Improved link click handling with enhanced scroll awareness
   const handleClick = useCallback((e: MouseEvent, textRef: React.RefObject<HTMLPreElement>) => {
     if (!textRef.current || !size.width || !size.height) return;
     
-    console.log("Click detected at:", e.clientX, e.clientY);
+    // Don't process clicks during active scrolling
+    if (isScrollingRef.current) {
+      console.log('Ignoring click during scrolling');
+      return;
+    }
     
-    // DEBUG: Print all overlays and their positions
-    console.log("Current link overlays:", linkPositionsRef.current);
+    // Get current scroll position at the moment of the click
+    const currentScrollY = scrollOffsetRef.current;
+    const scrolledY = Math.floor(currentScrollY / CHAR_HEIGHT);
     
-    // Check if the click was on an overlay element first (most reliable)
-    const target = e.target as HTMLElement;
+    // Calculate Safari-specific offset correction for coordinate-based detection
+    const calculateSafariOffset = (scrollY: number, isFixed: boolean): number => {
+      if (!IS_SAFARI || isFixed) return 0;
+      return SAFARI_LINK_OFFSET_BASE + (scrollY * SAFARI_LINK_OFFSET_FACTOR);
+    };
     
     // Helper function to trigger the whiteout effect
     const triggerWhiteout = (url: string) => {
       console.log('🔗 Link clicked, triggering whiteout to:', url);
+      console.log('Current scroll position:', currentScrollY, 'chars:', scrolledY);
       
       // Completely stop event propagation and prevent default behavior
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
+      try {
+        // Try to stop immediate propagation if available
+        (e as any).stopImmediatePropagation?.();
+      } catch (err) {
+        // Ignore errors if this method isn't available
+      }
       
       const rect = textRef.current!.getBoundingClientRect();
       const normalizedX = ((e.clientX - rect.left) / (size.width || 1)) * 2 - 1;
@@ -113,80 +237,112 @@ export const useLinks = (
       return false;
     };
     
-    // First check direct target
-    if (target.hasAttribute('data-link-overlay') || target.hasAttribute('data-url')) {
+    // Check for data attributes first (most reliable)
+    const target = e.target as HTMLElement;
+    
+    // Check for direct data-url attribute (added to link overlays)
+    if (target.hasAttribute('data-url')) {
       const url = target.getAttribute('data-url');
       if (url) {
-        console.log('Link clicked directly on overlay:', url);
-        triggerWhiteout(url);
-        return;
+        console.log('Link clicked via data-url attribute:', url);
+        return triggerWhiteout(url);
       }
     }
     
-    // Check if it's our "CLICK HERE" explicit link
+    // Check for data-href attribute
+    if (target.hasAttribute('data-href')) {
+      const url = target.getAttribute('data-href');
+      if (url) {
+        console.log('Link clicked via data-href attribute:', url);
+        return triggerWhiteout(url);
+      }
+    }
+    
+    // Check link overlay attribute
+    if (target.hasAttribute('data-link-overlay')) {
+      const url = target.getAttribute('data-url') || target.getAttribute('data-href');
+      if (url) {
+        console.log('Link clicked via link overlay attribute:', url);
+        return triggerWhiteout(url);
+      }
+    }
+    
+    // Check for standard anchor tag
     if (target.tagName === 'A' && target.getAttribute('href')) {
-      console.log('Link clicked via explicit link element:', target.getAttribute('href'));
       const href = target.getAttribute('href');
       if (href) {
+        console.log('Link clicked via anchor element:', href);
         e.preventDefault();
-        triggerWhiteout(href);
+        return triggerWhiteout(href);
       }
-      return;
     }
     
-    // Then check for closest overlay
+    // Check for closest link overlay
     const linkOverlay = target.closest('[data-link-overlay="true"]');
     if (linkOverlay) {
-      const url = linkOverlay.getAttribute('data-url');
+      const url = linkOverlay.getAttribute('data-url') || linkOverlay.getAttribute('data-href');
       if (url) {
-        console.log('Link clicked via overlay container:', url);
-        triggerWhiteout(url);
-        return;
+        console.log('Link clicked via link overlay parent:', url);
+        return triggerWhiteout(url);
       }
     }
     
-    // Fallback detection directly via coordinates - more lenient for debugging
+    // Fallback to coordinate-based detection with current scroll position
     const rect = textRef.current.getBoundingClientRect();
     const relativeX = e.clientX - rect.left;
-    const relativeY = e.clientY - rect.top; 
+    const relativeY = e.clientY - rect.top;
     
     console.log("Click coordinates relative to text:", relativeX, relativeY);
     
     const gridX = Math.floor(relativeX / CHAR_WIDTH);
+    // For Safari, compensate the click Y position with the same offset logic
+    // This aligns the detection with the visual position of the links
     const gridY = Math.floor(relativeY / CHAR_HEIGHT);
     
-    // Adjust for scroll position
-    const scrolledY = Math.floor(scrollOffsetRef.current / CHAR_HEIGHT);
+    // Calculate the actual grid Y position with current scroll
     const adjustedGridY = gridY + scrolledY;
     
     console.log("Grid coordinates:", gridX, gridY, "Adjusted for scroll:", gridX, adjustedGridY);
+    if (IS_SAFARI) {
+      console.log("Safari detected - will apply proportional offset correction");
+    }
     
-    // Use an extremely forgiving hit detection area for debugging
-    const hitSlop = 5;
+    // Use an even more generous hit detection area for better reliability
+    const hitSlop = 7;
     
-    // Check if click is on a link with very forgiving boundaries
+    // Check each link position with greater tolerance
     for (const link of linkPositionsRef.current) {
       const isFixed = textPositionCache.bounds[link.textKey]?.fixed || false;
       const linkY = isFixed ? link.y : link.y - scrolledY;
       
-      console.log(`Testing link ${link.url} at pos:`, link.startX, linkY, "to", link.endX, linkY);
+      // Calculate Safari offset for this link position
+      const safariOffset = calculateSafariOffset(scrolledY, isFixed);
       
-      // Use a larger hit detection range
+      // Calculate effective Y position with Safari correction
+      // For Safari, we need to adjust the link's Y position to match the click position
+      const effectiveLinkY = IS_SAFARI ? (linkY + (safariOffset / CHAR_HEIGHT)) : linkY;
+      
+      console.log(`Testing link ${link.url} at pos:`, link.startX, effectiveLinkY, "to", link.endX, effectiveLinkY);
+      if (IS_SAFARI) {
+        console.log(`Safari offset applied: ${safariOffset}px (${safariOffset / CHAR_HEIGHT} chars)`);
+      }
+      
+      // Improved hit detection with greater tolerance and Safari adjustment
       if (gridX >= link.startX - hitSlop && 
           gridX <= link.endX + hitSlop && 
-          Math.abs(gridY - linkY) <= hitSlop) {
+          Math.abs(gridY - effectiveLinkY) <= hitSlop) {
         console.log('Link detected via coordinate check:', link.url);
-        
-        // const normalizedX = (relativeX / (size.width || 1)) * 2 - 1; // Removed
-        // const normalizedY = (relativeY / (size.height || 1)) * 2 - 1; // Removed
-        
-        triggerWhiteout(link.url);
-        return;
+        return triggerWhiteout(link.url);
       }
     }
     
-    console.log("No link found at click position");
+    console.log("No link found at click position with current scroll:", scrolledY);
   }, [size, textPositionCache.bounds, scrollOffsetRef, startWhiteout]);
+
+  // Force update link overlays when scroll position changes
+  useEffect(() => {
+    updateLinkOverlays();
+  }, [scrollOffsetRef.current, updateLinkOverlays]);
 
   return {
     linkPositions,

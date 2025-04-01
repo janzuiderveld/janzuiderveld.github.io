@@ -29,10 +29,11 @@ function ConstructionPage() {
       setIsLoading(true);
       try {        
         const textItems = [
-          { text: "UNDER CONSTRUCTION", x: 50, y: 10, isTitle: true, centered: true, fontName: 'ascii'},
-          { text: "construction", x: 50, y: 40, preRenderedAscii: preRenderedArt.construction, centered: true },
-          { text: "This page is under construction. Please check back soon.\nIf in need of info, contact me at jan@warana.xyz", x: 20, y: 20, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center' },
-          { text: "[[<<<]](/)", x: 5, y: 25, centered: false, maxWidthPercent: 60, alignment: "left" as 'left', fontName: 'regular'},
+          { text: "UNDER", x: 0, y: 10, isTitle: true, centered: true, fontName: 'ascii'},
+          { text: "CONSTRUCTION", x: 0, y: 20, isTitle: true, centered: true, fontName: 'ascii'},
+          { text: "construction", x: 0, y: 40, preRenderedAscii: preRenderedArt.construction, centered: true },
+          { text: "This page is under construction. Please check back soon.\nIf in need of info, contact me at jan@warana.xyz", x: 0, y: 30, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center' },
+          { text: "[[<<<]](/)", x: 2, y: 2, centered: false, maxWidthPercent: 60, alignment: "left" as 'left', fontName: 'regular'},
           
           // Test Links - clearly labeled to distinguish them
           // { text: "LINK 1: [Click me](https://www.google.com)", x: 50, y: 20, centered: true, fixed: true },
