@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { CHAR_HEIGHT, IS_MOBILE } from '../constants';
+import { CHAR_HEIGHT } from '../constants';
 import { CursorState } from '../types';
 
 export const useScrolling = (
@@ -192,8 +192,6 @@ export const useScrolling = (
     
     const handleTouchMove = (e: TouchEvent) => {
       if (!isTouching.current || e.touches.length !== 1) return;
-      
-      // Prevent default behavior to avoid browser handling
       e.preventDefault();
       isScrolling.current = true;
       setIsScrollingState(true);
@@ -203,9 +201,7 @@ export const useScrolling = (
       const deltaY = lastTouchY.current - currentY;
       lastTouchY.current = currentY;
       
-      // For smoother scrolling on mobile
-      const sensitivity = IS_MOBILE ? 1.2 : 1.0;
-      let newScrollOffset = scrollOffsetRef.current + (deltaY * sensitivity);
+      let newScrollOffset = scrollOffsetRef.current + deltaY;
       const overscrollAmount = 100;
       newScrollOffset = Math.max(-overscrollAmount, Math.min(maxScroll + overscrollAmount, newScrollOffset));
       if (newScrollOffset < 0 || newScrollOffset > maxScroll) {
@@ -226,9 +222,7 @@ export const useScrolling = (
       
       if (timeElapsed < 300) {
         const distance = touchStartY.current - lastTouchY.current;
-        // Improve momentum effect on mobile
-        const velocityFactor = IS_MOBILE ? 12 : 8;
-        const velocity = distance / timeElapsed * velocityFactor;
+        const velocity = distance / timeElapsed * 8;
         scrollVelocity.current = velocity;
         lastScrollTime.current = touchEndTime;
       }
@@ -253,7 +247,7 @@ export const useScrolling = (
         requestAnimationFrame(() => {
           updateLinkOverlays();
         });
-      }, IS_MOBILE ? 50 : 100); // Faster response on mobile devices
+      }, 100); // Increased to 100ms for better detection of touch end
     };
     
     const element = containerRef.current;

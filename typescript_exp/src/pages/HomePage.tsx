@@ -105,9 +105,9 @@ function HomePage() {
           // --- Narrow Layout (Anchored - Portrait/Tall Viewport) ---
           // Title is the first element, positioned near the top center
           textItems = [
-            { name: "title", text: "WARANA>", x: 0, y: 14, centered: true, fontName: 'ascii' },
+            { name: "title", text: "WARANA>", x: 0, y: 50, centered: true, fontName: 'ascii' },
              // Anchor "about" below the center of "title"
-            { name: "about", text: "[[About]](about)", x: 0, y: 0, centered: true, anchorTo: "title", anchorPoint: 'center', anchorOffsetY: 5, alignment: "center", maxWidthPercent: 80 },
+            { name: "about", text: "[[About]](about)", x: 0, y: 0, centered: true, anchorTo: "title", anchorPoint: 'center', anchorOffsetY: 50, alignment: "center", maxWidthPercent: 80 },
             // Anchor "upcoming" below the center of "about"
             { name: "upcoming", text: upcomingText, x: 0, y: 0, centered: true, anchorTo: "about", anchorPoint: 'center', anchorOffsetY: 5, alignment: "center", maxWidthPercent: 80 },
              // Add individual works anchored one after another, below the center of the previous one

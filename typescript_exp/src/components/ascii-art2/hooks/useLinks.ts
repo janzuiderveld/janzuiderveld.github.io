@@ -5,7 +5,6 @@ import {
   // SAFARI_LINK_Y_OFFSET, // Removed
   // SAFARI_CURSOR_Y_OFFSET, // Removed
   IS_SAFARI,
-  IS_MOBILE,
   SAFARI_LINK_OFFSET_BASE,
   SAFARI_LINK_OFFSET_FACTOR
 } from '../constants';
@@ -113,9 +112,6 @@ export const useLinks = (
   useEffect(() => {
     // Function to handle direct click events on the document
     const handleDocumentClick = (e: MouseEvent) => {
-      // Don't process clicks for mobile devices - they'll use the touch handler
-      if (IS_MOBILE) return;
-      
       // First check if this is a link click by matching data attributes
       const target = e.target as HTMLElement;
       
@@ -242,7 +238,7 @@ export const useLinks = (
     // Add click handler directly to document to catch all clicks
     document.addEventListener('click', handleDocumentClick, { capture: true });
     
-    // Add touch handlers for mobile - needs to be passive: false to prevent default behavior
+    // Add touch handlers for mobile
     document.addEventListener('touchstart', handleDocumentTouch, { capture: true, passive: false });
     
     return () => {
@@ -258,11 +254,6 @@ export const useLinks = (
     // Don't process clicks during active scrolling
     if (isScrollingRef.current) {
       console.log('Ignoring click during scrolling');
-      return;
-    }
-    
-    // On mobile, let the touch handler take care of it
-    if (IS_MOBILE) {
       return;
     }
     

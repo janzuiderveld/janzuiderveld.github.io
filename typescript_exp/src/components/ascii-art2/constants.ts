@@ -19,9 +19,6 @@ export const BLOB_CACHE_GRID_SIZE = 4; // Size of cells in the blob cache grid
 // Browser-specific adjustments
 export const IS_SAFARI = typeof navigator !== 'undefined' && 
                  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-// Mobile detection
-export const IS_MOBILE = typeof navigator !== 'undefined' && 
-                 /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(navigator.userAgent);
 export const SAFARI_LINK_Y_OFFSET = IS_SAFARI ? 5 : 0; // Pixels
 export const SAFARI_CURSOR_Y_OFFSET = IS_SAFARI ? -3 : 0; // Pixels
 

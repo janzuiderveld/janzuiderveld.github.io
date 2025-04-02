@@ -23,11 +23,11 @@ echo "Adding changes to git..."
 git add .
 
 # Prompt user for commit message
-read -p "Enter commit message: " commit_message
+# read -p "Enter commit message: " commit_message
 
 # Commit changes with the provided message
 echo "Committing changes..."
-git commit -m "$commit_message"
+git commit -m "auto-commit"
 
 # Push changes to GitHub
 echo "Pushing changes to GitHub..."
