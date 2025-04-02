@@ -266,8 +266,7 @@ export function renderText(
               data-link-url="${segment.url}" 
               class="ascii-link" 
               target="_blank" 
-              rel="noopener noreferrer" 
-              onclick="event.stopPropagation(); window.open('${segment.url}', '_blank', 'noopener,noreferrer'); return false;">${segmentHtml}</a>`;
+              rel="noopener noreferrer">${segmentHtml}</a>`;
           } else if (segment.isLink) {
             segmentHtml = `<span style="color: #3498db; cursor: pointer;">${segmentHtml}</span>`;
           }
@@ -425,7 +424,7 @@ export function renderText(
       
       // Link setup
       if (style.isLink && style.url) {
-        htmlCharSection = `<a href="${style.url}" style="color: #3498db; cursor: pointer; text-decoration: underline;" data-link-url="${style.url}" class="ascii-link" target="_blank" onclick="window.open('${style.url}', '_blank'); return false;">${htmlCharSection}</a>`;
+        htmlCharSection = `<a href="${style.url}" style="color: #3498db; cursor: pointer; text-decoration: underline;" data-link-url="${style.url}" class="ascii-link" target="_blank" rel="noopener noreferrer">${htmlCharSection}</a>`;
       } else if (style.isLink) {
         htmlCharSection = `<span style="color: #3498db; cursor: pointer;">${htmlCharSection}</span>`;
       }

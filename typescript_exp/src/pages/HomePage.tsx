@@ -67,7 +67,7 @@ function HomePage() {
 
 ==Copy Machine==
 //Artificial vs. Intelligence//
-//The Media Majlis at Northwestern University in Qatar (Doha, QA)//
+//The Media// //Majlis// //at// //Northwestern// //University// //in// //Qatar// //(Doha,// //QA)//
 15/01/2025 > 15/05/2025
 
 ==Coffee Machine==

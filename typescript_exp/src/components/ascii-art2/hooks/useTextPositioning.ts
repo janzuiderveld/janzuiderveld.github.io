@@ -337,6 +337,8 @@ export const useTextPositioning = (
 
       // Rerender Text / Get Lines & Styles
       const fontName = textItem.fontName || 'regular';
+      let formattedResult: { text: string; html: string; links: Array<{line: number, start: number, end: number, url: string}>; styles: Array<{line: number, start: number, end: number, style: {isBold?: boolean, isItalic?: boolean, isLink?: boolean, url?: string, color?: string}}> } | null = null; // Define formattedResult here
+
       if (textItem.preRenderedAscii) {
         textLines = textItem.preRenderedAscii.split('\n');
         maxLineLength = 0;
@@ -347,7 +349,8 @@ export const useTextPositioning = (
           maxWidth = Math.max(maxWidth, maxLineLength);
         }
       } else {
-        const formattedResult = renderFormattedText(
+        // Calculate formattedResult here for non-preRendered text
+        formattedResult = renderFormattedText(
           textItem.text, fontName, { maxWidth: fontName === 'regular' ? maxWidth : undefined, respectLineBreaks: true }
         );
         textLines = formattedResult.text.split('\n');
@@ -400,7 +403,22 @@ export const useTextPositioning = (
             // Check bounds before writing
             if (x >= 0 && x < gridCols && lineY >= offsetY && lineY < offsetY + gridRows) {
                if (arrayIndex >= 0 && arrayIndex < positionGridArray.length) { // Double check index
-                 positionGridArray[arrayIndex] = { char, fixed: isFixed };
+                 // --- MODIFIED: Retrieve and store isBold/isItalic ---
+                 let isBold = false;
+                 let isItalic = false;
+                 // Check styles only if formattedResult exists (i.e., not preRenderedAscii)
+                 if (formattedResult) {
+                   for (const styleInfo of formattedResult.styles) {
+                     if (styleInfo.line === lineIndex && charIndex >= styleInfo.start && charIndex < styleInfo.end) {
+                       isBold = !!styleInfo.style.isBold;
+                       isItalic = !!styleInfo.style.isItalic;
+                       break; // Found the style for this character
+                     }
+                   }
+                 }
+                 // Store char, fixed, and the determined styles
+                 positionGridArray[arrayIndex] = { char, fixed: isFixed, isBold, isItalic };
+                 // --- END MODIFICATION ---
                }
             }
           }

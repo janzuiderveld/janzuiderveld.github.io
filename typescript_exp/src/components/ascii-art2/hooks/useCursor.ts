@@ -49,41 +49,9 @@ export const useCursor = (
       
       const rect = textRef.current.getBoundingClientRect();
       const relativeX = e.clientX - rect.left;
-      const relativeY = e.clientY - rect.top + SAFARI_CURSOR_Y_OFFSET; // Apply Safari offset
+      const relativeY = e.clientY - rect.top + SAFARI_CURSOR_Y_OFFSET;
       
-      const gridX = Math.floor(relativeX / CHAR_WIDTH);
-      const gridY = Math.floor(relativeY / CHAR_HEIGHT);
-      
-      const gridDimensions = getGridDimensions(size.width || 0, size.height || 0);
-      const normalizedX = (gridX / gridDimensions.cols) * 2 - 1;
-      const normalizedY = (gridY / gridDimensions.rows) * 2 - 1;
-      
-      // Update ripples on every cursor move
-      const currentTime = Date.now();
-      const activeRipples = cursorRef.current.clickRipples.filter(ripple => {
-        const age = currentTime - ripple.timestamp;
-        return age < ripple.lifespan;
-      });
-
-      cursorRef.current = {
-        grid: { x: gridX, y: gridY },
-        normalized: { x: normalizedX, y: normalizedY },
-        isInWindow: true,
-        isActive: cursorRef.current.isActive,
-        clickRipples: activeRipples,
-        whiteout: cursorRef.current.whiteout,
-        whiteIn: cursorRef.current.whiteIn,
-        whiteOverlay: cursorRef.current.whiteOverlay
-      };
-      
-      // If mouse is pressed, update its position
-      if (mouseDownInfo.current?.active) {
-        mouseDownInfo.current.position = { x: normalizedX, y: normalizedY };
-      }
-      
-      if (now % 100 < MOUSE_MOVE_THROTTLE) {
-        setCursor(cursorRef.current);
-      }
+      updateCursorPosition(relativeX, relativeY);
     };
 
     const handleMouseLeave = () => {
@@ -245,6 +213,15 @@ export const useCursor = (
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('click', handleClick);
     
+    // Add touch event listeners to the text element
+    const element = textRef.current;
+    if (element) {
+      element.addEventListener('touchstart', handleTouchStart, { passive: false });
+      element.addEventListener('touchmove', handleTouchMove, { passive: false });
+      element.addEventListener('touchend', handleTouchEnd);
+      element.addEventListener('touchcancel', handleTouchEnd);
+    }
+    
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseenter', handleMouseEnter);
@@ -252,93 +229,87 @@ export const useCursor = (
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('click', handleClick);
-
-      // Add touch event listeners to the text element
-      const element = textRef.current;
+      
+      // Remove touch event listeners
       if (element) {
-        element.addEventListener('touchstart', handleTouchStart, { passive: true });
-        element.addEventListener('touchmove', handleTouchMove, { passive: false }); // Need passive:false to prevent scroll
-        element.addEventListener('touchend', handleTouchEnd, { passive: true });
-        element.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+        element.removeEventListener('touchstart', handleTouchStart);
+        element.removeEventListener('touchmove', handleTouchMove);
+        element.removeEventListener('touchend', handleTouchEnd);
+        element.removeEventListener('touchcancel', handleTouchEnd);
       }
     };
   }, [size, textRef]);
 
   // Touch handlers
-  const handleTouchStart = (e: TouchEvent) => {
-    if (e.touches.length !== 1 || !size.width || !size.height || !textRef.current) return;
-    if (cursorRef.current.whiteout?.active || cursorRef.current.whiteIn?.active) return;
-
-    const touch = e.touches[0];
-    const rect = textRef.current.getBoundingClientRect();
-    const relativeX = touch.clientX - rect.left;
-    const relativeY = touch.clientY - rect.top; // No Safari offset needed for touch?
-
-    const gridX = Math.floor(relativeX / CHAR_WIDTH);
-    const gridY = Math.floor(relativeY / CHAR_HEIGHT);
-    const gridDimensions = getGridDimensions(size.width, size.height);
-    const normalizedX = (gridX / gridDimensions.cols) * 2 - 1;
-    const normalizedY = (gridY / gridDimensions.rows) * 2 - 1;
-
-    cursorRef.current = {
-      ...cursorRef.current,
-      grid: { x: gridX, y: gridY },
-      normalized: { x: normalizedX, y: normalizedY },
-      isInWindow: true,
-      isActive: true, // Mark as active on touch start
-    };
-    setCursor(cursorRef.current);
-    
-    // Optionally, trigger a small ripple on touch start
-    // You might want to adjust ripple logic for touch separately
-  };
-
   const handleTouchMove = (e: TouchEvent) => {
-    if (e.touches.length !== 1 || !size.width || !size.height || !textRef.current) return;
-    if (cursorRef.current.whiteout?.active || cursorRef.current.whiteIn?.active) return;
-    
-    // Prevent default scrolling behavior when tracking touch for animation
-    e.preventDefault(); 
-
     const now = performance.now();
-    if (now - lastMouseMoveTime.current < MOUSE_MOVE_THROTTLE) { // Reuse mouse throttle
+    if (now - lastMouseMoveTime.current < MOUSE_MOVE_THROTTLE) {
       return;
     }
     lastMouseMoveTime.current = now;
-
+    
+    if (!size.width || !size.height || !textRef.current) return;
+    
+    // Skip tracking if whiteout is active
+    if (cursorRef.current.whiteout?.active || cursorRef.current.whiteIn?.active) {
+      return;
+    }
+    
     const touch = e.touches[0];
     const rect = textRef.current.getBoundingClientRect();
     const relativeX = touch.clientX - rect.left;
-    const relativeY = touch.clientY - rect.top;
-
-    const gridX = Math.floor(relativeX / CHAR_WIDTH);
-    const gridY = Math.floor(relativeY / CHAR_HEIGHT);
-    const gridDimensions = getGridDimensions(size.width, size.height);
-    const normalizedX = (gridX / gridDimensions.cols) * 2 - 1;
-    const normalizedY = (gridY / gridDimensions.rows) * 2 - 1;
-
-    cursorRef.current = {
-      ...cursorRef.current,
-      grid: { x: gridX, y: gridY },
-      normalized: { x: normalizedX, y: normalizedY },
-      isInWindow: true, // Keep isInWindow true during touch drag
-    };
+    const relativeY = touch.clientY - rect.top + SAFARI_CURSOR_Y_OFFSET;
     
-    // Throttle state updates for performance
-    if (now % 100 < MOUSE_MOVE_THROTTLE) { 
-        setCursor(cursorRef.current);
-    }
+    updateCursorPosition(relativeX, relativeY);
   };
 
-  const handleTouchEnd = (e: TouchEvent) => {
-    // Check if it's the final touch point ending
-    if (e.touches.length === 0) { 
-      cursorRef.current = {
-        ...cursorRef.current,
-        isActive: false, // Mark inactive on touch end
-        // Maybe isInWindow should become false here if not interacting?
-        // Decide if a ripple is desired on touch end
-      };
+  const handleTouchStart = (e: TouchEvent) => {
+    if (!size.width || !size.height || !textRef.current) return;
+    
+    const touch = e.touches[0];
+    const rect = textRef.current.getBoundingClientRect();
+    const relativeX = touch.clientX - rect.left;
+    const relativeY = touch.clientY - rect.top + SAFARI_CURSOR_Y_OFFSET;
+    
+    updateCursorPosition(relativeX, relativeY, true);
+  };
+
+  const handleTouchEnd = () => {
+    cursorRef.current = {
+      ...cursorRef.current,
+      isActive: false
+    };
+    setCursor(cursorRef.current);
+  };
+
+  // Helper function to update cursor position
+  const updateCursorPosition = (relativeX: number, relativeY: number, isTouchStart: boolean = false) => {
+    const gridX = Math.floor(relativeX / CHAR_WIDTH);
+    const gridY = Math.floor(relativeY / CHAR_HEIGHT);
+    
+    const gridDimensions = getGridDimensions(size.width || 0, size.height || 0);
+    const normalizedX = (gridX / gridDimensions.cols) * 2 - 1;
+    const normalizedY = (gridY / gridDimensions.rows) * 2 - 1;
+    
+    // Update ripples on every move
+    const currentTime = Date.now();
+    const activeRipples = cursorRef.current.clickRipples.filter(ripple => {
+      const age = currentTime - ripple.timestamp;
+      return age < ripple.lifespan;
+    });
+
+    cursorRef.current = {
+      grid: { x: gridX, y: gridY },
+      normalized: { x: normalizedX, y: normalizedY },
+      isInWindow: true,
+      isActive: isTouchStart ? true : cursorRef.current.isActive,
+      clickRipples: activeRipples,
+      whiteout: cursorRef.current.whiteout,
+      whiteIn: cursorRef.current.whiteIn,
+      whiteOverlay: cursorRef.current.whiteOverlay
+    };
+    
+    if (performance.now() % 100 < MOUSE_MOVE_THROTTLE) {
       setCursor(cursorRef.current);
     }
   };
