@@ -4,7 +4,11 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',  // Important: Deploy to root
+  base: '/',  // Important: Set base path for GitHub Pages
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+  },
   server: {
     open: '/',
     watch: {
@@ -14,7 +18,8 @@ export default defineConfig({
       protocol: 'ws', // Explicitly use WebSocket
       host: 'localhost',
       port: 5176 // Make sure this matches the port Vite is actually using
-    }
+    },
+    port: 3000
   },
   // Use this setting instead of historyApiFallback
   preview: {
