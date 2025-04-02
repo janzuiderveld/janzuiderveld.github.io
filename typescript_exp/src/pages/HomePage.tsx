@@ -25,7 +25,7 @@ type TextContentItem = {
 
 
 function HomePage() {
-  console.log("HomePage component rendering - should only show on homepage route");
+  // console.log("HomePage component rendering - should only show on homepage route");
 
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);

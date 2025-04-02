@@ -417,18 +417,16 @@ export const useTextPositioning = (
     // Update link positions ref (remains the same)
     linkPositionsRef.current = links;
     setLinkPositions(links);
-    if (links.length > 0) {
-      console.log(`Found ${links.length} clickable links:`, links);
-    }
-    
-    // Return the final result
-    return { 
-      cache, 
-      grid: positionGridArray, 
-      bounds: textBounds, 
-      links, 
-      gridCols, 
-      offsetY 
+    // console.log(`Found ${links.length} clickable links:`, links);
+
+    // Return the final result from within useMemo
+    return {
+      cache,
+      grid: positionGridArray,
+      bounds: textBounds,
+      links,
+      gridCols,
+      offsetY
     };
   }, [textContent, asciiArtCache, size, setLinkPositions, linkPositionsRef]);
 

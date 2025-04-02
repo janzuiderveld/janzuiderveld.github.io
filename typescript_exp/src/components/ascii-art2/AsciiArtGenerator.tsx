@@ -26,7 +26,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   maxScrollHeight
 }) => {
   // Log Safari detection status for debugging
-  console.log(`Browser detection - IS_SAFARI: ${IS_SAFARI}`, navigator.userAgent);
+  // console.log(`Browser detection - IS_SAFARI: ${IS_SAFARI}`, navigator.userAgent);
   
   const textRef = useRef<HTMLPreElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
