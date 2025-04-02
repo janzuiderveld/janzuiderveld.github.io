@@ -754,5 +754,12 @@ export const useCursor = (
     };
   }, []);
 
-  return { cursor, cursorRef, startWhiteout, startWhiteIn };
+  // Return required cursor state and methods
+  return {
+    cursor,
+    cursorRef,
+    startWhiteout,
+    startWhiteIn,
+    simulateClick
+  };
 }; 

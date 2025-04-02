@@ -5,6 +5,7 @@ import {
   CHAR_HEIGHT, 
   CHAR_WIDTH, 
   IS_SAFARI, 
+  IS_MOBILE,
   SAFARI_LINK_OFFSET_BASE, 
   SAFARI_LINK_OFFSET_FACTOR,
   DEBUG_LINK_OVERLAYS
@@ -75,7 +76,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   } = useBlobCache(textPositionCache, size);
 
   // Cursor tracking with white-in/whiteout support
-  const { cursor, cursorRef, startWhiteout, startWhiteIn } = useCursor(textRef, size);
+  const { cursor, cursorRef, startWhiteout, startWhiteIn, simulateClick } = useCursor(textRef, size);
 
   // Track URL changes and trigger white-in effect when needed
   useEffect(() => {
@@ -557,6 +558,16 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     }
   }, []);
 
+  // Function to trigger click animation effect
+  const triggerClickEffect = (x: number, y: number) => {
+    // Convert from pixel coordinates to normalized coordinates
+    const normalizedX = (x / (size.width || 1)) * 2 - 1;
+    const normalizedY = (y / (size.height || 1)) * 2 - 1;
+    
+    // Use the simulateClick function from useCursor
+    simulateClick({ x: normalizedX, y: normalizedY });
+  };
+
   // Create direct click handler on the container
   useEffect(() => {
     if (!containerRef.current) return;
@@ -602,14 +613,76 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         const normalizedY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
         
         startWhiteout({ x: normalizedX, y: normalizedY }, url);
+      } else {
+        // This is a background click - trigger ripple animation
+        // For non-mobile, handle in the click event
+        if (!IS_MOBILE) {
+          // Get click position for animation
+          const rect = containerRef.current!.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          // Trigger animation effect
+          triggerClickEffect(x, y);
+        }
+      }
+    };
+    
+    // Handle touch events for mobile background clicks
+    const handleContainerTouch = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      
+      const touch = e.touches[0];
+      const target = touch.target as HTMLElement;
+      
+      // Use the same URL finder as the click handler
+      const findLinkUrl = (element: HTMLElement | null): string | null => {
+        if (!element) return null;
+        if (element.hasAttribute('data-url')) return element.getAttribute('data-url');
+        if (element.hasAttribute('data-href')) return element.getAttribute('data-href');
+        if (element.tagName === 'A' && element.hasAttribute('href')) return element.getAttribute('href');
+        if (element.hasAttribute('data-link-overlay')) {
+          return element.getAttribute('data-url') || element.getAttribute('data-href');
+        }
+        
+        const overlay = element.closest('[data-link-overlay="true"]');
+        if (overlay) {
+          return overlay.getAttribute('data-url') || overlay.getAttribute('data-href');
+        }
+        
+        return null;
+      };
+      
+      const url = findLinkUrl(target);
+      
+      if (!url) {
+        // This is a background touch - should trigger ripple
+        // Only process this for mobile devices
+        if (IS_MOBILE) {
+          // Get touch position for animation
+          const rect = containerRef.current!.getBoundingClientRect();
+          const x = touch.clientX - rect.left;
+          const y = touch.clientY - rect.top;
+          
+          // Trigger animation effect
+          triggerClickEffect(x, y);
+        }
       }
     };
     
     containerRef.current.addEventListener('click', handleContainerClick);
     
+    // Add touch handler for mobile devices
+    if (IS_MOBILE) {
+      containerRef.current.addEventListener('touchstart', handleContainerTouch, { passive: true });
+    }
+    
     return () => {
       if (containerRef.current) {
         containerRef.current.removeEventListener('click', handleContainerClick);
+        if (IS_MOBILE) {
+          containerRef.current.removeEventListener('touchstart', handleContainerTouch);
+        }
       }
     };
   }, [startWhiteout]);
@@ -650,7 +723,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   }, []);
 
   return (
-    <div 
+    <div
       ref={containerRef}
       style={{
         position: 'fixed',
@@ -664,6 +737,11 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         pointerEvents: (cursor.whiteout?.active || cursor.whiteIn?.active) ? 'none' : 'auto',
         transition: 'opacity 0.1s',
         opacity: 1,
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+        WebkitTouchCallout: 'none'
       }}
     >
       {/* Global style to hide link underlines during effects */}
@@ -746,97 +824,68 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
           // Get fixed status from textPositionCache
           const isFixed = textPositionCache.bounds[link.textKey]?.fixed || false;
           
-          // Calculate position with explicit scroll adjustment
-          const actualScrollY = Math.floor(scrollOffset / CHAR_HEIGHT);
-          const linkY = isFixed ? link.y : link.y - actualScrollY;
+          // Calculate Y position based on fixedness
+          const linkY = isFixed ? link.y : link.y - Math.floor(scrollOffset / CHAR_HEIGHT);
           
-          // Calculate Safari-specific offset correction that increases proportionally with scroll depth
-          // This fixes the increasing misalignment issue in Safari
-          let safariOffsetCorrection = 0;
-          if (IS_SAFARI && !isFixed) {
-            // Apply proportional offset based on scroll position
-            // The deeper the scroll, the larger the correction
-            safariOffsetCorrection = SAFARI_LINK_OFFSET_BASE + (actualScrollY * SAFARI_LINK_OFFSET_FACTOR);
-            // Log the correction for debugging
-            console.log(`SAFARI OFFSET APPLIED! Link at Y=${linkY}, scroll=${actualScrollY}: ${safariOffsetCorrection}px`);
+          // Skip rendering if outside viewport with some padding
+          if (linkY < -5 || linkY > ((size.height || 0) / CHAR_HEIGHT) + 5) {
+            return null;
           }
           
-          // Extreme visibility buffer to ensure links are rendered
-          const visibilityBuffer = 50;
-          if (linkY >= -visibilityBuffer && 
-              linkY < (size.height || 0) / CHAR_HEIGHT + visibilityBuffer) {
+          // Calculate position based on character metrics
+          const left = Math.max(0, link.startX * CHAR_WIDTH);
+          const top = linkY * CHAR_HEIGHT;
+          
+          // Calculate width and height of the link overlay
+          const width = (link.endX - link.startX + 1) * CHAR_WIDTH;
+          const height = CHAR_HEIGHT * 3; // Very large height for better hit detection on mobile
+          
+          // Calculate actual scroll Y for debugging
+          const actualScrollY = scrollOffset / CHAR_HEIGHT;
+          
+          // Safari correction
+          const safariOffsetCorrection = IS_SAFARI ? 
+            SAFARI_LINK_OFFSET_BASE + (actualScrollY * SAFARI_LINK_OFFSET_FACTOR) : 0;
+          
+          // Adjusted top position with Safari correction
+          const adjustedTop = IS_SAFARI && !isFixed ? 
+            top + safariOffsetCorrection : top;
             
-            // Calculate position with very wide margins for easier clicking
-            const margin = Math.ceil(CHAR_WIDTH * 3.0); // Extremely generous margin
-            const left = Math.max(0, Math.floor(link.startX * CHAR_WIDTH) - margin);
-            const width = Math.ceil((link.endX - link.startX + 1) * CHAR_WIDTH) + (margin * 2);
-            
-            // Much larger hit area for vertical positioning
-            const verticalOffset = Math.ceil(CHAR_HEIGHT * 1.5);
-            // Apply the Safari offset correction to the top position
-            const top = Math.floor(linkY * CHAR_HEIGHT) - verticalOffset - safariOffsetCorrection;
-            const height = Math.ceil(CHAR_HEIGHT * 6); // Very large height for better hit detection
-            
-            return (
-              <div 
-                key={`link-${index}-${link.url}-${linkY}`}
-                data-href={link.url}
-                data-link-overlay="true"
-                data-url={link.url}
-                data-fixed={isFixed ? "true" : "false"}
-                data-text-key={link.textKey}
-                data-y-pos={linkY.toString()}
-                data-orig-y={link.y.toString()}
-                data-scroll-y={actualScrollY.toString()}
-                data-safari-offset={safariOffsetCorrection.toString()}
-                style={{
-                  position: 'absolute',
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  width: `${width}px`,
-                  height: `${height}px`,
-                  backgroundColor: DEBUG_LINK_OVERLAYS ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0)', // Show overlay in debug mode
-                  border: DEBUG_LINK_OVERLAYS ? '1px solid red' : 'none',
-                  pointerEvents: 'auto', // Explicitly enable pointer events
-                  zIndex: 2500, // Even higher z-index than the container
-                  cursor: 'pointer',
-                  display: 'block',
-                  color: 'transparent',
-                  transform: 'translateZ(0)', // Force GPU acceleration
-                  willChange: 'transform',
-                  // Add important rules to ensure clickability
-                  userSelect: 'none',
-                  touchAction: 'manipulation'
-                }}
-                onClick={e => {
-                  // Immediately stop event propagation
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Cast to native MouseEvent to access stopImmediatePropagation
-                  (e.nativeEvent as MouseEvent).stopImmediatePropagation();
-                  
-                  // Log debug info with more details about positioning
-                  console.log(`Clicked link: ${link.url}, Fixed: ${isFixed}, TextKey: ${link.textKey}`);
-                  console.log(`Link Y: ${linkY}, Original Y: ${link.y}, Scroll Y: ${actualScrollY}`);
-                  if (IS_SAFARI) {
-                    console.log(`Safari offset correction: ${safariOffsetCorrection}px`);
-                  }
-                  
-                  // Use whiteout effect instead of direct navigation
-                  const rect = textRef.current!.getBoundingClientRect();
-                  const relativeX = e.clientX - rect.left;
-                  const relativeY = e.clientY - rect.top;
-                  
-                  const normalizedX = (relativeX / (size.width || 1)) * 2 - 1;
-                  const normalizedY = (relativeY / (size.height || 1)) * 2 - 1;
-                  
-                  startWhiteout({ x: normalizedX, y: normalizedY }, link.url);
-                }}
-                title={link.url}
-              />
-            );
-          }
-          return null;
+          return (
+            <div 
+              key={`link-${index}-${link.url}-${linkY}`}
+              data-href={link.url}
+              data-link-overlay="true"
+              data-url={link.url}
+              data-fixed={isFixed ? "true" : "false"}
+              data-text-key={link.textKey}
+              data-y-pos={linkY.toString()}
+              data-orig-y={link.y.toString()}
+              data-scroll-y={actualScrollY.toString()}
+              data-safari-offset={safariOffsetCorrection.toString()}
+              style={{
+                position: 'absolute',
+                left: `${left}px`,
+                top: `${adjustedTop}px`,
+                width: `${width}px`,
+                height: `${height}px`,
+                backgroundColor: DEBUG_LINK_OVERLAYS ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0)', // Show overlay in debug mode
+                border: DEBUG_LINK_OVERLAYS ? '1px solid red' : 'none',
+                pointerEvents: 'auto', // Explicitly enable pointer events
+                zIndex: 2500, // Even higher z-index than the container
+                cursor: 'pointer',
+                display: 'block',
+                color: 'transparent',
+                transform: 'translateZ(0)', // Force GPU acceleration
+                willChange: 'transform',
+                // Add important rules to ensure clickability
+                userSelect: 'none',
+                touchAction: 'none', // Changed from 'manipulation' to 'none' to prevent mobile delay
+                WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+                WebkitTouchCallout: 'none'
+              }}
+            />
+          );
         })}
       </div>
     </div>

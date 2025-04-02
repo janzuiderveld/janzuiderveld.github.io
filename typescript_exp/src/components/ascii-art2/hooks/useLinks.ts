@@ -5,6 +5,7 @@ import {
   // SAFARI_LINK_Y_OFFSET, // Removed
   // SAFARI_CURSOR_Y_OFFSET, // Removed
   IS_SAFARI,
+  IS_MOBILE,
   SAFARI_LINK_OFFSET_BASE,
   SAFARI_LINK_OFFSET_FACTOR
 } from '../constants';
@@ -112,6 +113,9 @@ export const useLinks = (
   useEffect(() => {
     // Function to handle direct click events on the document
     const handleDocumentClick = (e: MouseEvent) => {
+      // Don't process clicks for mobile devices - they'll use the touch handler
+      if (IS_MOBILE) return;
+      
       // First check if this is a link click by matching data attributes
       const target = e.target as HTMLElement;
       
@@ -184,11 +188,66 @@ export const useLinks = (
       }
     };
     
+    // Function to handle touch events
+    const handleDocumentTouch = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return; // Only handle single touches
+      
+      const touch = e.touches[0];
+      const target = touch.target as HTMLElement;
+      
+      // Use the same URL detection logic as the click handler
+      const getLinkUrl = (element: HTMLElement | null): string | null => {
+        if (!element) return null;
+        
+        if (element.hasAttribute('data-url')) return element.getAttribute('data-url');
+        if (element.hasAttribute('data-href')) return element.getAttribute('data-href');
+        if (element.tagName === 'A' && element.hasAttribute('href')) return element.getAttribute('href');
+        if (element.hasAttribute('data-link-overlay')) {
+          return element.getAttribute('data-url') || element.getAttribute('data-href');
+        }
+        
+        // Check parent elements up to 3 levels
+        let parent = element.parentElement;
+        let level = 0;
+        while (parent && level < 3) {
+          if (parent.hasAttribute('data-url')) return parent.getAttribute('data-url');
+          if (parent.hasAttribute('data-href')) return parent.getAttribute('data-href');
+          if (parent.hasAttribute('data-link-overlay')) {
+            return parent.getAttribute('data-url') || parent.getAttribute('data-href');
+          }
+          parent = parent.parentElement;
+          level++;
+        }
+        
+        return null;
+      };
+      
+      const url = getLinkUrl(target);
+      
+      if (url) {
+        // Prevent default to avoid double tap delay
+        e.preventDefault();
+        
+        // Get approximate normalized position
+        const x = (touch.clientX / window.innerWidth) * 2 - 1;
+        const y = (touch.clientY / window.innerHeight) * 2 - 1;
+        
+        console.log('Touch handler found link:', url);
+        
+        // Start whiteout immediately on touchstart
+        startWhiteout({ x, y }, url);
+      }
+    };
+    
     // Add click handler directly to document to catch all clicks
     document.addEventListener('click', handleDocumentClick, { capture: true });
     
+    // Add touch handlers for mobile - needs to be passive: false to prevent default behavior
+    document.addEventListener('touchstart', handleDocumentTouch, { capture: true, passive: false });
+    
     return () => {
       document.removeEventListener('click', handleDocumentClick, { capture: true });
+      document.removeEventListener('touchstart', handleDocumentTouch, { capture: true });
     };
   }, [startWhiteout]);
 
@@ -199,6 +258,11 @@ export const useLinks = (
     // Don't process clicks during active scrolling
     if (isScrollingRef.current) {
       console.log('Ignoring click during scrolling');
+      return;
+    }
+    
+    // On mobile, let the touch handler take care of it
+    if (IS_MOBILE) {
       return;
     }
     

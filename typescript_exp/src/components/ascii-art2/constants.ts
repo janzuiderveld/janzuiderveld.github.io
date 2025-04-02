@@ -19,12 +19,15 @@ export const BLOB_CACHE_GRID_SIZE = 4; // Size of cells in the blob cache grid
 // Browser-specific adjustments
 export const IS_SAFARI = typeof navigator !== 'undefined' && 
                  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+// Mobile detection
+export const IS_MOBILE = typeof navigator !== 'undefined' && 
+                 /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(navigator.userAgent);
 export const SAFARI_LINK_Y_OFFSET = IS_SAFARI ? 5 : 0; // Pixels
 export const SAFARI_CURSOR_Y_OFFSET = IS_SAFARI ? -3 : 0; // Pixels
 
 // Safari-specific constants
 export const SAFARI_LINK_OFFSET_BASE = 30; // Base offset in pixels (increased for visibility)
-export const SAFARI_LINK_OFFSET_FACTOR = 0.; // Proportional factor for scroll-based adjustment (increased)
+export const SAFARI_LINK_OFFSET_FACTOR = 0.05; // Proportional factor for scroll-based adjustment (increased)
 
 // Debug constants
 export const DEBUG_LINK_OVERLAYS = false; // Set to true to visualize link overlay areas
