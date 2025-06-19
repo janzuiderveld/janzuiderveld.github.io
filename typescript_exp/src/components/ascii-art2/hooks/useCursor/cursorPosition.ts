@@ -1,5 +1,4 @@
 import { CHAR_WIDTH, CHAR_HEIGHT, SAFARI_CURSOR_Y_OFFSET } from '../../constants';
-import { getGridDimensions } from '../../utils';
 import { Size } from '../../types';
 import { CursorState } from './types';
 
@@ -10,8 +9,6 @@ export const updateCursorPosition = (
   relativeY: number, 
   isTouchStart: boolean = false
 ) => {
-  const { cols } = getGridDimensions(size.width || 0, size.height || 0);
-  
   // Calculate grid position (character-based)
   const gridX = Math.floor(relativeX / CHAR_WIDTH);
   const gridY = Math.floor(relativeY / CHAR_HEIGHT);

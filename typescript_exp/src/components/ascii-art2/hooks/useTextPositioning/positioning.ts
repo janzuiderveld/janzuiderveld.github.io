@@ -1,7 +1,6 @@
-import { getGridDimensions } from '../../utils';
 import { BLOB_PADDING } from '../../constants';
 import { TextContentItem, NamedTextboxes, LinkData } from './types';
-import { Size, TextBounds, LinkPosition } from '../../types';
+import { TextBounds, LinkPosition } from '../../types';
 
 export interface TextLine {
   content: string;
@@ -16,7 +15,6 @@ export interface PositioningContext {
   textBlockStartX: number;
   fontName: string;
   fixed: boolean;
-  maxWidth: number;
 }
 
 // Calculate the position for a text item
@@ -26,7 +24,7 @@ export const calculatePosition = (
   cols: number,
   rows: number,
   textBounds: {[key: string]: TextBounds},
-  maxWidth: number
+  
 ): { gridX: number; gridY: number; textBlockStartX: number } => {
   let gridX = textItem.x;
   let gridY = textItem.y;
@@ -75,7 +73,7 @@ export const calculateTextAlignment = (
   lineIndex: number,
   actualLineLength: number
 ): number => {
-  const { gridX, textBlockStartX, textLines, maxLineLength, maxWidth } = context;
+  const { gridX, textBlockStartX, textLines, maxLineLength } = context;
   
   // Calculate horizontal alignment based on settings
   if (!textLines[lineIndex]) return gridX;
@@ -92,9 +90,9 @@ export const calculateTextAlignment = (
   // For non-centered text box with alignment
   else if (textLines[lineIndex].alignment) {
     if (textLines[lineIndex].alignment === 'center') {
-      return Math.floor(gridX + (maxWidth - actualLineLength) / 2);
+      return Math.floor(gridX + (maxLineLength - actualLineLength) / 2);
     } else if (textLines[lineIndex].alignment === 'right') {
-      return gridX + maxWidth - actualLineLength;
+      return gridX + maxLineLength - actualLineLength;
     }
   }
   
@@ -109,7 +107,7 @@ export const calculateLinks = (
   linkData: LinkData[]
 ): LinkPosition[] => {
   const links: LinkPosition[] = [];
-  const { gridX, gridY, textBlockStartX, textLines, maxLineLength, maxWidth } = context;
+  const { gridX, gridY, textBlockStartX, textLines, maxLineLength } = context;
   
   for (const linkInfo of linkData) {
     const lineY = gridY + linkInfo.line;
@@ -117,7 +115,7 @@ export const calculateLinks = (
     
     // Get the actual line length, respecting maxWidth
     const actualLineLength = textLines[linkInfo.line] 
-      ? Math.min(textLines[linkInfo.line].content.length, maxWidth) 
+      ? Math.min(textLines[linkInfo.line].content.length, maxLineLength) 
       : 0;
     
     // Calculate position based on alignment
@@ -132,9 +130,9 @@ export const calculateLinks = (
     } else if (textLines[linkInfo.line]?.alignment) {
       // Text with alignment but not centered box
       if (textLines[linkInfo.line].alignment === 'center') {
-        textX = Math.floor(gridX + (maxWidth - actualLineLength) / 2);
+        textX = Math.floor(gridX + (maxLineLength - actualLineLength) / 2);
       } else if (textLines[linkInfo.line].alignment === 'right') {
-        textX = gridX + maxWidth - actualLineLength;
+        textX = gridX + maxLineLength - actualLineLength;
       }
     }
     
@@ -155,7 +153,7 @@ export const calculateTextBounds = (
   context: PositioningContext,
   lines: string[]
 ): TextBounds => {
-  const { gridX, gridY, fixed } = context;
+  const { gridY, fixed } = context;
   
   const bounds: TextBounds = { 
     minX: Infinity, 

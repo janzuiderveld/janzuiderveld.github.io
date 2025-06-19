@@ -11,12 +11,12 @@ export const BORDER_FREQUENCY = 0.05;  // Controls wave speed on borders
 export const HORIZONTAL_PADDING = 0;  // No whitespace borders
 
 // Blob rendering
-export const BLOB_RADIUS = 12;  // Size of blob effect
+export const BLOB_RADIUS = 10;  // Size of blob effect
 export const BLOB_PADDING = 15; // Padding around blobs
 export const GRID_CELL_SIZE = 4; // Cell size for spatial partitioning
 export const BLOB_CACHE_GRID_SIZE = 4; // Size of cells in the blob cache grid
 
-// Browser-specific adjustments
+// Browser-specific adjustments 
 export const IS_SAFARI = typeof navigator !== 'undefined' && 
                  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 export const SAFARI_LINK_Y_OFFSET = IS_SAFARI ? 5 : 0; // Pixels

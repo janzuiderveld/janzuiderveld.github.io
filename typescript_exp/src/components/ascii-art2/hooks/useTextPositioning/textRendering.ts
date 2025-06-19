@@ -1,4 +1,4 @@
-import { renderTextString, renderFormattedText, FontName } from '../../../ASCII_text_renderer';
+import { renderTextString, renderFormattedText } from '../../ASCII_text_renderer';
 import { TextContentItem, LinkData } from './types';
 
 export interface RenderTextResult {

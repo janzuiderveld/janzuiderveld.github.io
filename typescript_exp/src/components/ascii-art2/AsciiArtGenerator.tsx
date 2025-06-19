@@ -760,10 +760,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
           let safariOffsetCorrection = 0;
           if (IS_SAFARI && !isFixed) {
             // Apply proportional offset based on scroll position
-            // The deeper the scroll, the larger the correction
             safariOffsetCorrection = SAFARI_LINK_OFFSET_BASE + (actualScrollY * SAFARI_LINK_OFFSET_FACTOR);
-            // Log the correction for debugging
-            console.log(`SAFARI OFFSET APPLIED! Link at Y=${linkY}, scroll=${actualScrollY}: ${safariOffsetCorrection}px`);
           }
           
           // Extreme visibility buffer to ensure links are rendered

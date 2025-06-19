@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { getGridDimensions } from '../../utils';
-import { Size, LinkPosition, TextPositionCacheResult, TextGridCell, TextPositionCache, TextBounds } from '../../types';
-import { UseTextPositioningParams, TextContentItem, NamedTextboxes } from './types';
-import { buildAsciiArtCache, renderText, preprocessLines } from './textRendering';
-import { calculatePosition, calculateLinks, calculateTextBounds, getTextItemKey, TextLine } from './positioning';
+import { LinkPosition, TextPositionCacheResult, TextGridCell, TextPositionCache, TextBounds } from '../../types';
+import { UseTextPositioningParams, NamedTextboxes } from './types';
+import { renderText, preprocessLines } from './textRendering';
+import { calculatePosition, calculateLinks, calculateTextBounds, getTextItemKey } from './positioning';
 
 export const useTextPositioning = ({
   textContent,
@@ -11,9 +11,6 @@ export const useTextPositioning = ({
   setLinkPositions,
   linkPositionsRef
 }: UseTextPositioningParams): TextPositionCacheResult => {
-  // Build ASCII art cache for special fonts
-  const asciiArtCache = useMemo(() => buildAsciiArtCache(textContent), [textContent]);
-
   // Build the text position cache with link support
   const textPositionCache = useMemo(() => {
     // Return initial empty state if size is not available
@@ -84,8 +81,7 @@ export const useTextPositioning = ({
         namedTextboxes, 
         cols, 
         rows, 
-        textBounds, 
-        maxWidth
+        textBounds
       );
       
       // Render the text content

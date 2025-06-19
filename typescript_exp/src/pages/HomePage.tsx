@@ -65,18 +65,45 @@ function HomePage() {
 //Het Nieuwe Instituut (Rotterdam, NL)//
 01/06/2024 > 30/05/2026
 
-==Copy Machine==
-//Artificial vs. Intelligence//
-//The Media// //Majlis// //at// //Northwestern// //University// //in// //Qatar// //(Doha,// //QA)//
-15/01/2025 > 15/05/2025
-
 ==Coffee Machine==
 //Deutsches Museum Nürnberg (Nürnberg, DE)//
 29/04/2025 > 29/06/2025
 
 ==Coffee Machine==
+//AI Ecologies//
+//Artphy (Onstwedde, NL)//
+06/07/2025 > 30/08/2025
+
+==Keynote lecture==
+//AI in Art Practices and Research Conference//
+//"I.L. Caragiale" - National University of Theatre and Film (Bucharest, RO)//
+24/10/2025
+
+==Workshop==
+//AI in Art Practices and Research Conference//
+//"I.L. Caragiale" - National University of Theatre and Film (Bucharest, RO)//
+25/10/2025 
+
+==Life on _==
+//Big Dada//
+//Arti et Amicae (Amsterdam, NL)//
+30/10/2025 > 21/11/2025
+
+==Coffee Machine==
 //KUMU Kunstimuuseum (Tallinn, EE)//
 12/02/2026 > 23/08/2026`;
+
+// ==Copy Machine==
+//Artificial vs. Intelligence//
+//The Media// //Majlis// //at// //Northwestern// //University// //in// //Qatar// //(Doha,// //QA)//
+// 15/01/2025 > 15/05/2025
+
+// Copy Machine 
+// Disco Damsco
+
+// Shanghai
+
+
 
         // const aboutMeText = \`About me // Removed start
 // ... existing code ...
@@ -92,8 +119,8 @@ function HomePage() {
           { title: "[[Copy Machine]](copy)", x: 78, y: 55, name: "work-copy" },
           { title: "[[This is not a fish]](fish)", x: 8, y: 39, name: "work-fish" },
           { title: "[[Radio Show]](radio)", x: 25, y: 49, name: "work-radio" },
-          { title: "[[Touching Distance]](touching)", x: 43, y: 80, name: "work-touching" },
-          { title: "[[Lasers]](lasers)", x: 36, y: 77, name: "work-lasers" },
+          { title: "[[Touching Distance]](touching)", x: 33, y: 80, name: "work-touching" },
+          { title: "[[Lasers]](lasers)", x: 26, y: 77, name: "work-lasers" },
         ];
 
         let textItems: TextContentItem[] = [];

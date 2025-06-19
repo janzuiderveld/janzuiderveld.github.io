@@ -32,7 +32,7 @@ function ConstructionPage() {
           { text: "UNDER", x: 0, y: 10, isTitle: true, centered: true, fontName: 'ascii'},
           { text: "CONSTRUCTION", x: 0, y: 20, isTitle: true, centered: true, fontName: 'ascii'},
           { text: "construction", x: 0, y: 40, preRenderedAscii: preRenderedArt.construction, centered: true },
-          { text: "This page is under construction. Please check back soon.\nIf in need of info, contact me at jan@warana.xyz", x: 0, y: 30, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center' },
+          { text: "This page is under construction. Please check back soon.\nFor the time being, find my portfolio on [[GDrive]](https://drive.google.com/drive/folders/1pBavD3QyfrVsQM2Y7ryHKej7CWvFH-rM).\nIf in need of more info, contact me at jan@warana.xyz", x: 0, y: 30, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center' },
           { text: "[[<<<]](/)", x: 2, y: 2, centered: false, maxWidthPercent: 60, alignment: "left" as 'left', fontName: 'regular'},
           
           // Test Links - clearly labeled to distinguish them

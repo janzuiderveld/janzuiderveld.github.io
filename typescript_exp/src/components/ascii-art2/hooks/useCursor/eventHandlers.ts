@@ -1,8 +1,6 @@
 import { MOUSE_MOVE_THROTTLE, SAFARI_CURSOR_Y_OFFSET } from '../../constants';
 import { ClickRipple } from '../../types';
 import { CursorState, MouseDownInfo } from './types';
-import { updateCursorPosition } from './cursorPosition';
-import { updateRipples } from './animations';
 
 export const setupMouseHandlers = (
   textRef: React.RefObject<HTMLPreElement>,

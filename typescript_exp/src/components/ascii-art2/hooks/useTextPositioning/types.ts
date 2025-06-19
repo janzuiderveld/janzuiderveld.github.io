@@ -1,5 +1,5 @@
-import { FontName } from '../../../ASCII_text_renderer';
-import { Size, LinkPosition, TextPositionCacheResult } from '../../types';
+import { FontName } from '../../ASCII_text_renderer';
+import { Size, LinkPosition } from '../../types';
 
 export interface TextContentItem {
   text: string;

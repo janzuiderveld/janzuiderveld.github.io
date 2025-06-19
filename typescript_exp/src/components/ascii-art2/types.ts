@@ -1,4 +1,4 @@
-import { FontName } from '../ASCII_text_renderer';
+import { FontName } from './ASCII_text_renderer';
 import React from 'react';
 
 /**

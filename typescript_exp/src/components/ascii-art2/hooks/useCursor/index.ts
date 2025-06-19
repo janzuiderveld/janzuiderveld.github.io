@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { MOUSE_MOVE_THROTTLE } from '../../constants';
-import { Size, ClickRipple } from '../../types';
 import { UseCursorParams, UseCursorResult, CursorState, MouseDownInfo } from './types';
 import { updateCursorPosition as updatePosition, handleTouchPosition } from './cursorPosition';
 import { startWhiteout as initiateWhiteout, startWhiteIn as initiateWhiteIn, activateWhiteOverlay as activate, deactivateWhiteOverlay as deactivate, simulateClick as simulate } from './effects';

@@ -18,7 +18,6 @@ export const useLinks = (
 ) => {
   const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
   const linkPositionsRef = useRef<LinkPosition[]>([]);
-  const [linkClicked, setLinkClicked] = useState<string | null>(null);
   const [linkOverlays, setLinkOverlays] = useState<LinkOverlay[]>([]);
   const lastScrollOffsetRef = useRef(scrollOffsetRef.current);
   const isScrollingRef = useRef(false);
@@ -403,8 +402,6 @@ export const useLinks = (
     linkPositions,
     setLinkPositions,
     linkPositionsRef,
-    linkClicked,
-    setLinkClicked,
     linkOverlays,
     updateLinkOverlays,
     handleClick
