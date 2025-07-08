@@ -40,7 +40,7 @@ function App() {
       {/* Construction page route */}
       <Route path="/construction" element={<ConstructionPage />} />
       
-      {/* Catch-all route for any undefined paths, redirects to the home page */}
+      {/* Catch-all route for any undefined paths, redirects to the construction page */}
       <Route path="*" element={<Navigate to="/construction" replace />} />
     </Routes>
   );

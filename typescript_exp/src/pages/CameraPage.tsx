@@ -41,7 +41,7 @@ function CameraPage() {
       try {        
         const textItems = [
           { name: "Life on _", text: "Life on _", x: 0, y: 10, isTitle: true, centered: true, fontName: 'ascii' as 'ascii'},
-          { name: "back", text: "[[<<<]](/)", x: 2, y: 4, fixed: true},
+          { name: "back", text: "[[<<<]](#/)", x: 2, y: 4, fixed: true},
           { name: "text", text: cameraText, x: 0, y: 20, centered: true, maxWidthPercent: 60, alignment: 'left' as 'left' },
           { name: "Camera", text: "Camera", x: 0, y: 0, preRenderedAscii: preRenderedArt.camera, centered: true, anchorTo: "text", anchorOffsetX: 0, anchorOffsetY: -13, anchorPoint: "bottomCenter" as 'bottomCenter' },
           { name: "exhibitions", text: "==Selected exhibitions==\n\n==2024==\nLife on //SIGN// / Camera + Theater\nSIGN (Groningen, NL)", x: 0, y: 90, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center', anchorTo: "Camera", anchorOffsetX: 0, anchorOffsetY: 5, anchorPoint: "bottomCenter" as 'bottomCenter' },

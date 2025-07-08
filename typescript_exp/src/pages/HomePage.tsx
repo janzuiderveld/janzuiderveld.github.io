@@ -113,14 +113,14 @@ function HomePage() {
 
         // Extract individual works from the works text
         const works = [
-          { title: "[[Life on _]](camera)", x: 19, y: 22, name: "work-camera" },
-          { title: "[[Coffee Machine]](coffee)", x: 72, y: 39, name: "work-coffee" },
-          { title: "[[Microwave]](microwave)", x: 85, y: 30, name: "work-microwave" },
-          { title: "[[Copy Machine]](copy)", x: 78, y: 55, name: "work-copy" },
-          { title: "[[This is not a fish]](fish)", x: 8, y: 39, name: "work-fish" },
-          { title: "[[Radio Show]](radio)", x: 25, y: 49, name: "work-radio" },
-          { title: "[[Touching Distance]](touching)", x: 33, y: 80, name: "work-touching" },
-          { title: "[[Lasers]](lasers)", x: 26, y: 77, name: "work-lasers" },
+          { title: "[[Life on _]](#camera)", x: 19, y: 22, name: "work-camera" },
+          { title: "[[Coffee Machine]](#coffee)", x: 72, y: 39, name: "work-coffee" },
+          { title: "[[Microwave]](#microwave)", x: 85, y: 30, name: "work-microwave" },
+          { title: "[[Copy Machine]](#copy)", x: 78, y: 55, name: "work-copy" },
+          { title: "[[This is not a fish]](#fish)", x: 8, y: 39, name: "work-fish" },
+          { title: "[[Radio Show]](#radio)", x: 25, y: 49, name: "work-radio" },
+          { title: "[[Touching Distance]](#touching)", x: 33, y: 80, name: "work-touching" },
+          { title: "[[Lasers]](#lasers)", x: 26, y: 77, name: "work-lasers" },
         ];
 
         let textItems: TextContentItem[] = [];
@@ -134,7 +134,7 @@ function HomePage() {
           textItems = [
             { name: "title", text: "WARANA>", x: 0, y: 50, centered: true, fontName: 'ascii' },
              // Anchor "about" below the center of "title"
-            { name: "about", text: "[[About]](about)", x: 0, y: 0, centered: true, anchorTo: "title", anchorPoint: 'center', anchorOffsetY: 50, alignment: "center", maxWidthPercent: 80 },
+            { name: "about", text: "[[About]](#about)", x: 0, y: 0, centered: true, anchorTo: "title", anchorPoint: 'center', anchorOffsetY: 50, alignment: "center", maxWidthPercent: 80 },
             // Anchor "upcoming" below the center of "about"
             { name: "upcoming", text: upcomingText, x: 0, y: 0, centered: true, anchorTo: "about", anchorPoint: 'center', anchorOffsetY: 5, alignment: "center", maxWidthPercent: 80 },
              // Add individual works anchored one after another, below the center of the previous one
@@ -161,7 +161,7 @@ function HomePage() {
            textItems = [
             { text: "WARANA>", x: 0, y: 15, centered: true, fontName: 'ascii'}, // Adjusted y position slightly for title
             { text: upcomingText, x: 0, y: 25, isTitle: false, centered: true, maxWidthPercent: 45, alignment: "center" as const },
-            { text: "[[About]](about)", x: 60, y: 10, isTitle: false, maxWidthPercent: 40, alignment: "left" as const },
+            { text: "[[About]](#about)", x: 60, y: 10, isTitle: false, maxWidthPercent: 40, alignment: "left" as const },
             // { text: "", x: 50, y: 40, isTitle: false, centered: true }, // Empty spacer, might not be needed
             // Add individual works as separate text items positioned around the page
             ...works.map(work => ({
