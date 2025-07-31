@@ -150,7 +150,7 @@ function HomePage() {
                 y: 0,
                 anchorTo: anchorTo,
                 anchorPoint: isFirstWork ? 'bottomRight' as const : 'center' as const, // Anchor to bottom of upcoming text
-                anchorOffsetY: isFirstWork ? 12 : 8, // Larger gap after upcoming section, moderate gaps between works
+                anchorOffsetY: isFirstWork ? 1 : 8, // Larger gap after upcoming section, moderate gaps between works
                 alignment: "center" as const,
                 isTitle: false,
                 useSmallFont: true
