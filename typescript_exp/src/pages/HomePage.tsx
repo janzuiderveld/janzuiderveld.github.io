@@ -34,6 +34,10 @@ function HomePage() {
 
   // Define the threshold for switching layouts based on aspect ratio (width/height)
   const ASPECT_RATIO_THRESHOLD = 1.0; // Switch to narrow layout if width < height
+  
+  // Calculate aspect ratio at component level
+  const aspectRatio = windowHeight > 0 ? windowWidth / windowHeight : 1; 
+  const isNarrow = aspectRatio < ASPECT_RATIO_THRESHOLD;
 
   // Effect to update window dimensions state on resize
   useEffect(() => {
@@ -124,9 +128,6 @@ function HomePage() {
         ];
 
         let textItems: TextContentItem[] = [];
-        // Calculate aspect ratio, handle potential division by zero although unlikely for window height
-        const aspectRatio = windowHeight > 0 ? windowWidth / windowHeight : 1; 
-        const isNarrow = aspectRatio < ASPECT_RATIO_THRESHOLD;
 
         if (isNarrow) {
           // --- Narrow Layout (Anchored - Portrait/Tall Viewport) ---
@@ -149,12 +150,24 @@ function HomePage() {
                 y: 0,
                 anchorTo: anchorTo,
                 anchorPoint: isFirstWork ? 'bottomRight' as const : 'center' as const, // Anchor to bottom of upcoming text
-                anchorOffsetY: isFirstWork ? 1 : 16, // Moderate gap after upcoming bottom, smaller gaps between works
+                anchorOffsetY: isFirstWork ? 12 : 8, // Larger gap after upcoming section, moderate gaps between works
                 alignment: "center" as const,
                 isTitle: false,
                 useSmallFont: true
               };
-            })
+            }),
+            // Add a spacer at the end to ensure Safari recognizes there's scrollable space beyond the last item
+            { 
+              name: "spacer", 
+              text: ".", // Single dot to provide some content for Safari to calculate
+              x: 0, 
+              y: 0, 
+              centered: true, 
+              anchorTo: works[works.length - 1].name, 
+              anchorPoint: 'center' as const, 
+              anchorOffsetY: 15, 
+              alignment: "center" as const 
+            }
           ];
 
         } else {
@@ -175,11 +188,11 @@ function HomePage() {
           ];
         }
 
-        // Small delay might still be useful, or adjust as needed
+        // Small delay to ensure proper content height calculation on Safari
         setTimeout(() => {
           setTextContent(textItems);
           setIsLoading(false);
-        }, 50); // Reduced delay slightly
+        }, isNarrow ? 150 : 50); // Longer delay on mobile to help Safari calculate bounds
 
       } catch (error) {
         console.error("Error generating text content:", error);
@@ -201,7 +214,7 @@ function HomePage() {
       color: 'white', // Text color is handled by AsciiArtGenerator internally? Check component styles.
       margin: 0,
       padding: 0,
-      overflow: 'hidden' // Keep overflow hidden
+      overflow: 'hidden'
     }}>
       {isLoading ? (
         <div style={{
