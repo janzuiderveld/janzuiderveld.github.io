@@ -140,15 +140,16 @@ function HomePage() {
              // Add individual works anchored one after another, below the center of the previous one
             ...works.map((work, index) => {
               const anchorTo = index === 0 ? "upcoming" : works[index - 1].name;
+              const isFirstWork = index === 0;
               return {
                 name: work.name,
                 text: work.title,
                 centered: true,
-                x: Math.random() * 20 - 10, // Random x position between -20 and 20
-                y: 5,
+                x: Math.random() * 20 - 10, // Keep random x position between -10 and 10
+                y: 0,
                 anchorTo: anchorTo,
-                anchorPoint: 'bottomLeft' as const, // Use 'center' which is a valid type
-                anchorOffsetY: 1, // Vertical space below the center of the anchor
+                anchorPoint: isFirstWork ? 'bottomRight' as const : 'center' as const, // Anchor to bottom of upcoming text
+                anchorOffsetY: isFirstWork ? 1 : 16, // Moderate gap after upcoming bottom, smaller gaps between works
                 alignment: "center" as const,
                 isTitle: false,
                 useSmallFont: true
