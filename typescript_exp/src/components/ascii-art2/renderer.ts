@@ -13,10 +13,46 @@ import {
   CursorState
 } from './types';
 
+export interface CharacterPrecomputation {
+  cols: number;
+  rows: number;
+  aspect: number;
+  normX: Float32Array;
+  normY: Float32Array;
+  posX: Float32Array;
+  posY: Float32Array;
+  sizeVal: number;
+  aspectWave: number;
+  posXScaled: Float32Array;
+  posYScaled: Float32Array;
+  posXWave2: Float32Array;
+  posXSquared: Float32Array;
+  posYSquared: Float32Array;
+}
+
+export interface CharacterFrameData {
+  sinPosX: Float32Array;
+  cosPosY: Float32Array;
+  wave2Phase: number;
+  spiralPhase: number;
+  timeFactor: number;
+  pulse: number;
+  rippleBase: number;
+}
+
 // Precomputed values
 const SPACE = ' ';
 const SQRT_8 = Math.sqrt(8); // Precompute √(2²+2²)
 const MAX_DISTANCE_MULT = SQRT_8 * 1.5; // Precompute the value used for maxDistance * 1.5
+const UINT32_MAX = 0xffffffff;
+
+const pseudoRandom = (x: number, y: number, seed: number): number => {
+  let h = (seed | 0) + Math.imul(x + 0x9e3779b9, 0x85ebca6b) + Math.imul(y + 0x27d4eb2f, 0xc2b2ae35);
+  h = (h ^ (h >>> 16)) >>> 0;
+  h = Math.imul(h, 0x27d4eb2f) >>> 0;
+  h = (h ^ (h >>> 15)) >>> 0;
+  return h / UINT32_MAX;
+};
 
 // Link underline characters lookup (faster than multiple === checks)
 const LINK_UNDERLINE_CHARS: { [key: string]: boolean } = {
@@ -29,9 +65,74 @@ const LINK_UNDERLINE_CHARS: { [key: string]: boolean } = {
 const resultCache: Map<string, string> = new Map();
 const MAX_CACHE_SIZE = 10000; // Limit cache size to prevent memory issues
 
+let cachedFrameSeed = Number.NaN;
+let cachedCols = 0;
+let cachedRows = 0;
+let frameDataCache: CharacterFrameData | null = null;
+
 // Clear the cache at the beginning of each frame
 export const clearCharacterCache = () => {
   resultCache.clear();
+  cachedFrameSeed = Number.NaN;
+  cachedCols = 0;
+  cachedRows = 0;
+  frameDataCache = null;
+};
+
+const ensureFrameData = (
+  frameSeed: number,
+  precomputed: CharacterPrecomputation,
+  time: number,
+  cursorState: CursorState,
+  fastSin: (angle: number) => number,
+  fastCos: (angle: number) => number
+): CharacterFrameData => {
+  const { cols, rows, posXScaled, posYScaled } = precomputed;
+  const needsNewArrays = !frameDataCache || frameDataCache.sinPosX.length !== cols || frameDataCache.cosPosY.length !== rows;
+  const needsRecompute = needsNewArrays || frameSeed !== cachedFrameSeed || cachedCols !== cols || cachedRows !== rows;
+
+  if (!frameDataCache || needsNewArrays) {
+    frameDataCache = {
+      sinPosX: new Float32Array(cols),
+      cosPosY: new Float32Array(rows),
+      wave2Phase: 0,
+      spiralPhase: 0,
+      timeFactor: 0,
+      pulse: 0,
+      rippleBase: 0
+    };
+  }
+
+  if (needsRecompute && frameDataCache) {
+    const { sinPosX, cosPosY } = frameDataCache;
+    const timeFactor = time * 0.00003;
+    const wave2Phase = timeFactor * 1.2;
+    const spiralPhase = timeFactor * 1.5;
+    const rippleBase = time * 0.0005;
+    const pulse = fastSin(time * 0.001) * 0.2 + 1;
+    const offsetX = timeFactor + cursorState.normalized.x;
+    const offsetY = -timeFactor + cursorState.normalized.y;
+
+    for (let x = 0; x < cols; x++) {
+      sinPosX[x] = fastSin(posXScaled[x] + offsetX);
+    }
+
+    for (let y = 0; y < rows; y++) {
+      cosPosY[y] = fastCos(posYScaled[y] + offsetY);
+    }
+
+    frameDataCache.wave2Phase = wave2Phase;
+    frameDataCache.spiralPhase = spiralPhase;
+    frameDataCache.timeFactor = timeFactor;
+    frameDataCache.pulse = pulse;
+    frameDataCache.rippleBase = rippleBase;
+
+    cachedFrameSeed = frameSeed;
+    cachedCols = cols;
+    cachedRows = rows;
+  }
+
+  return frameDataCache!;
 };
 
 export const calculateCharacter = (
@@ -46,7 +147,10 @@ export const calculateCharacter = (
   cursorRef: React.MutableRefObject<CursorState>,
   scrollY: number,
   fastSin: (angle: number) => number,
-  fastCos: (angle: number) => number
+  fastCos: (angle: number) => number,
+  precomputed?: CharacterPrecomputation | null,
+  frameSeed?: number,
+  frameNow?: number
 ): string => {
   // Check cache first - use x, y, and scrollY as the cache key
   // Using scrollY ensures we don't keep stale results when scrolling
@@ -64,6 +168,22 @@ export const calculateCharacter = (
   const textOffsetY = textPositionCache.offsetY;
   const cache = blobGridCache;
   const cacheGridWidth = cache.cacheGridWidth;
+  const safeCols = cols || 1;
+  const safeRows = rows || 1;
+  const precomputedData = precomputed && precomputed.cols === cols && precomputed.rows === rows ? precomputed : null;
+  const aspectWave = precomputedData ? precomputedData.aspectWave : aspect * 0.2;
+  const sizeVal = precomputedData ? precomputedData.sizeVal : Math.max(1, Math.min(safeCols, safeRows));
+  const normX = precomputedData ? precomputedData.normX[x] : (x / safeCols) * 2 - 1;
+  const normY = precomputedData ? precomputedData.normY[y] : (y / safeRows) * 2 - 1;
+  const posXValue = precomputedData ? precomputedData.posX[x] : ((4 * (x - cols / 6.25)) / sizeVal) * aspectWave;
+  const posYValue = precomputedData ? precomputedData.posY[y] : (5 * (y - rows / 4)) / sizeVal;
+  const frameData = precomputedData && typeof frameSeed === 'number'
+    ? ensureFrameData(frameSeed, precomputedData, time, cursorState, fastSin, fastCos)
+    : null;
+  const seed = (frameSeed ?? Math.floor(time)) | 0;
+  const currentTime = frameNow ?? Date.now();
+  const randomValue = (offset: number) => pseudoRandom(x + offset, y - offset, seed ^ offset);
+  const timeFactor = frameData?.timeFactor ?? time * 0.00003;
   
   // EARLY EXIT 1: Check for white overlay (fastest path)
   if (cursorState.whiteOverlay?.active) {
@@ -79,9 +199,6 @@ export const calculateCharacter = (
     const whiteIn = cursorState.whiteIn;
     
     // Normalize position once (reused for distance calculation)
-    const normX = (x / cols) * 2 - 1;
-    const normY = (y / rows) * 2 - 1;
-    
     // Calculate squared distance from white-in center (avoid sqrt)
     const distX = normX - whiteIn.position.x;
     const distY = normY - whiteIn.position.y;
@@ -106,7 +223,7 @@ export const calculateCharacter = (
     if (edgeDistance < edgeWidth) {
       const noiseThreshold = edgeDistance / edgeWidth * 0.8;
       // Use a faster method than Math.random for performance-critical code
-      if ((Math.random() + Math.random() + Math.random()) / 3 > noiseThreshold) {
+      if (randomValue(17) > noiseThreshold) {
         resultCache.set(cacheKey, SPACE);
         return SPACE;
       }
@@ -114,7 +231,7 @@ export const calculateCharacter = (
     
     // Random space effect - use cached progress calculation
     const progressEffect = whiteIn.progress * 0.4;
-    if (Math.random() < progressEffect) {
+    if (randomValue(23) < progressEffect) {
       resultCache.set(cacheKey, SPACE);
       return SPACE;
     }
@@ -125,9 +242,6 @@ export const calculateCharacter = (
     const whiteout = cursorState.whiteout;
     
     // Normalize position once (reused for distance calculation)
-    const normX = (x / cols) * 2 - 1;
-    const normY = (y / rows) * 2 - 1;
-    
     // Calculate squared distance from whiteout center (avoid sqrt)
     const distX = normX - whiteout.position.x;
     const distY = normY - whiteout.position.y;
@@ -152,7 +266,7 @@ export const calculateCharacter = (
     if (edgeDistance < edgeWidth) {
       const noiseThreshold = edgeDistance / edgeWidth * 0.8;
       // Use a faster method than Math.random for performance-critical code
-      if ((Math.random() + Math.random()) / 2 > noiseThreshold) {
+      if (randomValue(31) > noiseThreshold) {
         resultCache.set(cacheKey, SPACE);
         return SPACE;
       }
@@ -160,7 +274,7 @@ export const calculateCharacter = (
     
     // Random space effect - use cached progress calculation
     const progressEffect = whiteout.progress * 0.2;
-    if (Math.random() < progressEffect) {
+    if (randomValue(41) < progressEffect) {
       resultCache.set(cacheKey, SPACE);
       return SPACE;
     }
@@ -298,7 +412,6 @@ export const calculateCharacter = (
   // If border region, calculate border effects - using cached values
   if (cellValue === 2) {
     // Precalculate time factors
-    const timeFactor = time * 0.00003;
     const xFrequency = x * BORDER_FREQUENCY;
     const yFrequency = y * BORDER_FREQUENCY;
     
@@ -314,14 +427,9 @@ export const calculateCharacter = (
   }
   
   // BACKGROUND ANIMATION - only compute if we haven't already determined the character
-  const timeFactor = time * 0.00003;
   const normMouseX = cursorState.normalized.x;
   const normMouseY = cursorState.normalized.y;
   const isInWindow = cursorState.isInWindow;
-  
-  // Precompute normalized positions
-  const normX = (x / cols) * 2 - 1;
-  const normY = (y / rows) * 2 - 1;
   
   // Calculate mouse influence (squared distance, avoid sqrt when possible)
   const mouseDistX = normX - normMouseX;
@@ -330,10 +438,8 @@ export const calculateCharacter = (
   let mouseInfluence = 0; // Calculated later if needed
   
   // Calculate background waves
-  const sizeVal = Math.min(cols, rows);
-  const aspectRatio = aspect * 0.2;
-  const posX = ((4 * (x - cols / 6.25)) / sizeVal) * aspectRatio;
-  const posY = (5 * (y - rows / 4)) / sizeVal;
+  const posX = posXValue;
+  const posY = posYValue;
   
   // Cursor effect - only calculate if mouse is in window
   let cursorEffect = 0;
@@ -345,9 +451,7 @@ export const calculateCharacter = (
     cursorEffect = cursorIntensity * 0.8;
   }
   
-  const pulseRate = 1.0;
-  const pulseIntensity = 0.2;
-  const pulse = fastSin(time * 0.001 * pulseRate) * pulseIntensity + 1;
+  const pulse = frameData?.pulse ?? (fastSin(time * 0.001) * 0.2 + 1);
   
   // Calculate actual mouseInfluence only if needed for ripples
   if (isInWindow) {
@@ -361,13 +465,13 @@ export const calculateCharacter = (
   if (isInWindow) {
     // Approximation for Math.exp(-mouseInfluence * rippleDecay)
     const rippleFalloff = Math.max(0, 1 - mouseInfluence * rippleDecay); // Linear falloff approximation
-    ripple = fastSin(mouseInfluence * rippleFrequency - time * 0.0005 * rippleSpeed) * 
+    const rippleBase = (frameData?.rippleBase ?? time * 0.0005) * rippleSpeed;
+    ripple = fastSin(mouseInfluence * rippleFrequency - rippleBase) * 
              rippleFalloff * 0.3;
   }
   
   // Click ripples effect - only calculate if there are active ripples
   let clickRipplesEffect = 0;
-  const currentTime = Date.now();
   const clickRipples = cursorState.clickRipples;
   
   // Fast path for no ripples
@@ -443,10 +547,19 @@ export const calculateCharacter = (
   }
   
   // Calculate wave patterns
-  const wave1 = fastSin(posX * 1.5 + timeFactor + normMouseX) * 
-                fastCos(posY * 1.5 - timeFactor + normMouseY);
-  const wave2 = fastCos(posX * posY * 0.8 + timeFactor * 1.2);
-  const spiral = fastSin(Math.sqrt(posX * posX + posY * posY) * 3 - timeFactor * 1.5);
+  const wave1 = frameData 
+    ? frameData.sinPosX[x] * frameData.cosPosY[y]
+    : fastSin(posX * 1.5 + timeFactor + normMouseX) * fastCos(posY * 1.5 - timeFactor + normMouseY);
+
+  const wave2Base = precomputedData
+    ? precomputedData.posXWave2[x] * posY + (frameData?.wave2Phase ?? timeFactor * 1.2)
+    : posX * posY * 0.8 + timeFactor * 1.2;
+  const wave2 = fastCos(wave2Base);
+
+  const spiralMagnitude = precomputedData
+    ? Math.sqrt(precomputedData.posXSquared[x] + precomputedData.posYSquared[y]) * 3
+    : Math.sqrt(posX * posX + posY * posY) * 3;
+  const spiral = fastSin(spiralMagnitude - (frameData?.spiralPhase ?? timeFactor * 1.5));
   let mouseRipple = 0;
   if (isInWindow && mouseInfluence > 1e-6) { // Avoid division by zero/small number if mouseInfluence is 0
     mouseRipple = fastSin(mouseInfluence * 5 - timeFactor * 2) / (mouseInfluence + 1);

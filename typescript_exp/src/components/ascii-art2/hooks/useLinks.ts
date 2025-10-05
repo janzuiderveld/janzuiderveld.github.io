@@ -8,104 +8,34 @@ import {
   SAFARI_LINK_OFFSET_BASE,
   SAFARI_LINK_OFFSET_FACTOR
 } from '../constants';
-import { LinkPosition, LinkOverlay, Size, TextPositionCacheResult } from '../types';
+import { LinkPosition, Size, TextPositionCacheResult } from '../types';
 
 export const useLinks = (
   size: Size,
   textPositionCache: TextPositionCacheResult,
   scrollOffsetRef: React.MutableRefObject<number>,
-  startWhiteout: (position: { x: number; y: number }, targetUrl: string) => void
+  startWhiteout: (position: { x: number; y: number }, targetUrl: string) => void,
+  externalScrollingRef?: React.MutableRefObject<boolean>
 ) => {
-  const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
   const linkPositionsRef = useRef<LinkPosition[]>([]);
-  const [linkOverlays, setLinkOverlays] = useState<LinkOverlay[]>([]);
-  const lastScrollOffsetRef = useRef(scrollOffsetRef.current);
-  const isScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef<number | null>(null);
+  const [, setOverlayRevision] = useState(0);
+  const isScrollingRef = externalScrollingRef ?? useRef(false);
 
-  // Enhanced scroll tracking
+  // Keep the local ref aligned with the most recent link map so coordinate fallback stays accurate
   useEffect(() => {
-    // Track scroll changes and set scrolling state
-    const handleScroll = () => {
-      // If scroll position changed, mark as scrolling
-      if (lastScrollOffsetRef.current !== scrollOffsetRef.current) {
-        isScrollingRef.current = true;
-        
-        // Clear any existing timeout
-        if (scrollTimeoutRef.current !== null) {
-          window.clearTimeout(scrollTimeoutRef.current);
-        }
-        
-        // Set timeout to mark scrolling as complete after a short delay
-        scrollTimeoutRef.current = window.setTimeout(() => {
-          isScrollingRef.current = false;
-          // Update link overlays after scrolling stops
-          requestAnimationFrame(() => updateLinkOverlays());
-        }, 150);
-      }
-      
-      lastScrollOffsetRef.current = scrollOffsetRef.current;
-    };
-    
-    // Check for scroll changes frequently
-    const interval = setInterval(handleScroll, 50);
-    
-    return () => {
-      clearInterval(interval);
-      if (scrollTimeoutRef.current !== null) {
-        window.clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
+    if (textPositionCache.links !== linkPositionsRef.current) {
+      linkPositionsRef.current = textPositionCache.links;
+    }
+  }, [textPositionCache.links]);
 
   // Update link overlays with improved positioning
   const updateLinkOverlays = useCallback(() => {
-    if (!size.width || !size.height) return;
-    
-    const currentScrollY = scrollOffsetRef.current;
-    const scrolledY = Math.floor(currentScrollY / CHAR_HEIGHT);
-    const newOverlays: LinkOverlay[] = [];
-    
-    for (const link of linkPositionsRef.current) {
-      const isFixed = textPositionCache.bounds[link.textKey]?.fixed || false;
-      const linkY = isFixed ? link.y : link.y - scrolledY;
-      
-      // Use a wider range to ensure we catch all links that might be partially visible
-      if (linkY >= -15 && linkY < (size.height / CHAR_HEIGHT) + 15) {
-        // Calculate exact position with pixel precision
-        const left = Math.max(0, link.startX * CHAR_WIDTH);
-        const top = linkY * CHAR_HEIGHT;
-        
-        const width = (link.endX - link.startX + 1) * CHAR_WIDTH;
-        // Create a taller clickable area for better hit detection
-        const height = CHAR_HEIGHT * 3;
-        
-        newOverlays.push({
-          url: link.url,
-          style: {
-            position: 'absolute',
-            left: `${left}px`,
-            top: `${top}px`,
-            width: `${width}px`,
-            height: `${height}px`,
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            zIndex: 9999,
-            pointerEvents: 'auto',
-            transform: 'translateZ(0)',
-            outline: 'none',
-            display: 'block',
-            padding: 0,
-            margin: 0,
-            boxSizing: 'border-box',
-            userSelect: 'none'
-          }
-        });
-      }
+    if (!size.width || !size.height) {
+      return;
     }
-    
-    setLinkOverlays(newOverlays);
-  }, [size, textPositionCache.bounds, scrollOffsetRef]);
+
+    setOverlayRevision(prev => prev + 1);
+  }, [size.height, size.width]);
 
   // Add direct DOM event listeners for more reliable click detection
   useEffect(() => {
@@ -396,14 +326,10 @@ export const useLinks = (
   // Force update link overlays when scroll position changes
   useEffect(() => {
     updateLinkOverlays();
-  }, [scrollOffsetRef.current, updateLinkOverlays]);
+  }, [size.width, size.height, textPositionCache.links, updateLinkOverlays]);
 
   return {
-    linkPositions,
-    setLinkPositions,
-    linkPositionsRef,
-    linkOverlays,
     updateLinkOverlays,
     handleClick
   };
-}; 
+};

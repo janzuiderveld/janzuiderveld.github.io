@@ -9,7 +9,8 @@ import {
   BlobGridCache, 
   SpatialGrid, 
   TextPositionCacheResult, 
-  Size 
+  Size,
+  TextPositionCache
 } from '../types';
 import { getGridDimensions } from '../utils';
 
@@ -50,27 +51,88 @@ export const useBlobCache = (
     const spatialGrid: SpatialGrid = {};
     const cellSize = GRID_CELL_SIZE * BLOB_RADIUS;
     
+    const minEffectiveY = cacheStartY - BLOB_RADIUS;
+    const maxEffectiveY = cacheStartY + cacheHeight + BLOB_RADIUS;
+    const minEffectiveX = cacheStartX - BLOB_RADIUS;
+    const maxEffectiveX = cacheStartX + cacheWidth + BLOB_RADIUS;
+
+    type CacheEntry = TextPositionCache[string][number];
+
+    const findVerticalSlice = (positions: CacheEntry[], startY: number, endY: number) => {
+      let startIndex = 0;
+      let endIndex = positions.length;
+
+      let low = 0;
+      let high = positions.length;
+      while (low < high) {
+        const mid = (low + high) >> 1;
+        if (positions[mid].y < startY) {
+          low = mid + 1;
+        } else {
+          high = mid;
+        }
+      }
+      startIndex = low;
+
+      low = startIndex;
+      high = positions.length;
+      while (low < high) {
+        const mid = (low + high) >> 1;
+        if (positions[mid].y <= endY) {
+          low = mid + 1;
+        } else {
+          high = mid;
+        }
+      }
+      endIndex = low;
+
+      return { startIndex, endIndex };
+    };
+
     for (const textKey in textPositionCache.cache) {
       const positions = textPositionCache.cache[textKey];
+      if (!positions.length) continue;
+
       const bounds = textPositionCache.bounds[textKey];
+      if (!bounds) continue;
+
       const isFixed = bounds.fixed;
-      
-      for (const pos of positions) {
+
+      if (bounds.maxX < minEffectiveX || bounds.minX > maxEffectiveX) {
+        continue;
+      }
+
+      const absoluteMinY = isFixed ? minEffectiveY : minEffectiveY + scrolledY;
+      const absoluteMaxY = isFixed ? maxEffectiveY : maxEffectiveY + scrolledY;
+
+      if (bounds.maxY < absoluteMinY || bounds.minY > absoluteMaxY) {
+        continue;
+      }
+
+      let startIndex = 0;
+      let endIndex = positions.length;
+
+      if (!isFixed) {
+        const slice = findVerticalSlice(positions, absoluteMinY, absoluteMaxY);
+        startIndex = slice.startIndex;
+        endIndex = slice.endIndex;
+      }
+
+      for (let i = startIndex; i < endIndex; i++) {
+        const pos = positions[i];
         const effectiveY = isFixed ? pos.y : pos.y - scrolledY;
-        
-        if (effectiveY < cacheStartY - BLOB_RADIUS || 
-            effectiveY > cacheStartY + cacheHeight + BLOB_RADIUS) {
+
+        if (effectiveY < minEffectiveY || effectiveY > maxEffectiveY) {
           continue;
         }
-        if (pos.startX < cacheStartX - BLOB_RADIUS || 
-            pos.startX > cacheStartX + cacheWidth + BLOB_RADIUS) {
+        if (pos.startX < minEffectiveX || pos.startX > maxEffectiveX) {
           continue;
         }
-        
+
         const gridX = Math.floor(pos.startX / cellSize);
         const gridY = Math.floor(effectiveY / cellSize);
         const cellKey = `${gridX},${gridY}`;
-        
+
         if (!spatialGrid[cellKey]) spatialGrid[cellKey] = [];
         spatialGrid[cellKey].push({
           textKey,

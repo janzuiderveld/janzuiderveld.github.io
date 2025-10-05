@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { AsciiArtGeneratorProps, Size, LinkPosition } from './types';
 import { 
   SCALE_FACTOR, 
@@ -19,7 +19,7 @@ import {
   useContentHeight,
   useAnimation
 } from './hooks';
-import { calculateCharacter, clearCharacterCache } from './renderer';
+import { calculateCharacter, CharacterPrecomputation } from './renderer';
 
 const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ 
   textContent, 
@@ -41,11 +41,16 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     needsWhiteIn: true
   });
 
-  // Initialize trig tables
-  const sinTable = createSinTable();
-  const cosTable = createCosTable();
-  const fastSin = createFastSin(sinTable);
-  const fastCos = createFastCos(cosTable);
+  // Initialize trig tables once to avoid redundant allocations during rerenders
+  const { fastSin, fastCos } = useMemo(() => {
+    const sinTable = createSinTable();
+    const cosTable = createCosTable();
+
+    return {
+      fastSin: createFastSin(sinTable),
+      fastCos: createFastCos(cosTable)
+    };
+  }, []);
 
   // Link state management - Needs to be declared before useTextPositioning
   const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
@@ -98,6 +103,26 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
 
   // Define updateLinkOverlays function stub for initial use
   const updateLinkOverlaysRef = useRef<() => void>(() => {});
+  const overlayUpdateFrameRef = useRef<number | null>(null);
+
+  const scheduleOverlayUpdate = useCallback(() => {
+    if (overlayUpdateFrameRef.current !== null) {
+      return;
+    }
+
+    overlayUpdateFrameRef.current = requestAnimationFrame(() => {
+      overlayUpdateFrameRef.current = null;
+      updateLinkOverlaysRef.current();
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (overlayUpdateFrameRef.current !== null) {
+        cancelAnimationFrame(overlayUpdateFrameRef.current);
+      }
+    };
+  }, []);
 
   // Scrolling - destructure only what we need, pass cursorRef to update scrolling state
   const { 
@@ -107,18 +132,14 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     scrollVelocity 
   } = useScrolling(maxScroll, containerRef, () => {
     // Ensure link overlays update after each scroll chunk
-    updateLinkOverlaysRef.current();
+    scheduleOverlayUpdate();
   }, cursorRef); // Pass cursorRef to useScrolling
 
   // Update the scrollOffsetRef when scrollOffset changes
   useEffect(() => {
     scrollOffsetRef.current = scrollOffset;
-    
-    // Update link positions after scroll changes
-    requestAnimationFrame(() => {
-      updateLinkOverlaysRef.current();
-    });
-  }, [scrollOffset]);
+    scheduleOverlayUpdate();
+  }, [scrollOffset, scheduleOverlayUpdate]);
 
   // Links management
   const { 
@@ -147,7 +168,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       // Normal flow - start whiteout animation
       startWhiteout(position, url);
     }
-  });
+  }, isScrolling);
 
   // Update the ref with the real function
   useEffect(() => {
@@ -320,26 +341,37 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
 
   // Character calculation function
   const characterCalculator = useCallback((
-    x: number, 
-    y: number, 
-    cols: number, 
-    rows: number, 
-    aspect: number, 
-    time: number
+    x: number,
+    y: number,
+    cols: number,
+    rows: number,
+    aspect: number,
+    time: number,
+    precomputed: CharacterPrecomputation | null,
+    frameSeed: number,
+    frameNow: number
   ) => {
     return calculateCharacter(
-      x, y, cols, rows, aspect, time,
+      x,
+      y,
+      cols,
+      rows,
+      aspect,
+      time,
       textPositionCache,
       blobGridCache.current,
       cursorRef,
       scrollOffsetRef.current,
       fastSin,
-      fastCos
+      fastCos,
+      precomputed,
+      frameSeed,
+      frameNow
     );
   }, [textPositionCache, cursorRef, fastSin, fastCos, blobGridCache]);
 
   // Animation
-  const { } = useAnimation(
+  useAnimation(
     textRef,
     size,
     characterCalculator,
@@ -403,16 +435,18 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       
       // Immediately rebuild the blob cache during scrolling instead of waiting
       buildBlobCache(scrollOffset);
+      scheduleOverlayUpdate();
       
       // Also set a backup timeout in case the immediate update isn't sufficient
       rebuildCacheTimeoutRef.current = window.setTimeout(() => {
         if (needsRebuildRef.current) {
           buildBlobCache(scrollOffset);
+          scheduleOverlayUpdate();
         }
       }, 100);
     });
     
-  }, [scrollOffset, buildBlobCache, checkScrollChunk]);
+  }, [scrollOffset, buildBlobCache, checkScrollChunk, scheduleOverlayUpdate]);
 
   // Build blob cache on first render
   useEffect(() => {
@@ -485,70 +519,46 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
 
   // Update link overlays
   useEffect(() => {
-    updateLinkOverlays();
-  }, [linkPositions, scrollOffset, updateLinkOverlays]);
+    scheduleOverlayUpdate();
+  }, [linkPositions, scrollOffset, scheduleOverlayUpdate]);
 
-  // Ensure link overlays are updated after any scroll events or animation frames
+  // Ensure link overlays stay aligned after global scroll/resize events
   useEffect(() => {
-    const updateLinksOnScroll = () => {
-      requestAnimationFrame(() => {
-        if (updateLinkOverlaysRef.current) {
-          updateLinkOverlaysRef.current();
-        }
-      });
+    const handleSchedule = () => {
+      scheduleOverlayUpdate();
     };
 
-    // Create the scroll handler
-    const handleScrollEvent = () => {
-      updateLinksOnScroll();
-    };
+    window.addEventListener('scroll', handleSchedule, { passive: true });
+    document.addEventListener('scroll', handleSchedule, { passive: true });
 
-    // Use MutationObserver to detect any DOM changes that might affect positioning
-    const observer = new MutationObserver(() => {
-      updateLinksOnScroll();
-    });
-
-    if (textRef.current) {
-      // Observe the text element for any changes
-      observer.observe(textRef.current, {
-        attributes: true,
-        childList: true,
-        subtree: true,
-        characterData: true
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        scheduleOverlayUpdate();
       });
-
-      // Add scroll listeners to multiple elements to ensure we catch all scroll events
-      window.addEventListener('scroll', handleScrollEvent, { passive: true });
-      document.addEventListener('scroll', handleScrollEvent, { passive: true });
-      textRef.current.addEventListener('scroll', handleScrollEvent, { passive: true });
-
-      // Track animation frames to update links during animations
-      let animationFrameId: number;
-      const updateOnFrame = () => {
-        updateLinksOnScroll();
-        animationFrameId = requestAnimationFrame(updateOnFrame);
-      };
-
-      // Use RAF for smoother updates during animations/transitions
-      animationFrameId = requestAnimationFrame(updateOnFrame);
-
-      return () => {
-        window.removeEventListener('scroll', handleScrollEvent);
-        document.removeEventListener('scroll', handleScrollEvent);
-        if (textRef.current) {
-          textRef.current.removeEventListener('scroll', handleScrollEvent);
-        }
-        observer.disconnect();
-        cancelAnimationFrame(animationFrameId);
-      };
+      resizeObserver.observe(containerRef.current);
     }
-  }, []);
+
+    const viewport = window.visualViewport;
+    const handleViewportResize = () => scheduleOverlayUpdate();
+    viewport?.addEventListener('resize', handleViewportResize);
+
+    const textElement = textRef.current;
+    textElement?.addEventListener('scroll', handleSchedule, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleSchedule);
+      document.removeEventListener('scroll', handleSchedule);
+      textElement?.removeEventListener('scroll', handleSchedule);
+      resizeObserver?.disconnect();
+      viewport?.removeEventListener('resize', handleViewportResize);
+    };
+  }, [scheduleOverlayUpdate]);
 
   // Make sure link position updates happen after scroll offset changes
   useEffect(() => {
-    // This effect specifically ensures that link overlays update when scroll offset changes
-    updateLinkOverlaysRef.current();
-  }, [scrollOffset]);
+    scheduleOverlayUpdate();
+  }, [scrollOffset, scheduleOverlayUpdate]);
 
   // Log the Safari offset parameters when they change
   useEffect(() => {
@@ -613,41 +623,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       }
     };
   }, [startWhiteout]);
-
-  // Add a render throttling mechanism when scrolling
-  const frameSkipCountRef = useRef(0);
-  
-  useEffect(() => {
-    let animationFrameId: number;
-    
-    // Animation frame function with performance optimizations
-    const updateFrame = () => {
-      // Only skip every 3rd frame during scrolling to maintain animation quality
-      // This balances performance and visual quality
-      if (cursorRef.current.isScrolling) {
-        frameSkipCountRef.current++;
-        if (frameSkipCountRef.current % 3 === 2) { // Skip every 3rd frame only
-          animationFrameId = requestAnimationFrame(updateFrame);
-          return;
-        }
-      } else {
-        frameSkipCountRef.current = 0;
-      }
-      
-      // Clear the character cache at the beginning of each frame
-      clearCharacterCache();
-      
-      // Rest of animation code...
-      
-      animationFrameId = requestAnimationFrame(updateFrame);
-    };
-    
-    animationFrameId = requestAnimationFrame(updateFrame);
-    
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
 
   return (
     <div
