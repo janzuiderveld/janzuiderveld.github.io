@@ -35,6 +35,8 @@ export const useAnimation = (
   const lastFrameTimeRef = useRef<number>(0);
   const frameSkipRef = useRef(0);
   const precomputedRef = useRef<CharacterPrecomputation | null>(null);
+  const safariLastFrameRef = useRef(0);
+  const SAFARI_FRAME_INTERVAL = 1000 / 24;
 
   useEffect(() => {
     const element = textRef.current;
@@ -85,7 +87,6 @@ export const useAnimation = (
     }
 
     const aspectRatio = size.width / size.height;
-    const numChunks = Math.ceil(rows / BASE_CHUNK_SIZE);
 
     const rowBuffers: string[][] = new Array(rows)
       .fill(null)
@@ -165,6 +166,15 @@ export const useAnimation = (
     let animationFrameId: number;
 
     const animate = (timestamp: number) => {
+      if (IS_SAFARI) {
+        const elapsedSinceSafariFrame = timestamp - safariLastFrameRef.current;
+        if (elapsedSinceSafariFrame < SAFARI_FRAME_INTERVAL) {
+          animationFrameId = requestAnimationFrame(animate);
+          return;
+        }
+        safariLastFrameRef.current = timestamp;
+      }
+
       if (timestamp - lastFrameTimeRef.current >= FRAME_DURATION) {
         if (isScrolling.current) {
           frameSkipRef.current = (frameSkipRef.current + 1) % 3;
@@ -189,7 +199,7 @@ export const useAnimation = (
           } else if (velocity > 20) {
             skipFactor = 2;
             chunkSizeFactor = 2;
-          } else {
+          } else if (IS_SAFARI) {
             skipFactor = 2;
             chunkSizeFactor = 1.5;
           }
@@ -198,11 +208,63 @@ export const useAnimation = (
         const adjustedChunkSize = Math.ceil(BASE_CHUNK_SIZE * chunkSizeFactor);
 
         styleMap.clear();
-        for (let y = 0; y < rows; y++) {
+
+        const scrolledY = Math.floor(scrollOffsetRef.current / CHAR_HEIGHT);
+
+        let activeRowStart = 0;
+        let activeRowEnd = rows;
+        let activeColStart = 0;
+        let activeColEnd = cols;
+
+        if (IS_SAFARI) {
+          let boundsMinY = Number.POSITIVE_INFINITY;
+          let boundsMaxY = Number.NEGATIVE_INFINITY;
+          let boundsMinX = Number.POSITIVE_INFINITY;
+          let boundsMaxX = Number.NEGATIVE_INFINITY;
+          const offsetY = textPositionCache.offsetY;
+
+          for (const key in textPositionCache.bounds) {
+            const bounds = textPositionCache.bounds[key];
+            if (!bounds) continue;
+
+            boundsMinX = Math.min(boundsMinX, bounds.minX);
+            boundsMaxX = Math.max(boundsMaxX, bounds.maxX);
+
+            const localMinY = bounds.minY - offsetY;
+            const localMaxY = bounds.maxY - offsetY;
+
+            if (bounds.fixed) {
+              boundsMinY = Math.min(boundsMinY, localMinY);
+              boundsMaxY = Math.max(boundsMaxY, localMaxY);
+            } else {
+              boundsMinY = Math.min(boundsMinY, localMinY - scrolledY);
+              boundsMaxY = Math.max(boundsMaxY, localMaxY - scrolledY);
+            }
+          }
+
+          const verticalPadding = 48;
+
+          if (boundsMinY !== Number.POSITIVE_INFINITY && boundsMaxY !== Number.NEGATIVE_INFINITY) {
+            activeRowStart = Math.max(0, Math.floor(boundsMinY) - verticalPadding);
+            activeRowEnd = Math.min(rows, Math.ceil(boundsMaxY) + verticalPadding);
+          }
+
+          activeColStart = 0;
+          activeColEnd = cols;
+
+          if (activeRowStart >= activeRowEnd) {
+            activeRowStart = 0;
+            activeRowEnd = rows;
+          }
+        }
+
+        const activeRowCount = Math.max(1, activeRowEnd - activeRowStart);
+        const numChunks = Math.ceil(activeRowCount / BASE_CHUNK_SIZE);
+
+        for (let y = activeRowStart; y < activeRowEnd; y++) {
           rowBuffers[y].fill(' ');
         }
 
-        const scrolledY = Math.floor(scrollOffsetRef.current / CHAR_HEIGHT);
         const precomputed = ensurePrecomputed();
         const frameSeed = timestamp | 0;
         const frameNow = Date.now();
@@ -269,11 +331,14 @@ export const useAnimation = (
         }
 
         for (let chunk = 0; chunk < numChunks; chunk++) {
-          const startRow = chunk * BASE_CHUNK_SIZE;
-          const endRow = Math.min(startRow + adjustedChunkSize, rows);
+          const chunkRowStart = activeRowStart + chunk * BASE_CHUNK_SIZE;
+          if (chunkRowStart >= activeRowEnd) {
+            break;
+          }
+          const chunkRowEnd = Math.min(chunkRowStart + adjustedChunkSize, activeRowEnd);
 
-          for (let y = startRow; y < endRow; y++) {
-            for (let x = 0; x < cols; x += skipFactor) {
+          for (let y = chunkRowStart; y < chunkRowEnd; y++) {
+            for (let x = activeColStart; x < activeColEnd; x += skipFactor) {
               const char = calculateCharacter(
                 x,
                 y,

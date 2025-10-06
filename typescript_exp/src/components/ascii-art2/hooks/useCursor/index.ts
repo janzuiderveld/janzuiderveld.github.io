@@ -20,7 +20,7 @@ export const useCursor = ({ textRef, size }: UseCursorParams): UseCursorResult =
   
   const [cursor, setCursor] = useState(cursorRef.current);
   const lastMouseMoveTime = useRef(0);
-  const maxRipples = 5; // Maximum number of active ripples at once
+  const maxRipples = Number.POSITIVE_INFINITY; // Allow unlimited ripple animations
   const whiteInAnimationRef = useRef<number | null>(null);
   const whiteoutAnimationRef = useRef<number | null>(null);
   const whiteOverlayAnimationRef = useRef<number | null>(null);

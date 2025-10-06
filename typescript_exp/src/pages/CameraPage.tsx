@@ -1,39 +1,64 @@
 // src/pages/CameraPage.tsx
-import { useState, useEffect, useMemo } from 'react';
-// import AsciiArtGenerator from '../components/ascii-art/AsciiArtGenerator';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
 import cameraAsciiArt from '../assets/camera/camera_ascii.txt?raw';
-
 import cameraText from '../assets/camera/camera_text.txt?raw';
+import { IS_SAFARI } from '../components/ascii-art2/constants';
 
 function CameraPage() {
-  console.log("CameraPage component rendering - should only show on /camera route");
+  // console.log("CameraPage component rendering - should only show on /camera route");
   
   const [textContent, setTextContent] = useState<Array<{
-    text: string, 
-    x: number, 
-    y: number, 
-    isTitle?: boolean, 
-    centered?: boolean, 
-    preRenderedAscii?: string,
-    useSmallFont?: boolean,
-    fixed?: boolean,
-    maxWidthPercent?: number,
-    alignment?: 'left' | 'center' | 'right',
-    anchorTo?: string,
-    anchorOffsetX?: number,
-    anchorOffsetY?: number,
-    anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter',
-    name?: string,
-    fontName?: 'regular' | 'ascii' | 'smallAscii'
+    text: string; 
+    x: number; 
+    y: number; 
+    isTitle?: boolean; 
+    centered?: boolean; 
+    preRenderedAscii?: string;
+    useSmallFont?: boolean;
+    fixed?: boolean;
+    maxWidthPercent?: number;
+    alignment?: 'left' | 'center' | 'right';
+    anchorTo?: string;
+    anchorOffsetX?: number;
+    anchorOffsetY?: number;
+    anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter';
+    name?: string;
+    fontName?: 'regular' | 'ascii' | 'smallAscii';
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const preRenderedArt = useMemo(() => {
-    return {
-      camera: cameraAsciiArt,
-    };
+  const downsampleAsciiArt = useCallback((art: string, factor: number) => {
+    if (factor <= 1) return art;
+
+    const lines = art.split('\n');
+    const sampledRows = lines.filter((_, rowIndex) => rowIndex % factor === 0);
+
+    const sampled = sampledRows.map(line => {
+      if (!line) return line;
+      let reduced = '';
+      for (let i = 0; i < line.length; i += factor) {
+        reduced += line[i] ?? ' ';
+      }
+      return reduced;
+    });
+
+    return sampled.join('\n');
   }, []);
+
+  const optimizedAscii = useMemo(() => {
+    if (!IS_SAFARI) return cameraAsciiArt;
+    return downsampleAsciiArt(cameraAsciiArt, 2);
+  }, [downsampleAsciiArt, cameraAsciiArt]);
+
+  const optimizedText = useMemo(() => {
+    if (!IS_SAFARI) return cameraText;
+    return cameraText.replace(/\n{3,}/g, '\n\n');
+  }, [cameraText]);
+
+  const preRenderedArt = useMemo(() => ({
+    camera: optimizedAscii,
+  }), [optimizedAscii]);
   
   useEffect(() => {
     const fetchTextContent = async () => {
@@ -42,23 +67,11 @@ function CameraPage() {
         const textItems = [
           { name: "Life on _", text: "Life on _", x: 0, y: 10, isTitle: true, centered: true, fontName: 'ascii' as 'ascii'},
           { name: "back", text: "[[<<<]](#/)", x: 2, y: 4, fixed: true},
-          { name: "text", text: cameraText, x: 0, y: 20, centered: true, maxWidthPercent: 60, alignment: 'left' as 'left' },
+          { name: "text", text: optimizedText, x: 0, y: 20, centered: true, maxWidthPercent: IS_SAFARI ? 55 : 60, alignment: 'left' as 'left' },
           { name: "Camera", text: "Camera", x: 0, y: 0, preRenderedAscii: preRenderedArt.camera, centered: true, anchorTo: "text", anchorOffsetX: 0, anchorOffsetY: -13, anchorPoint: "bottomCenter" as 'bottomCenter' },
-          { name: "exhibitions", text: "==Selected exhibitions==\n\n==2024==\nLife on //SIGN// / Camera + Theater\nSIGN (Groningen, NL)", x: 0, y: 90, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center', anchorTo: "Camera", anchorOffsetX: 0, anchorOffsetY: 5, anchorPoint: "bottomCenter" as 'bottomCenter' },
-          
-          // Test Links - clearly labeled to distinguish them
-          // { text: "LINK 1: [Click me](https://www.google.com)", x: 50, y: 20, centered: true, fixed: true },
-          // { text: "LINK 2: [GitHub](https://github.com) | [Twitter](https://twitter.com) | [LinkedIn](https://linkedin.com)", x: 50, y: 80, centered: true, fixed: true },
-          // { text: "LINK 3: [more links](https://example.com)", x: 20, y: 120, centered: false, fixed: false },
-          
-          // // Cross-browser test links at different vertical positions
-          // { text: "LINK 4 (top): [Top link](https://example.com/top)", x: 50, y: 5, centered: true, fixed: true },
-          // { text: "LINK 5 (middle): [Middle link](https://example.com/middle)", x: 50, y: 40, centered: true, fixed: true },
-          // { text: "LINK 6 (bottom): [Bottom link](https://example.com/bottom)", x: 50, y: 140, centered: true, fixed: false },
-          // { text: "LINK 7 (very bottom): [Very bottom link](https://example.com/very-bottom)", x: 50, y: 160, centered: true, fixed: false },
+          { name: "exhibitions", text: "==Selected exhibitions==\n\n==2024==\nLife on //SIGN// / Camera + Theater\nSIGN (Groningen, NL)", x: 0, y: 90, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center', anchorTo: "Camera", anchorOffsetX: 0, anchorOffsetY: 5, anchorPoint: "bottomCenter" as 'bottomCenter' }
         ];
         
-        // Small delay to ensure DOM is ready before setting content
         setTimeout(() => {
           setTextContent(textItems);
           setIsLoading(false);
@@ -95,7 +108,6 @@ function CameraPage() {
           alignItems: 'center',
           zIndex: 9999
         }}>
-          {/* We're intentionally not showing any loading text to keep the screen pure white */}
         </div>
       ) : (
         <AsciiArtGenerator textContent={textContent} />

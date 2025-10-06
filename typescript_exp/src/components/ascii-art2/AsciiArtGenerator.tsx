@@ -23,7 +23,8 @@ import { calculateCharacter, CharacterPrecomputation } from './renderer';
 
 const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ 
   textContent, 
-  maxScrollHeight
+  maxScrollHeight,
+  onScrollOffsetChange
 }) => {
   // Log Safari detection status for debugging
   // console.log(`Browser detection - IS_SAFARI: ${IS_SAFARI}`, navigator.userAgent);
@@ -139,7 +140,10 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   useEffect(() => {
     scrollOffsetRef.current = scrollOffset;
     scheduleOverlayUpdate();
-  }, [scrollOffset, scheduleOverlayUpdate]);
+    if (onScrollOffsetChange) {
+      onScrollOffsetChange(scrollOffset);
+    }
+  }, [scrollOffset, scheduleOverlayUpdate, onScrollOffsetChange]);
 
   // Links management
   const { 
@@ -428,92 +432,55 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   useEffect(() => {
     checkScrollChunk(() => {
       needsRebuildRef.current = true;
-      
+
       if (rebuildCacheTimeoutRef.current) {
         clearTimeout(rebuildCacheTimeoutRef.current);
       }
-      
-      // Immediately rebuild the blob cache during scrolling instead of waiting
+
       buildBlobCache(scrollOffset);
       scheduleOverlayUpdate();
-      
-      // Also set a backup timeout in case the immediate update isn't sufficient
+
+      const timeoutDelay = IS_SAFARI ? 140 : 80;
       rebuildCacheTimeoutRef.current = window.setTimeout(() => {
         if (needsRebuildRef.current) {
           buildBlobCache(scrollOffset);
           scheduleOverlayUpdate();
         }
-      }, 100);
+      }, timeoutDelay);
     });
-    
   }, [scrollOffset, buildBlobCache, checkScrollChunk, scheduleOverlayUpdate]);
 
-  // Build blob cache on first render
+  // Cleanup on unmount
   useEffect(() => {
-    if (!Object.keys(blobGridCache.current.grid).length && size.width && size.height) {
-      buildBlobCache(scrollOffsetRef.current);
-    }
-  }, [buildBlobCache, size, blobGridCache]);
-
-  // Clear blob cache on content changes
-  useEffect(() => {
-    blobGridCache.current = {
-      grid: [] as (Uint8Array | null)[],
-      startX: 0,
-      startY: 0,
-      width: 0,
-      height: 0,
-      cacheGridWidth: 0
+    return () => {
+      if (rebuildCacheTimeoutRef.current) {
+        clearTimeout(rebuildCacheTimeoutRef.current);
+      }
     };
-  }, [textContent]);
+  }, []);
 
-  // Link event listeners
+  // Add event listeners for navigation and clicks
   useEffect(() => {
-    const element = textRef.current;
-    if (!element) return;
-    
-    // Use correct event type for click handling with capture phase
-    const clickHandler = (e: MouseEvent) => {
-      // Handle click in capture phase to ensure we get it first
-      handleClick(e, textRef);
-    };
-    
-    // Use capture phase to get events before they reach links
-    element.addEventListener('click', clickHandler, { capture: true });
-    
-    // Prevent the default behavior of all links within the component
+    if (!containerRef.current) return;
+
     const preventDefaultLinkBehavior = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === 'A' || target.closest('a')) {
+      if (target && target.closest('[data-link-overlay="true"]')) {
         e.preventDefault();
-        e.stopPropagation();
       }
     };
-    
-    // Add this listener to the document to catch all link clicks
+
+    const clickHandler = (e: MouseEvent) => {
+      handleClick(e, textRef);
+    };
+
+    const element = containerRef.current;
+    element.addEventListener('click', clickHandler, { capture: true });
     document.addEventListener('click', preventDefaultLinkBehavior, { capture: true });
-    
-    // Update cursor style over links
-    const handleMouseMove = (_e: MouseEvent) => {
-      if (!element || !size.width || !size.height) return;
-      
-      // For scrolling areas, we still want to show the appropriate cursor
-      const maxScroll = maxScrollHeight ? Math.max(0, maxScrollHeight - (size.height || 0)) : 0;
-      
-      // Default cursor for scrollable areas
-      if (maxScroll > 0) {
-        element.style.cursor = 'ns-resize';
-      } else {
-        element.style.cursor = 'default';
-      }
-    };
-    
-    element.addEventListener('mousemove', handleMouseMove);
-    
+
     return () => {
       element.removeEventListener('click', clickHandler, { capture: true });
       document.removeEventListener('click', preventDefaultLinkBehavior, { capture: true });
-      element.removeEventListener('mousemove', handleMouseMove);
     };
   }, [handleClick, maxScroll, size, textRef, maxScrollHeight]);
 
@@ -841,4 +808,4 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   );
 };
 
-export default AsciiArtGenerator; 
+export default AsciiArtGenerator;

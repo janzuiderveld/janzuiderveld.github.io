@@ -7,6 +7,7 @@ import React from 'react';
 export interface AsciiArtGeneratorProps {
   textContent: TextContentItem[];
   maxScrollHeight?: number;
+  onScrollOffsetChange?: (offset: number) => void;
 }
 
 /**

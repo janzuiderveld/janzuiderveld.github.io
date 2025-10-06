@@ -62,7 +62,7 @@ const LINK_UNDERLINE_CHARS: { [key: string]: boolean } = {
 // Add result cache to avoid recalculating the same character repeatedly during scrolling
 // This acts as a frame-level cache with a smaller memory footprint than a full LRU cache
 // Key format: "x:y:scrollY"
-const resultCache: Map<string, string> = new Map();
+const resultCache: Map<number, string> = new Map();
 const MAX_CACHE_SIZE = 10000; // Limit cache size to prevent memory issues
 
 let cachedFrameSeed = Number.NaN;
@@ -135,6 +135,10 @@ const ensureFrameData = (
   return frameDataCache!;
 };
 
+const encodeCacheKey = (x: number, y: number, scrolledY: number): number => {
+  return ((scrolledY & 0xfff) << 24) | ((y & 0xfff) << 12) | (x & 0xfff);
+};
+
 export const calculateCharacter = (
   x: number,
   y: number,
@@ -152,9 +156,10 @@ export const calculateCharacter = (
   frameSeed?: number,
   frameNow?: number
 ): string => {
-  // Check cache first - use x, y, and scrollY as the cache key
-  // Using scrollY ensures we don't keep stale results when scrolling
-  const cacheKey = `${x}:${y}:${scrollY}`;
+  const scrolledY = Math.floor(scrollY / CHAR_HEIGHT);
+
+  // Check cache first - use x, y, and scrolledY as the cache key
+  const cacheKey = encodeCacheKey(x, y, scrolledY);
   const cachedResult = resultCache.get(cacheKey);
   if (cachedResult) {
     return cachedResult;
@@ -162,7 +167,6 @@ export const calculateCharacter = (
 
   // Local variables for frequent access (avoid object property lookups)
   const cursorState = cursorRef.current;
-  const scrolledY = Math.floor(scrollY / CHAR_HEIGHT);
   const textGrid = textPositionCache.grid;
   const textGridCols = textPositionCache.gridCols;
   const textOffsetY = textPositionCache.offsetY;

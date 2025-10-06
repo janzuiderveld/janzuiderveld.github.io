@@ -15,6 +15,10 @@ export const BLOB_RADIUS = 10;  // Size of blob effect
 export const BLOB_PADDING = 15; // Padding around blobs
 export const GRID_CELL_SIZE = 4; // Cell size for spatial partitioning
 export const BLOB_CACHE_GRID_SIZE = 4; // Size of cells in the blob cache grid
+export const BLOB_CACHE_HEIGHT_MULTIPLIER = 2.8; // Number of viewport heights cached vertically
+export const SAFARI_BLOB_CACHE_HEIGHT_MULTIPLIER = 1.8; // Slightly shallower cache for Safari performance
+export const BLOB_PADDING_MULTIPLIER = 2.6; // Radius-based padding multiplier
+export const SAFARI_BLOB_PADDING_MULTIPLIER = 1.9; // Reduced padding for Safari performance
 
 // Browser-specific adjustments 
 export const IS_SAFARI = typeof navigator !== 'undefined' && 
