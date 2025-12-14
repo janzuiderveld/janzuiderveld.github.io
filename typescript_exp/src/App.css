@@ -55,3 +55,34 @@ body {
 .read-the-docs {
   color: #888;
 }
+
+.compatibility-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  z-index: 10000;
+  transition: opacity 300ms ease;
+}
+
+.compatibility-overlay__grid {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  color: #111;
+  background: transparent;
+  white-space: pre;
+  font-family: 'Courier New', Courier, monospace;
+  display: block;
+  text-transform: uppercase;
+}
+
+.compatibility-overlay--transparent {
+  opacity: 0;
+  pointer-events: none;
+}

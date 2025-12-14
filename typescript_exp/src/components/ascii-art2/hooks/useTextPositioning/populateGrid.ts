@@ -56,6 +56,8 @@ export const populateTextGrid = (
         case 'bottomRight': anchorX = textBounds[anchorKey].maxX; anchorY = textBounds[anchorKey].maxY; break;
         case 'bottomCenter': anchorX = Math.floor((textBounds[anchorKey].minX + textBounds[anchorKey].maxX) / 2); anchorY = textBounds[anchorKey].maxY; break;
         case 'center': anchorX = Math.floor((textBounds[anchorKey].minX + textBounds[anchorKey].maxX) / 2); anchorY = Math.floor((textBounds[anchorKey].minY + textBounds[anchorKey].maxY) / 2); break;
+        case 'middleLeft': anchorX = textBounds[anchorKey].minX; anchorY = Math.floor((textBounds[anchorKey].minY + textBounds[anchorKey].maxY) / 2); break;
+        case 'middleRight': anchorX = textBounds[anchorKey].maxX; anchorY = Math.floor((textBounds[anchorKey].minY + textBounds[anchorKey].maxY) / 2); break;
       }
       gridX = anchorX + (textItem.anchorOffsetX || 0);
       gridY = anchorY + (textItem.anchorOffsetY || 0);

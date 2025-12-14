@@ -56,6 +56,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   // Link state management - Needs to be declared before useTextPositioning
   const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
   const linkPositionsRef = useRef<LinkPosition[]>([]);
+  const [hoveredLinkIndex, setHoveredLinkIndex] = useState<number | null>(null);
 
   // Text positioning - Calculate this *before* content height
   const textPositionCache = useTextPositioning(
@@ -591,6 +592,13 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     };
   }, [startWhiteout]);
 
+  // Ensure the pre element always covers the viewport (Safari can shrink visualViewport)
+  const preHeightPx = (() => {
+    const viewport = typeof window !== 'undefined' ? Math.max(window.innerHeight, window.visualViewport?.height ?? 0) : 0;
+    const baseHeight = size.height ?? viewport;
+    return Math.max(baseHeight, viewport) + CHAR_HEIGHT * 2; // add buffer to avoid bottom gap
+  })();
+
   return (
     <div
       ref={containerRef}
@@ -663,7 +671,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
           letterSpacing: 0,
           marginLeft: '-1px',
           width: 'calc(100% + 2px)',
-          height: size.height ? `${size.height}px` : '100vh',
+          height: preHeightPx ? `${preHeightPx}px` : '100vh',
           cursor: (cursor.whiteout?.active || cursor.whiteIn?.active) ? 'default' : (maxScroll > 0 ? 'ns-resize' : 'default'),
           transform: `translateY(0)`,
           willChange: 'transform',
@@ -721,82 +729,121 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
             const top = Math.floor(linkY * CHAR_HEIGHT) - verticalOffset - safariOffsetCorrection;
             const height = Math.ceil(CHAR_HEIGHT * 8); // Very large height for better hit detection on mobile
             
-            return (
-              <div 
-                key={`link-${index}-${link.url}-${linkY}`}
-                data-href={link.url}
-                data-link-overlay="true"
-                data-url={link.url}
-                data-fixed={isFixed ? "true" : "false"}
-                data-text-key={link.textKey}
-                data-y-pos={linkY.toString()}
-                data-orig-y={link.y.toString()}
-                data-scroll-y={actualScrollY.toString()}
-                data-safari-offset={safariOffsetCorrection.toString()}
-                style={{
-                  position: 'absolute',
-                  left: `${left}px`,
-                  top: `${top}px`,
-                  width: `${width}px`,
-                  height: `${height}px`,
-                  backgroundColor: DEBUG_LINK_OVERLAYS ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0)', // Show overlay in debug mode
-                  border: DEBUG_LINK_OVERLAYS ? '1px solid red' : 'none',
-                  pointerEvents: 'auto', // Explicitly enable pointer events
-                  zIndex: 2500, // Even higher z-index than the container
-                  cursor: 'pointer',
-                  display: 'block',
-                  color: 'transparent',
-                  transform: 'translateZ(0)', // Force GPU acceleration
-                  willChange: 'transform',
-                  // Add important rules to ensure clickability
-                  userSelect: 'none',
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'rgba(0,0,0,0)',
-                  WebkitTouchCallout: 'none'
-                }}
-                onClick={e => {
-                  // Immediately stop event propagation
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Cast to native MouseEvent to access stopImmediatePropagation
-                  (e.nativeEvent as MouseEvent).stopImmediatePropagation();
-                  
-                  // Log debug info with more details about positioning
-                  console.log(`Clicked link: ${link.url}, Fixed: ${isFixed}, TextKey: ${link.textKey}`);
-                  console.log(`Link Y: ${linkY}, Original Y: ${link.y}, Scroll Y: ${actualScrollY}`);
-                  if (IS_SAFARI) {
-                    console.log(`Safari offset correction: ${safariOffsetCorrection}px`);
-                  }
-                  
-                  // Use whiteout effect instead of direct navigation
-                  const rect = textRef.current!.getBoundingClientRect();
-                  const relativeX = e.clientX - rect.left;
-                  const relativeY = e.clientY - rect.top;
-                  
-                  const normalizedX = (relativeX / (size.width || 1)) * 2 - 1;
-                  const normalizedY = (relativeY / (size.height || 1)) * 2 - 1;
-                  
-                  startWhiteout({ x: normalizedX, y: normalizedY }, link.url);
-                }}
-                onTouchStart={e => {
-                  // Prevent default to avoid delays
-                  e.preventDefault();
-                  
-                  // Log touch debug info
-                  console.log(`Touch started on link: ${link.url}`);
-                  
-                  // Get touch position
-                  const touch = e.touches[0];
-                  const rect = textRef.current!.getBoundingClientRect();
-                  const relativeX = touch.clientX - rect.left;
-                  const relativeY = touch.clientY - rect.top;
-                  
-                  const normalizedX = (relativeX / (size.width || 1)) * 2 - 1;
-                  const normalizedY = (relativeY / (size.height || 1)) * 2 - 1;
-                  
-                  // Immediately trigger the whiteout on touch start
-                  startWhiteout({ x: normalizedX, y: normalizedY }, link.url);
-                }}
+              return (
+                <div 
+                  key={`link-${index}-${link.url}-${linkY}`}
+                  data-href={link.url}
+                  data-link-overlay="true"
+                  data-url={link.url}
+                  data-fixed={isFixed ? "true" : "false"}
+                  data-text-key={link.textKey}
+                  data-y-pos={linkY.toString()}
+                  data-orig-y={link.y.toString()}
+                  data-scroll-y={actualScrollY.toString()}
+                  data-safari-offset={safariOffsetCorrection.toString()}
+                  style={{
+                    position: 'absolute',
+                    left: `${left}px`,
+                    top: `${top}px`,
+                    width: `${width}px`,
+                    height: `${height}px`,
+                    backgroundColor: DEBUG_LINK_OVERLAYS ? 'rgba(255, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0)', // Show overlay in debug mode
+                    border: DEBUG_LINK_OVERLAYS ? '1px solid red' : 'none',
+                    pointerEvents: 'auto', // Explicitly enable pointer events
+                    zIndex: index === hoveredLinkIndex ? 3000 : 2500, // Hovered link gets higher z-index
+                    cursor: 'pointer',
+                    display: 'block',
+                    color: 'transparent',
+                    transform: 'translateZ(0)', // Force GPU acceleration
+                    willChange: 'transform',
+                    // Add important rules to ensure clickability
+                    userSelect: 'none',
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+                    WebkitTouchCallout: 'none'
+                  }}
+                  onMouseEnter={() => setHoveredLinkIndex(index)}
+                  onMouseLeave={() => setHoveredLinkIndex(null)}
+                  onClick={e => {
+                    // Immediately stop event propagation
+                    e.preventDefault();
+                    e.stopPropagation();
+                    (e.nativeEvent as MouseEvent).stopImmediatePropagation();
+                    
+                    const rect = textRef.current!.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+                    
+                    // Find the closest link based on actual text position (proximity-based)
+                    const currentScrollY = Math.floor(scrollOffset / CHAR_HEIGHT);
+                    let closestLink = link;
+                    let closestDistance = Infinity;
+                    
+                    for (const candidateLink of linkPositions) {
+                      const candidateIsFixed = textPositionCache.bounds[candidateLink.textKey]?.fixed || false;
+                      const candidateLinkY = candidateIsFixed ? candidateLink.y : candidateLink.y - currentScrollY;
+                      
+                      // Calculate actual text center position in pixels
+                      const textCenterX = ((candidateLink.startX + candidateLink.endX) / 2) * CHAR_WIDTH;
+                      const textCenterY = candidateLinkY * CHAR_HEIGHT + CHAR_HEIGHT / 2;
+                      
+                      // Calculate distance from click to text center
+                      const dx = clickX - textCenterX;
+                      const dy = clickY - textCenterY;
+                      const distance = Math.sqrt(dx * dx + dy * dy);
+                      
+                      if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestLink = candidateLink;
+                      }
+                    }
+                    
+                    console.log(`Proximity click: closest link is ${closestLink.url} (distance: ${closestDistance.toFixed(1)}px)`);
+                    
+                    const normalizedX = (clickX / (size.width || 1)) * 2 - 1;
+                    const normalizedY = (clickY / (size.height || 1)) * 2 - 1;
+                    
+                    startWhiteout({ x: normalizedX, y: normalizedY }, closestLink.url);
+                  }}
+                  onTouchStart={e => {
+                    e.preventDefault();
+                    
+                    const touch = e.touches[0];
+                    const rect = textRef.current!.getBoundingClientRect();
+                    const touchX = touch.clientX - rect.left;
+                    const touchY = touch.clientY - rect.top;
+                    
+                    // Find the closest link based on actual text position (proximity-based)
+                    const currentScrollY = Math.floor(scrollOffset / CHAR_HEIGHT);
+                    let closestLink = link;
+                    let closestDistance = Infinity;
+                    
+                    for (const candidateLink of linkPositions) {
+                      const candidateIsFixed = textPositionCache.bounds[candidateLink.textKey]?.fixed || false;
+                      const candidateLinkY = candidateIsFixed ? candidateLink.y : candidateLink.y - currentScrollY;
+                      
+                      // Calculate actual text center position in pixels
+                      const textCenterX = ((candidateLink.startX + candidateLink.endX) / 2) * CHAR_WIDTH;
+                      const textCenterY = candidateLinkY * CHAR_HEIGHT + CHAR_HEIGHT / 2;
+                      
+                      // Calculate distance from touch to text center
+                      const dx = touchX - textCenterX;
+                      const dy = touchY - textCenterY;
+                      const distance = Math.sqrt(dx * dx + dy * dy);
+                      
+                      if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestLink = candidateLink;
+                      }
+                    }
+                    
+                    console.log(`Proximity touch: closest link is ${closestLink.url} (distance: ${closestDistance.toFixed(1)}px)`);
+                    
+                    const normalizedX = (touchX / (size.width || 1)) * 2 - 1;
+                    const normalizedY = (touchY / (size.height || 1)) * 2 - 1;
+                    
+                    startWhiteout({ x: normalizedX, y: normalizedY }, closestLink.url);
+                  }}
                 title={link.url}
               />
             );

@@ -37,6 +37,8 @@ export const useAnimation = (
   const precomputedRef = useRef<CharacterPrecomputation | null>(null);
   const safariLastFrameRef = useRef(0);
   const SAFARI_FRAME_INTERVAL = 1000 / 24;
+  const lastActiveRowsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const lastActiveColsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
 
   useEffect(() => {
     const element = textRef.current;
@@ -186,6 +188,13 @@ export const useAnimation = (
           frameSkipRef.current = 0;
         }
 
+        // Skip heavy work when the tab is hidden, but keep timestamps fresh
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          lastFrameTimeRef.current = timestamp;
+          animationFrameId = requestAnimationFrame(animate);
+          return;
+        }
+
         lastFrameTimeRef.current = timestamp;
         clearCharacterCache();
 
@@ -215,54 +224,111 @@ export const useAnimation = (
         let activeRowEnd = rows;
         let activeColStart = 0;
         let activeColEnd = cols;
+        let boundsMinY = Number.POSITIVE_INFINITY;
+        let boundsMaxY = Number.NEGATIVE_INFINITY;
+        const offsetY = textPositionCache.offsetY;
 
-        if (IS_SAFARI) {
-          let boundsMinY = Number.POSITIVE_INFINITY;
-          let boundsMaxY = Number.NEGATIVE_INFINITY;
-          let boundsMinX = Number.POSITIVE_INFINITY;
-          let boundsMaxX = Number.NEGATIVE_INFINITY;
-          const offsetY = textPositionCache.offsetY;
+        // Helper to slice sorted position arrays to only the visible Y-range
+        const findVisibleSlice = (
+          positions: Array<{ y: number }>,
+          isFixed: boolean
+        ): [number, number] => {
+          if (!positions.length) {
+            return [0, 0];
+          }
 
-          for (const key in textPositionCache.bounds) {
-            const bounds = textPositionCache.bounds[key];
-            if (!bounds) continue;
+          // Positions are pushed in y-order during text positioning; fall back if unsorted
+          const maybeUnsorted = positions.length > 1 && positions[0].y > positions[positions.length - 1].y;
+          if (maybeUnsorted) {
+            return [0, positions.length];
+          }
 
-            boundsMinX = Math.min(boundsMinX, bounds.minX);
-            boundsMaxX = Math.max(boundsMaxX, bounds.maxX);
+          const visibleStart = (isFixed ? 0 : scrolledY) + activeRowStart;
+          const visibleEnd = (isFixed ? 0 : scrolledY) + activeRowEnd - 1;
 
-            const localMinY = bounds.minY - offsetY;
-            const localMaxY = bounds.maxY - offsetY;
-
-            if (bounds.fixed) {
-              boundsMinY = Math.min(boundsMinY, localMinY);
-              boundsMaxY = Math.max(boundsMaxY, localMaxY);
+          let low = 0;
+          let high = positions.length;
+          while (low < high) {
+            const mid = (low + high) >> 1;
+            if (positions[mid].y < visibleStart) {
+              low = mid + 1;
             } else {
-              boundsMinY = Math.min(boundsMinY, localMinY - scrolledY);
-              boundsMaxY = Math.max(boundsMaxY, localMaxY - scrolledY);
+              high = mid;
             }
           }
+          const startIndex = low;
 
-          const verticalPadding = 48;
-
-          if (boundsMinY !== Number.POSITIVE_INFINITY && boundsMaxY !== Number.NEGATIVE_INFINITY) {
-            activeRowStart = Math.max(0, Math.floor(boundsMinY) - verticalPadding);
-            activeRowEnd = Math.min(rows, Math.ceil(boundsMaxY) + verticalPadding);
+          low = startIndex;
+          high = positions.length;
+          while (low < high) {
+            const mid = (low + high) >> 1;
+            if (positions[mid].y <= visibleEnd) {
+              low = mid + 1;
+            } else {
+              high = mid;
+            }
           }
+          return [startIndex, low];
+        };
 
-          activeColStart = 0;
-          activeColEnd = cols;
+        for (const key in textPositionCache.bounds) {
+          const bounds = textPositionCache.bounds[key];
+          if (!bounds) continue;
 
-          if (activeRowStart >= activeRowEnd) {
-            activeRowStart = 0;
-            activeRowEnd = rows;
+          const localMinY = bounds.minY - offsetY;
+          const localMaxY = bounds.maxY - offsetY;
+
+          if (bounds.fixed) {
+            boundsMinY = Math.min(boundsMinY, localMinY);
+            boundsMaxY = Math.max(boundsMaxY, localMaxY);
+          } else {
+            boundsMinY = Math.min(boundsMinY, localMinY - scrolledY);
+            boundsMaxY = Math.max(boundsMaxY, localMaxY - scrolledY);
           }
+        }
+
+        const verticalPadding = IS_SAFARI ? 48 : 32;
+
+        if (boundsMinY !== Number.POSITIVE_INFINITY && boundsMaxY !== Number.NEGATIVE_INFINITY) {
+          activeRowStart = Math.max(0, Math.floor(boundsMinY) - verticalPadding);
+          activeRowEnd = Math.min(rows, Math.ceil(boundsMaxY) + verticalPadding);
+        }
+
+        if (activeRowStart >= activeRowEnd) {
+          activeRowStart = 0;
+          activeRowEnd = rows;
+        }
+
+        // If content is shorter than the viewport, render the full height to avoid bottom gaps
+        if (activeRowEnd - activeRowStart < rows) {
+          activeRowStart = 0;
+          activeRowEnd = rows;
         }
 
         const activeRowCount = Math.max(1, activeRowEnd - activeRowStart);
         const numChunks = Math.ceil(activeRowCount / BASE_CHUNK_SIZE);
+        const activeRowsChanged = activeRowStart !== lastActiveRowsRef.current.start || activeRowEnd !== lastActiveRowsRef.current.end;
+        const activeColsChanged = activeColStart !== lastActiveColsRef.current.start || activeColEnd !== lastActiveColsRef.current.end;
+        const needsFullRowReset = activeRowsChanged || activeColsChanged;
 
-        for (let y = activeRowStart; y < activeRowEnd; y++) {
-          rowBuffers[y].fill(' ');
+        if (needsFullRowReset) {
+          const prevRows = lastActiveRowsRef.current;
+          // Clear rows that are leaving the active window
+          for (let y = Math.max(0, prevRows.start); y < Math.min(rows, prevRows.end); y++) {
+            if (y < activeRowStart || y >= activeRowEnd) {
+              rowBuffers[y].fill(' ');
+            }
+          }
+          // Clear the current active window (only the active columns unless the width changed)
+          for (let y = activeRowStart; y < activeRowEnd; y++) {
+            rowBuffers[y].fill(' ');
+          }
+          lastActiveRowsRef.current = { start: activeRowStart, end: activeRowEnd };
+          lastActiveColsRef.current = { start: activeColStart, end: activeColEnd };
+        } else {
+          for (let y = activeRowStart; y < activeRowEnd; y++) {
+            rowBuffers[y].fill(' ', activeColStart, activeColEnd);
+          }
         }
 
         const precomputed = ensurePrecomputed();
@@ -277,7 +343,7 @@ export const useAnimation = (
           }
 
           for (let x = link.startX; x <= link.endX; x++) {
-            if (x < 0 || x >= cols) {
+            if (x < 0 || x >= cols || x < activeColStart || x >= activeColEnd) {
               continue;
             }
             const mapKey = linkY * cols + x;
@@ -290,13 +356,22 @@ export const useAnimation = (
 
         for (const textKey in textPositionCache.cache) {
           const positions = textPositionCache.cache[textKey];
-          const isFixed = textPositionCache.bounds[textKey]?.fixed || false;
+          if (!positions.length) {
+            continue;
+          }
 
-          for (const pos of positions) {
+          const isFixed = textPositionCache.bounds[textKey]?.fixed || false;
+          const [startIndex, endIndex] = findVisibleSlice(positions, isFixed);
+          if (startIndex === endIndex) {
+            continue;
+          }
+
+          for (let i = startIndex; i < endIndex; i++) {
+            const pos = positions[i];
             const x = pos.startX;
             const y = isFixed ? pos.y : pos.y - scrolledY;
 
-            if (y < 0 || y >= rows || x < 0 || x >= cols) {
+            if (y < activeRowStart || y >= activeRowEnd || x < 0 || x >= cols || x < activeColStart || x >= activeColEnd) {
               continue;
             }
 

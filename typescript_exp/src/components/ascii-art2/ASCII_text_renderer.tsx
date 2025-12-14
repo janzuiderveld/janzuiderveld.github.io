@@ -4,10 +4,10 @@
  */
 
 // Import font definitions from separate file
-import { asciiChars, smallAsciiChars } from '../asciiFonts';
+import { asciiChars, smallAsciiChars, microAsciiChars } from '../asciiFonts';
 
 // ADDED/MODIFIED: FontName type to include all supported fonts
-export type FontName = 'regular' | 'ascii' | 'smallAscii';
+export type FontName = 'regular' | 'ascii' | 'smallAscii' | 'microAscii';
 
 /**
  * Interface for a styled text segment
@@ -192,7 +192,7 @@ interface TextStyle {
 /**
  * Renders text with styles and applies formatting
  * @param text The text to render with style markers (bold, italic, links)
- * @param fontName The font to use: 'regular', 'ascii', or 'smallAscii'
+ * @param fontName The font to use: 'regular', 'ascii', 'smallAscii', or 'microAscii'
  * @param options Additional options including text wrapping
  * @returns An array of styled text lines with metadata
  */
@@ -314,7 +314,6 @@ export function renderText(
   }
   
   // For ASCII art text, render the text as ASCII art
-  const useSmallFont = fontName === 'smallAscii';
   // Parse text into segments first
   const segments = parseTextWithStyles(text);
   
@@ -337,7 +336,7 @@ export function renderText(
   });
   
   const plainText = segments.map(s => s.text).join('');
-  const asciiLines = renderAsciiArt(plainText, useSmallFont);
+  const asciiLines = renderAsciiArt(plainText, fontName);
   
   // Apply styles to ASCII art with improved HTML generation
   const styledAsciiLines: string[] = [];
@@ -362,7 +361,7 @@ export function renderText(
       if (!style) continue;
       
       // Find the next character's position in the ASCII art
-      const charWidth = getAsciiCharWidth(plainText[i], useSmallFont);
+      const charWidth = getAsciiCharWidth(plainText[i], fontName);
       const charStart = lastCharEnd;
       const charEnd = charStart + charWidth;
       
@@ -468,8 +467,8 @@ export function renderText(
 /**
  * Get the width of an ASCII character in the specified font
  */
-function getAsciiCharWidth(char: string, useSmallFont: boolean): number {
-  const fontSet = useSmallFont ? smallAsciiChars : asciiChars;
+function getAsciiCharWidth(char: string, fontName: FontName): number {
+  const fontSet = selectAsciiFont(fontName);
   const charArt = fontSet[char] || fontSet[' '];
   return charArt[0]?.length || 0;
 }
@@ -478,7 +477,7 @@ function getAsciiCharWidth(char: string, useSmallFont: boolean): number {
 /**
  * Renders text with styles as a string
  * @param text The text to render
- * @param fontName The font to use: 'regular', 'ascii', or 'smallAscii'
+ * @param fontName The font to use: 'regular', 'ascii', 'smallAscii', or 'microAscii'
  * @param options Additional options including text wrapping
  * @returns A rendered string with style information
  */
@@ -494,20 +493,20 @@ export function renderTextString(
 /**
  * Renders text as ASCII art
  * @param text The text to render
- * @param useSmallFont Whether to use the smaller 4-line font (default: false)
+ * @param fontName Which ASCII font to use (default: 'ascii')
  * @returns An array of strings representing the ASCII art
  */
-function renderAsciiArt(text: string, useSmallFont: boolean = false): string[] {
+function renderAsciiArt(text: string, fontName: FontName = 'ascii'): string[] {
   if (!text || text.length === 0) {
     return [''];
   }
   
   // Select the font to use
-  const fontSet = useSmallFont ? smallAsciiChars : asciiChars;
+  const fontSet = selectAsciiFont(fontName);
   
   // For normal text that uses small font, just return the text itself
   // Only convert single words or titles to ASCII art
-  if (text.includes(' ') && !text.startsWith('#') && useSmallFont) {
+  if (text.includes(' ') && !text.startsWith('#') && fontName === 'smallAscii') {
     return text.split('\n');
   }
   
@@ -545,17 +544,17 @@ function renderAsciiArt(text: string, useSmallFont: boolean = false): string[] {
 /**
  * Renders text as ASCII art and returns it as a single string
  * @param text The text to render
- * @param useSmallFont Whether to use the smaller 4-line font (default: false)
+ * @param fontName Which ASCII font to use (default: 'ascii')
  * @returns A string representing the ASCII art
  */
-function renderAsciiArtString(text: string, useSmallFont: boolean = false): string {
-  return renderAsciiArt(text, useSmallFont).join('\n');
+function renderAsciiArtString(text: string, fontName: FontName = 'ascii'): string {
+  return renderAsciiArt(text, fontName).join('\n');
 }
 
 /**
  * Renders text with styles and returns formatted result
  * @param text The text to render with style markers
- * @param fontName The font to use: 'regular', 'ascii', or 'smallAscii'
+ * @param fontName The font to use: 'regular', 'ascii', 'smallAscii', or 'microAscii'
  * @param options Additional options including text wrapping
  * @returns Formatted text and link data
  */
@@ -672,3 +671,14 @@ export function renderFormattedText(
 
 // Export the functions for use in other modules
 export { renderAsciiArt, renderAsciiArtString };
+
+function selectAsciiFont(fontName: FontName) {
+  switch (fontName) {
+    case 'smallAscii':
+      return smallAsciiChars;
+    case 'microAscii':
+      return microAsciiChars;
+    default:
+      return asciiChars;
+  }
+}

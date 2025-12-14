@@ -7,6 +7,8 @@ import './App.css'
 import CameraPage from './pages/CameraPage';
 import HomePage from './pages/HomePage'; // Make sure this points to the correct file
 import ConstructionPage from './pages/ConstructionPage';
+import AboutPage from './pages/AboutPage';
+import AllPresentationsPage from './pages/AllPresentationsPage';
 
 // For debugging - log when App component renders
 console.log("App component rendering...");
@@ -24,8 +26,12 @@ function App() {
       console.log(`🧭 App: Home route detected - should render HomePage component`);
     } else if (location.pathname === '/camera') {
       console.log(`🧭 App: Camera route detected - should render CameraPage component`);
+    } else if (location.pathname === '/about') {
+      console.log(`🧭 App: About route detected - should render AboutPage component`);
+    } else if (location.pathname === '/presentations') {
+      console.log(`🧭 App: AllPresentations route detected - should render AllPresentationsPage component`);
     } else {
-      console.log(`🧭 App: Unknown route "${location.pathname}" - will redirect to home`);
+      console.log(`🧭 App: Unknown route "${location.pathname}" - will redirect to construction`);
     }
   }, [location]);
 
@@ -33,9 +39,12 @@ function App() {
     <Routes>
       {/* Home page route */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/about" element={<AboutPage />} />
       
       {/* Camera page route */}
       <Route path="/camera" element={<CameraPage />} />
+
+      <Route path="/presentations" element={<AllPresentationsPage />} />
 
       {/* Construction page route */}
       <Route path="/construction" element={<ConstructionPage />} />
