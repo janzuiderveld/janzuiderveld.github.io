@@ -1,7 +1,7 @@
 // Character sets and rendering constants
 export const selectedCharacterSet = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[]?-_+~i!lI;:,^`'. ";
 export const characterSetLength = selectedCharacterSet.length;
-export const SCALE_FACTOR = 14;
+export const SCALE_FACTOR = 13;
 export const CHAR_WIDTH = SCALE_FACTOR * 0.6;  // Adjusted to match actual character width
 export const CHAR_HEIGHT = SCALE_FACTOR;
 
