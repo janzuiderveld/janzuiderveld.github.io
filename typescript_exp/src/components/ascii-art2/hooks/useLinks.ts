@@ -15,11 +15,75 @@ export const useLinks = (
   textPositionCache: TextPositionCacheResult,
   scrollOffsetRef: React.MutableRefObject<number>,
   startWhiteout: (position: { x: number; y: number }, targetUrl: string) => void,
+  textRef: React.RefObject<HTMLPreElement>,
   externalScrollingRef?: React.MutableRefObject<boolean>
 ) => {
   const linkPositionsRef = useRef<LinkPosition[]>([]);
   const [, setOverlayRevision] = useState(0);
-  const isScrollingRef = externalScrollingRef ?? useRef(false);
+  const internalScrollingRef = useRef(false);
+  const isScrollingRef = externalScrollingRef ?? internalScrollingRef;
+
+  const calculateSafariOffset = useCallback((scrollY: number, isFixed: boolean): number => {
+    if (!IS_SAFARI || isFixed) return 0;
+    return SAFARI_LINK_OFFSET_BASE + (scrollY * SAFARI_LINK_OFFSET_FACTOR);
+  }, []);
+
+  const resolveClosestLink = useCallback((clientX: number, clientY: number) => {
+    if (!textRef.current || !size.width || !size.height) {
+      return null;
+    }
+
+    const rect = textRef.current.getBoundingClientRect();
+    const relativeX = clientX - rect.left;
+    const relativeY = clientY - rect.top;
+    const scrolledY = Math.floor(scrollOffsetRef.current / CHAR_HEIGHT);
+
+    // Match overlay geometry so the proximity selection uses the same hit areas
+    const margin = Math.ceil(CHAR_WIDTH * 3.0);
+    const verticalOffset = Math.ceil(CHAR_HEIGHT * 2.0);
+    const hitHeight = Math.ceil(CHAR_HEIGHT * 8);
+
+    let closest: { link: LinkPosition; distance: number } | null = null;
+
+    for (const link of linkPositionsRef.current) {
+      const isFixed = textPositionCache.bounds[link.textKey]?.fixed || false;
+      const linkY = isFixed ? link.y : link.y - scrolledY;
+      const safariOffset = calculateSafariOffset(scrolledY, isFixed);
+
+      const left = Math.max(0, Math.floor(link.startX * CHAR_WIDTH) - margin);
+      const width = Math.ceil((link.endX - link.startX + 1) * CHAR_WIDTH) + (margin * 2);
+      const top = Math.floor(linkY * CHAR_HEIGHT) - verticalOffset - safariOffset;
+      const height = hitHeight;
+
+      const right = left + width;
+      const bottom = top + height;
+      const withinOverlay = relativeX >= left && relativeX <= right && relativeY >= top && relativeY <= bottom;
+
+      if (!withinOverlay) {
+        continue;
+      }
+
+      const centerX = ((link.startX + link.endX) / 2) * CHAR_WIDTH;
+      const centerY = linkY * CHAR_HEIGHT + (CHAR_HEIGHT / 2);
+      const distance = Math.hypot(relativeX - centerX, relativeY - centerY);
+
+      if (!closest || distance < closest.distance) {
+        closest = { link, distance };
+      }
+    }
+
+    if (!closest) {
+      return null;
+    }
+
+    const normalizedX = (relativeX / rect.width) * 2 - 1;
+    const normalizedY = (relativeY / rect.height) * 2 - 1;
+
+    return {
+      link: closest.link,
+      normalized: { x: normalizedX, y: normalizedY }
+    };
+  }, [calculateSafariOffset, scrollOffsetRef, size.height, size.width, textPositionCache.bounds, textRef]);
 
   // Keep the local ref aligned with the most recent link map so coordinate fallback stays accurate
   useEffect(() => {
@@ -41,7 +105,19 @@ export const useLinks = (
   useEffect(() => {
     // Function to handle direct click events on the document
     const handleDocumentClick = (e: MouseEvent) => {
-      // First check if this is a link click by matching data attributes
+      // First try proximity resolution so overlapping overlays choose the nearest link center
+      const proximityMatch = resolveClosestLink(e.clientX, e.clientY);
+      if (proximityMatch) {
+        e.preventDefault();
+        e.stopPropagation();
+        (e as any).stopImmediatePropagation?.();
+
+        console.log('Direct DOM proximity match:', proximityMatch.link.url);
+        startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
+        return;
+      }
+
+      // Fallback: check if this is a link click by matching data attributes
       const target = e.target as HTMLElement;
       
       // Try to find the closest link element starting from the click target
@@ -98,6 +174,7 @@ export const useLinks = (
         // Found a link! Prevent default navigation and handle it
         e.preventDefault();
         e.stopPropagation();
+        (e as any).stopImmediatePropagation?.();
         
         // Find the position of the click relative to textRef
         if (!document.body.contains(target)) {
@@ -118,6 +195,18 @@ export const useLinks = (
       if (e.touches.length !== 1) return; // Only handle single touches
       
       const touch = e.touches[0];
+
+      const proximityMatch = resolveClosestLink(touch.clientX, touch.clientY);
+      if (proximityMatch) {
+        e.preventDefault();
+        e.stopPropagation();
+        (e as any).stopImmediatePropagation?.();
+
+        console.log('Touch proximity match:', proximityMatch.link.url);
+        startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
+        return;
+      }
+
       const target = touch.target as HTMLElement;
       
       // Use the same URL detection logic as the click handler
@@ -174,10 +263,10 @@ export const useLinks = (
       document.removeEventListener('click', handleDocumentClick, { capture: true });
       document.removeEventListener('touchstart', handleDocumentTouch, { capture: true });
     };
-  }, [startWhiteout]);
+  }, [resolveClosestLink, startWhiteout]);
 
   // Improved link click handling with enhanced scroll awareness
-  const handleClick = useCallback((e: MouseEvent, textRef: React.RefObject<HTMLPreElement>) => {
+  const handleClick = useCallback((e: MouseEvent) => {
     if (!textRef.current || !size.width || !size.height) return;
     
     // Don't process clicks during active scrolling
@@ -190,11 +279,15 @@ export const useLinks = (
     const currentScrollY = scrollOffsetRef.current;
     const scrolledY = Math.floor(currentScrollY / CHAR_HEIGHT);
     
-    // Calculate Safari-specific offset correction for coordinate-based detection
-    const calculateSafariOffset = (scrollY: number, isFixed: boolean): number => {
-      if (!IS_SAFARI || isFixed) return 0;
-      return SAFARI_LINK_OFFSET_BASE + (scrollY * SAFARI_LINK_OFFSET_FACTOR);
-    };
+    const proximityMatch = resolveClosestLink(e.clientX, e.clientY);
+    if (proximityMatch) {
+      console.log(`Proximity-selected link: ${proximityMatch.link.url}`);
+      e.preventDefault();
+      e.stopPropagation();
+      (e as any).stopImmediatePropagation?.();
+      startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
+      return;
+    }
     
     // Helper function to trigger the whiteout effect
     const triggerWhiteout = (url: string) => {
@@ -212,8 +305,8 @@ export const useLinks = (
       }
       
       const rect = textRef.current!.getBoundingClientRect();
-      const normalizedX = ((e.clientX - rect.left) / (size.width || 1)) * 2 - 1;
-      const normalizedY = ((e.clientY - rect.top) / (size.height || 1)) * 2 - 1;
+      const normalizedX = rect.width ? ((e.clientX - rect.left) / rect.width) * 2 - 1 : 0;
+      const normalizedY = rect.height ? ((e.clientY - rect.top) / rect.height) * 2 - 1 : 0;
       
       startWhiteout({ x: normalizedX, y: normalizedY }, url);
       
@@ -321,7 +414,7 @@ export const useLinks = (
     }
     
     console.log("No link found at click position with current scroll:", scrolledY);
-  }, [size, textPositionCache.bounds, scrollOffsetRef, startWhiteout]);
+  }, [calculateSafariOffset, resolveClosestLink, size.height, size.width, textPositionCache.bounds, scrollOffsetRef, startWhiteout, textRef]);
 
   // Force update link overlays when scroll position changes
   useEffect(() => {

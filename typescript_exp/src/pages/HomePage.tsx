@@ -278,7 +278,7 @@ function HomePage() {
           { title: "[[Microwave]](#microwave)", x: 85, y: 30, name: "work-microwave" },
           { title: "[[Copy Machine]](#copy)", x: 78, y: 55, name: "work-copy" },
           { title: "[[This is not a fish]](#fish)", x: 8, y: 39, name: "work-fish" },
-          { title: "[[WIP]](#radio)", x: 25, y: 49, name: "work-radio" },
+          { title: "[[REDACTED(WIP)]](WIP)", x: 25, y: 49, name: "work-radio" },
           { title: "[[Touching Distance]](#touching)", x: 33, y: 80, name: "work-touching" },
           { title: "[[Lasers]](#lasers)", x: 26, y: 77, name: "work-lasers" },
         ];

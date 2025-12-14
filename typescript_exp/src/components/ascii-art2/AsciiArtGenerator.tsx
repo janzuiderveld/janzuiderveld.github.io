@@ -173,7 +173,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       // Normal flow - start whiteout animation
       startWhiteout(position, url);
     }
-  }, isScrolling);
+  }, textRef, isScrolling);
 
   // Update the ref with the real function
   useEffect(() => {
@@ -472,7 +472,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     };
 
     const clickHandler = (e: MouseEvent) => {
-      handleClick(e, textRef);
+      handleClick(e);
     };
 
     const element = containerRef.current;
