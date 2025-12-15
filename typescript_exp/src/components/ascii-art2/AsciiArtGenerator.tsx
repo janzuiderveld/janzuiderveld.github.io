@@ -7,7 +7,8 @@ import {
   IS_SAFARI, 
   SAFARI_LINK_OFFSET_BASE, 
   SAFARI_LINK_OFFSET_FACTOR,
-  DEBUG_LINK_OVERLAYS
+  DEBUG_LINK_OVERLAYS,
+  updateCharMetricsForViewport
 } from './constants';
 import { createSinTable, createCosTable, createFastSin, createFastCos } from './utils';
 import { 
@@ -236,6 +237,14 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     }
   }, []);
 
+  // Mark white-in as handled when it's already running (e.g., after navigation)
+  useEffect(() => {
+    if (cursor.whiteIn?.active && !contentStateRef.current.whiteInStarted) {
+      contentStateRef.current.whiteInStarted = true;
+      contentStateRef.current.needsWhiteIn = false;
+    }
+  }, [cursor.whiteIn]);
+
   // Start white-in effect after everything is loaded (if not handled by useCursor)
   useEffect(() => {
     if (
@@ -393,6 +402,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       // Use visualViewport if available, fallback to innerWidth/Height
       const width = window.visualViewport?.width ?? window.innerWidth;
       const height = window.visualViewport?.height ?? window.innerHeight;
+      updateCharMetricsForViewport(width);
       setSize({ height, width });
     };
 

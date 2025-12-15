@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
 import { TextContentItem } from '../components/ascii-art2/types';
-import { CHAR_WIDTH } from '../components/ascii-art2/constants';
+import { updateCharMetricsForViewport } from '../components/ascii-art2/constants';
 import { loadCsv } from '../utils/csv';
 import {
   ALL_PRESENTATIONS_PATH,
@@ -58,16 +58,17 @@ function AllPresentationsPage() {
   }, []);
 
   useEffect(() => {
+    const { charWidth } = updateCharMetricsForViewport(windowWidth);
     const isNarrow = windowWidth < 720;
     const tableOffsetRows = 5;
-    const columnCount = Math.max(20, Math.floor(windowWidth / CHAR_WIDTH));
+    const columnCount = Math.max(20, Math.floor(windowWidth / charWidth));
     const maxTableWidth = Math.max(20, Math.floor(columnCount * 0.92));
 
     const tableText = formatPresentationsTable(presentations, isNarrow, maxTableWidth);
 
     const tapeHeader = [
       '╭────────────────────────────────────────╮',
-      '│~   FULL LOG OF PRESENTATIONS  ~│',
+      '│~   FULL EVENT LOG   ~│',
       '╰────────────────────────────────────────╯'
     ].join('\n');
 

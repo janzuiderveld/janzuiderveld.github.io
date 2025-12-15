@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CHAR_HEIGHT, CHAR_WIDTH, SCALE_FACTOR } from './ascii-art2/constants';
+import { updateCharMetricsForViewport } from './ascii-art2/constants';
 
 type Phase = 'fadeIn' | 'hold' | 'fadeOut' | 'done';
 
@@ -67,8 +67,10 @@ function CompatibilityOverlay({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const gridCols = Math.max(1, Math.floor(viewport.width / CHAR_WIDTH));
-  const gridRows = Math.max(1, Math.floor(viewport.height / CHAR_HEIGHT));
+  const { charWidth, charHeight, scaleFactor } = updateCharMetricsForViewport(viewport.width);
+
+  const gridCols = Math.max(1, Math.floor(viewport.width / charWidth));
+  const gridRows = Math.max(1, Math.floor(viewport.height / charHeight));
 
   const gridString = useMemo(
     () => buildGridString(displayText, gridCols, gridRows),
@@ -167,8 +169,8 @@ function CompatibilityOverlay({
         className="compatibility-overlay__grid"
         aria-live="assertive"
         style={{
-          fontSize: `${SCALE_FACTOR}px`,
-          lineHeight: `${SCALE_FACTOR}px`
+          fontSize: `${scaleFactor}px`,
+          lineHeight: `${scaleFactor}px`
         }}
       >
         {gridString}

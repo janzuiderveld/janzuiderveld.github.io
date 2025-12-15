@@ -1,9 +1,53 @@
 // Character sets and rendering constants
 export const selectedCharacterSet = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[]?-_+~i!lI;:,^`'. ";
 export const characterSetLength = selectedCharacterSet.length;
-export const SCALE_FACTOR = 13;
-export const CHAR_WIDTH = SCALE_FACTOR * 0.6;  // Adjusted to match actual character width
-export const CHAR_HEIGHT = SCALE_FACTOR;
+
+const BASE_SCALE_FACTOR = 13;
+const MOBILE_SCALE_FACTOR = 9;
+const MOBILE_BREAKPOINT_PX = 760;
+const WIDTH_TO_HEIGHT_RATIO = 0.6; // Estimated monospace width/height ratio
+
+const deriveScaleFactor = (viewportWidth?: number) => {
+  const width = viewportWidth ?? (typeof window !== 'undefined'
+    ? (window.visualViewport?.width ?? window.innerWidth)
+    : undefined);
+
+  if (width && width < MOBILE_BREAKPOINT_PX) {
+    return MOBILE_SCALE_FACTOR;
+  }
+
+  return BASE_SCALE_FACTOR;
+};
+
+export let SCALE_FACTOR = deriveScaleFactor();
+export let CHAR_WIDTH = SCALE_FACTOR * WIDTH_TO_HEIGHT_RATIO;  // Adjusted to match actual character width
+export let CHAR_HEIGHT = SCALE_FACTOR;
+
+const updateDimensions = (scale: number) => {
+  SCALE_FACTOR = scale;
+  CHAR_WIDTH = SCALE_FACTOR * WIDTH_TO_HEIGHT_RATIO;
+  CHAR_HEIGHT = SCALE_FACTOR;
+};
+
+export const updateCharMetricsForViewport = (viewportWidth?: number) => {
+  const nextScale = deriveScaleFactor(viewportWidth);
+
+  if (nextScale !== SCALE_FACTOR) {
+    updateDimensions(nextScale);
+  }
+
+  return {
+    scaleFactor: SCALE_FACTOR,
+    charWidth: CHAR_WIDTH,
+    charHeight: CHAR_HEIGHT
+  };
+};
+
+export const getCurrentCharMetrics = () => ({
+  scaleFactor: SCALE_FACTOR,
+  charWidth: CHAR_WIDTH,
+  charHeight: CHAR_HEIGHT
+});
 
 // Animation constants
 export const FRAME_DURATION = 1000 / 60; // Target 60 FPS
