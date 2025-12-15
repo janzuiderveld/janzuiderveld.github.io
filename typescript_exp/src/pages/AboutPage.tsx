@@ -18,7 +18,7 @@ import {
   mapAward
 } from '../utils/awards';
 
-const CV_PATH = new URL('../assets/CV_simple__Art_Focus__2_pgs_ (4).pdf', import.meta.url).href;
+const CV_PATH = new URL('../assets/CV_minimal_NOV25.pdf', import.meta.url).href;
 
 function AboutPage() {
   const [presentations, setPresentations] = useState<Presentation[]>(FALLBACK_PRESENTATIONS);
