@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-The concept of this website is that EVERYTHING is rendered on a grid of monospaced characters. The whole site is ASCII art. Always remain in this style, including images, buttons, and other UI elements, unless explicitly instructed otherwise.
+The concept of this website is that EVERYTHING is rendered on a grid of monospaced characters. The whole site is ASCII art. Always remain in this style, including images, buttons, and other UI elements, unless explicitly instructed otherwise. A future build could include a photorealistic representation of the website, accessible at any moment, and triggered by clicking on any ASCII art.
 
 ALWAYS check the outcome of your work with the Chrome DevTools MCP server. The project is served on http://localhost:3000 (HashRouter → use `#/…` routes).
 
@@ -77,15 +77,3 @@ NODE
 - Components and pages use PascalCase filenames (e.g., `CameraPage.tsx`); hooks live under `src/components` as `useThing.ts`.
 - Keep router-visible paths defined in `App.tsx`; mirror route names in folder names.
 - Run `npm run lint` before committing; it enforces React Hooks rules and import ordering.
-
-## Testing Guidelines
-- No automated tests exist yet; new features should add Vitest + React Testing Library specs named `ComponentName.test.tsx` alongside the file or under `src/__tests__`.
-- Target critical logic (routing fallbacks, camera interactions) and cover edge cases before refining UI polish.
-- Snapshot tests belong only to stable UI and must be regenerated whenever layout assets change.
-- Include manual test notes (browser + device) in PR descriptions until CI is wired.
-
-## Commit & Pull Request Guidelines
-- Follow the short, imperative subject style already in history (`Enhance construction page with additional contact info`).
-- Scope each commit to one change set; keep history tidy by avoiding "fix" follow-ups--amend locally before pushing if needed.
-- PRs should describe motivation, summarize testing (`npm run lint && npm run build`), link any GitHub issue, and attach screenshots/gifs for visual tweaks.
-- Request review before running `deploy.sh`; merges to `main` must stay deploy-ready.

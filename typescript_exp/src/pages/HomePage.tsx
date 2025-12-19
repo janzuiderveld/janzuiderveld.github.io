@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
 import CompatibilityOverlay from '../components/CompatibilityOverlay';
+import { BLOB_PADDING } from '../components/ascii-art2/constants';
 import { loadCsv, CsvRecord } from '../utils/csv';
 // You might want to add your own ASCII art for the homepage
 // import homeAsciiArt from '../assets/home/home_ascii.txt?raw';
@@ -21,7 +22,7 @@ type TextContentItem = {
   anchorTo?: string; // Name of the textbox to anchor to
   anchorOffsetX?: number; // Horizontal offset from the anchor
   anchorOffsetY?: number; // Vertical offset from the anchor
-  anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center'; // Anchor point
+  anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter' | 'middleLeft' | 'middleRight'; // Anchor point
   fontName?: 'regular' | 'ascii' | 'smallAscii'; // Add fontName explicitly if needed
 };
 
@@ -33,6 +34,21 @@ type Exhibition = {
 };
 
 const UPCOMING_EXHIBITIONS_PATH = '/upcoming_exhibitions.csv';
+
+
+const HOME_SUBTITLE = '.';
+// const HOME_SUBTITLE = '';
+
+const HOME_TITLE_ASCII =  
+"\\\\    \\  /    // \\ |--------\\\\ //-----\\\\||\\ \\  |||--\\ \\\n" +
+" \\\\    \\/    // ^ \\| ||      ||//      \\\\|| \\ \\ ||| ^ \\ \\\n" +
+"  \\\\  /\\/\\  // /-\\\\| ||______//||=======//|  \\ \\|||/-\\ \\ \\\n" +
+"   \\\\/    \\// /   \\ \\|| ||\\ \\  ||      // |   \\ \\|||   \\ \\ \\\n" +
+"    \\\\    //_/     \\_\\|_|| \\_\\//       \\\\||    \\_|||    \\_\\_\\";
+const TITLE_TO_SUBTITLE_OFFSET_Y = -BLOB_PADDING + 0;
+// const TITLE_TO_SUBTITLE_OFFSET_Y = -BLOB_PADDING + 4;
+const SUBTITLE_TO_UPCOMING_OFFSET_Y = -BLOB_PADDING + 4;
+// const SUBTITLE_TO_UPCOMING_OFFSET_Y = -BLOB_PADDING + 6;
 
 const FALLBACK_EXHIBITIONS: Exhibition[] = [
   {
@@ -285,11 +301,23 @@ function HomePage() {
 
         let textItems: TextContentItem[] = [];
 
-        if (isNarrow) {
-          // --- Narrow Layout (Anchored - Portrait/Tall Viewport) ---
-          // Title is the first element, positioned near the top center
-          textItems = [
-            { name: "title", text: "WARANA>", x: 0, y: 50, centered: true, fontName: 'ascii' },
+	        if (isNarrow) {
+	          // --- Narrow Layout (Anchored - Portrait/Tall Viewport) ---
+	          // Title is the first element, positioned near the top center
+	          textItems = [
+	            { name: "title", text: "WARANA>", preRenderedAscii: HOME_TITLE_ASCII, x: 0, y: 50, centered: true, fontName: 'ascii' },
+	            {
+	              name: 'subtitle',
+	              text: HOME_SUBTITLE,
+              x: 0,
+              y: 0,
+              centered: true,
+              anchorTo: 'title',
+              anchorPoint: 'bottomCenter',
+              anchorOffsetY: TITLE_TO_SUBTITLE_OFFSET_Y,
+              alignment: 'center',
+              maxWidthPercent: 90
+            },
              // Anchor "about" below the center of "title"
             { name: "about", text: "[[About]](#/about)", x: 0, y: 0, centered: true, anchorTo: "title", anchorPoint: 'center', anchorOffsetY: 50, alignment: "center", maxWidthPercent: 80 },
             // Anchor "upcoming" below the center of "about"
@@ -326,11 +354,34 @@ function HomePage() {
             }
           ];
 
-        } else {
-          // --- Wide Layout (Absolute Positioning - Landscape/Wide Viewport) ---
-           textItems = [
-            { text: "WARANA>", x: 0, y: 15, centered: true, fontName: 'ascii'}, // Adjusted y position slightly for title
-            { text: upcomingText, x: 0, y: 25, isTitle: false, centered: true, maxWidthPercent: 45, alignment: "center" as const },
+	        } else {
+	          // --- Wide Layout (Absolute Positioning - Landscape/Wide Viewport) ---
+	           textItems = [
+	            { name: 'title', text: "WARANA>", preRenderedAscii: HOME_TITLE_ASCII, x: 0, y: 15, centered: true, fontName: 'ascii'}, // Adjusted y position slightly for title
+	            {
+	              name: 'subtitle',
+	              text: HOME_SUBTITLE,
+              x: 0,
+              y: 0,
+              centered: true,
+              anchorTo: 'title',
+              anchorPoint: 'bottomCenter',
+              anchorOffsetY: TITLE_TO_SUBTITLE_OFFSET_Y,
+              alignment: 'center',
+              maxWidthPercent: 90
+            },
+            {
+              text: upcomingText,
+              x: 0,
+              y: 0,
+              isTitle: false,
+              centered: true,
+              anchorTo: 'subtitle',
+              anchorPoint: 'bottomCenter',
+              anchorOffsetY: SUBTITLE_TO_UPCOMING_OFFSET_Y,
+              maxWidthPercent: 45,
+              alignment: "center" as const
+            },
             { text: "[[About]](#/about)", x: 60, y: 10, isTitle: false, maxWidthPercent: 40, alignment: "left" as const },
             // { text: "", x: 50, y: 40, isTitle: false, centered: true }, // Empty spacer, might not be needed
             // Add individual works as separate text items positioned around the page

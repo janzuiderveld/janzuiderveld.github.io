@@ -4,7 +4,10 @@ import {
     LinkPosition, 
     TextContentItem // Make sure this type is defined and imported correctly in types.ts
 } from '../../types';
+import { segmentGraphemeCells } from '../../utils';
 import { BLOB_PADDING } from '../../constants';
+
+const MAX_LAYOUT_ROWS = 20000;
 
 // --- Extracted Function: Calculate Bounds and Links ---
 export const calculateTextBoundsAndLinks = (
@@ -97,7 +100,7 @@ export const calculateTextBoundsAndLinks = (
   if (textItem.preRenderedAscii) {
     textLines = textItem.preRenderedAscii.split('\n');
     maxLineLength = 0;
-    for (const line of textLines) maxLineLength = Math.max(maxLineLength, line.length);
+    for (const line of textLines) maxLineLength = Math.max(maxLineLength, segmentGraphemeCells(line).length);
     if (textItem.centered) {
       textBlockStartX = Math.floor(cols / 2) - Math.floor(maxLineLength / 2);
       gridX = textBlockStartX;
@@ -110,7 +113,7 @@ export const calculateTextBoundsAndLinks = (
     textLines = formattedResult.text.split('\n');
     linkData = formattedResult.links;
     maxLineLength = 0;
-    for (const line of textLines) maxLineLength = Math.max(maxLineLength, line.length);
+    for (const line of textLines) maxLineLength = Math.max(maxLineLength, segmentGraphemeCells(line).length);
     maxLineLength = Math.min(maxLineLength, maxWidth);
     if (textItem.centered) {
       textBlockStartX = Math.floor(cols / 2) - Math.floor(maxLineLength / 2) + Math.floor((textItem.x / 100) * cols);
@@ -121,9 +124,40 @@ export const calculateTextBoundsAndLinks = (
 
   // --- Calculate Links --- 
   for (const linkInfo of linkData) {
+    const line = textLines[linkInfo.line] ?? '';
+    const lineCells = segmentGraphemeCells(line);
+    const actualLineLength = Math.min(lineCells.length, maxWidth);
+    if (actualLineLength === 0) {
+      continue;
+    }
+
+    const toCellIndex = (codeUnitIndex: number) => {
+      if (codeUnitIndex <= 0) {
+        return 0;
+      }
+      if (codeUnitIndex >= line.length) {
+        return lineCells.length;
+      }
+      for (let i = 0; i < lineCells.length; i++) {
+        const cell = lineCells[i];
+        if (codeUnitIndex >= cell.start && codeUnitIndex < cell.end) {
+          return i;
+        }
+      }
+      return lineCells.length;
+    };
+
+    const linkStartCell = toCellIndex(linkInfo.start);
+    const linkEndCellExclusive = Math.min(
+      toCellIndex(Math.max(linkInfo.end - 1, linkInfo.start)) + 1,
+      actualLineLength
+    );
+    if (linkStartCell >= linkEndCellExclusive) {
+      continue;
+    }
+
     const lineY = gridY + linkInfo.line;
     let textX = gridX;
-    const actualLineLength = textLines[linkInfo.line] ? Math.min(textLines[linkInfo.line].length, maxWidth) : 0;
     if (textItem.centered) {
       textX = textBlockStartX;
       if (textItem.alignment === 'center') textX = textBlockStartX + Math.floor((maxLineLength - actualLineLength) / 2);
@@ -132,7 +166,13 @@ export const calculateTextBoundsAndLinks = (
       if (textItem.alignment === 'center') textX = Math.floor(gridX + (maxWidth - actualLineLength) / 2);
       else if (textItem.alignment === 'right') textX = gridX + maxWidth - actualLineLength;
     }
-    links.push({ textKey: key, url: linkInfo.url, startX: textX + linkInfo.start, endX: textX + linkInfo.end - 1, y: lineY });
+    links.push({
+      textKey: key,
+      url: linkInfo.url,
+      startX: textX + linkStartCell,
+      endX: textX + linkEndCellExclusive - 1,
+      y: lineY
+    });
   }
 
   // --- Calculate Bounds for this Item --- 
@@ -146,14 +186,17 @@ export const calculateTextBoundsAndLinks = (
   }
   
   for (let lineIndex = 0; lineIndex < finalLines.length; lineIndex++) {
-    let lineText = finalLines[lineIndex];
+    const lineText = finalLines[lineIndex];
     if (!lineText) continue;
-    if (!textItem.preRenderedAscii && lineText.length > maxWidth) {
-      lineText = lineText.substring(0, maxWidth);
-    }
+
+    const lineCells = segmentGraphemeCells(lineText);
+    const cellsToRender = !textItem.preRenderedAscii && lineCells.length > maxWidth
+      ? lineCells.slice(0, maxWidth)
+      : lineCells;
+
     const lineY = gridY + lineIndex;
     let textX = gridX;
-    const actualLineLength = lineText.length;
+    const actualLineLength = cellsToRender.length;
     if (textItem.centered) {
       textX = textBlockStartX;
       if (textItem.alignment === 'center') textX = textBlockStartX + Math.floor((maxLineLength - actualLineLength) / 2);
@@ -166,10 +209,10 @@ export const calculateTextBoundsAndLinks = (
     textBounds[key].minY = Math.min(textBounds[key].minY, lineY);
     textBounds[key].maxY = Math.max(textBounds[key].maxY, lineY);
     
-    for (let charIndex = 0; charIndex < lineText.length; charIndex++) {
-      const x = textX + charIndex;
+    for (let cellIndex = 0; cellIndex < cellsToRender.length; cellIndex++) {
+      const x = textX + cellIndex;
       if (x < -cols || x > cols * 2) continue; // Check horizontal bounds
-      const char = lineText[charIndex];
+      const char = cellsToRender[cellIndex].cell;
       if (char && char !== ' ') {
         textBounds[key].minX = Math.min(textBounds[key].minX, x);
         textBounds[key].maxX = Math.max(textBounds[key].maxX, x);
@@ -182,8 +225,9 @@ export const calculateTextBoundsAndLinks = (
   const padding = BLOB_PADDING;
   textBounds[key].minX = Math.max(-cols, textBounds[key].minX - padding);
   textBounds[key].maxX = Math.min(cols * 2, textBounds[key].maxX + padding);
-  textBounds[key].minY = Math.max(-rows * 2, textBounds[key].minY - padding); // Adjust vertical padding if needed
-  textBounds[key].maxY = Math.min(rows * 3, textBounds[key].maxY + padding); // Adjust vertical padding
+  // Avoid viewport-relative clamps so long pages can scroll fully; keep a generous sanity cap.
+  textBounds[key].minY = Math.max(-MAX_LAYOUT_ROWS, textBounds[key].minY - padding);
+  textBounds[key].maxY = Math.min(MAX_LAYOUT_ROWS, textBounds[key].maxY + padding);
 
   positionedItems.add(index);
 }; 

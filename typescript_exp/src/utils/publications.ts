@@ -168,3 +168,4 @@ export const formatPublicationsTable = (
   return [topBorder, ...paddedRows.map(r => `|${r}|`), bottomBorder].join('\n');
 };
 
+

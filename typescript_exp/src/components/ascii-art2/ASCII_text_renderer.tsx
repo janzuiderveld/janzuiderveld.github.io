@@ -5,6 +5,7 @@
 
 // Import font definitions from separate file
 import { asciiChars, smallAsciiChars, microAsciiChars } from '../asciiFonts';
+import { countGraphemeCells } from './utils';
 
 // ADDED/MODIFIED: FontName type to include all supported fonts
 export type FontName = 'regular' | 'ascii' | 'smallAscii' | 'microAscii';
@@ -39,12 +40,15 @@ function wrapText(text: string, maxWidth: number = 80): string[] {
     return text.split('\n');
   }
 
+  const shouldUseGraphemeWidths = /[^\x00-\x7F]/.test(text);
+  const measureWidth = (value: string) => (shouldUseGraphemeWidths ? countGraphemeCells(value) : value.length);
+
   const lines: string[] = [];
   const paragraphs = text.split('\n');
 
   // Process each paragraph
   for (const paragraph of paragraphs) {
-    if (paragraph.length <= maxWidth) {
+    if (measureWidth(paragraph) <= maxWidth) {
       lines.push(paragraph);
       continue;
     }
@@ -54,13 +58,16 @@ function wrapText(text: string, maxWidth: number = 80): string[] {
 
     // Process each word
     for (const word of words) {
+      const lineWidth = line.length === 0 ? 0 : measureWidth(line);
+      const wordWidth = measureWidth(word);
+      const nextWidth = lineWidth + wordWidth + (lineWidth > 0 ? 1 : 0);
       // If adding this word would exceed maxWidth
-      if (line.length + word.length + 1 > maxWidth && line.length > 0) {
+      if (nextWidth > maxWidth && lineWidth > 0) {
         lines.push(line); // Push current line
         line = word; // Start new line with current word
       } else {
         // Add word to current line with a space if not first word
-        line = line.length === 0 ? word : `${line} ${word}`;
+        line = lineWidth === 0 ? word : `${line} ${word}`;
       }
     }
 
@@ -83,101 +90,95 @@ function wrapText(text: string, maxWidth: number = 80): string[] {
  */
 function parseTextWithStyles(text: string): TextSegment[] {
   if (!text) return [];
-  
+
   const segments: TextSegment[] = [];
-  let lastIndex = 0;
-  
+  let cursor = 0;
+
   // Regular expressions for style markers
-  const boldRegex = /==(.*?)==/g;
-  const italicRegex = /\/\/(.*?)\/\//g;  // Double slash for italic
+  // Note: [\\s\\S] allows matches across line breaks, which is needed when a
+  // marker pair is split across wrapped lines (e.g. "==bold\\ntext==").
+  const boldRegex = /==([\s\S]*?)==/g;
+  const italicRegex = /\/\/([\s\S]*?)\/\//g; // Double slash for italic
   const linkRegex = /\[(.*?)\]\((.*?)\)/g;
-  const redTextRegex = /&&(.*?)&&/g;  // Add regex for text between && markers
-  
-  // Process the text in order by finding the next style marker
-  let nextBold = boldRegex.exec(text);
-  let nextItalic = italicRegex.exec(text);
-  let nextLink = linkRegex.exec(text);
-  let nextRed = redTextRegex.exec(text);
-  
-  while (nextBold || nextItalic || nextLink || nextRed) {
-    // Find the earliest marker
+  const redTextRegex = /&&([\s\S]*?)&&/g; // Text between && markers
+
+  while (cursor < text.length) {
     let nextMatch: RegExpExecArray | null = null;
-    let matchType = '';
-    
-    const getIndex = (match: RegExpExecArray | null): number => match ? match.index : Infinity;
-    
-    if (nextBold && (!nextMatch || getIndex(nextBold) < getIndex(nextMatch))) {
-      nextMatch = nextBold;
+    let matchType: 'bold' | 'italic' | 'link' | 'red' | null = null;
+
+    boldRegex.lastIndex = cursor;
+    const boldMatch = boldRegex.exec(text);
+    if (boldMatch) {
+      nextMatch = boldMatch;
       matchType = 'bold';
     }
-    
-    if (nextItalic && (!nextMatch || getIndex(nextItalic) < getIndex(nextMatch))) {
-      nextMatch = nextItalic;
+
+    italicRegex.lastIndex = cursor;
+    const italicMatch = italicRegex.exec(text);
+    if (italicMatch && (!nextMatch || italicMatch.index < nextMatch.index)) {
+      nextMatch = italicMatch;
       matchType = 'italic';
     }
-    
-    if (nextLink && (!nextMatch || getIndex(nextLink) < getIndex(nextMatch))) {
-      nextMatch = nextLink;
+
+    linkRegex.lastIndex = cursor;
+    const linkMatch = linkRegex.exec(text);
+    if (linkMatch && (!nextMatch || linkMatch.index < nextMatch.index)) {
+      nextMatch = linkMatch;
       matchType = 'link';
     }
-    
-    if (nextRed && (!nextMatch || getIndex(nextRed) < getIndex(nextMatch))) {
-      nextMatch = nextRed;
+
+    redTextRegex.lastIndex = cursor;
+    const redMatch = redTextRegex.exec(text);
+    if (redMatch && (!nextMatch || redMatch.index < nextMatch.index)) {
+      nextMatch = redMatch;
       matchType = 'red';
     }
-    
-    if (!nextMatch) break;
-    
-    // Add regular text before this marker
-    if (nextMatch.index > lastIndex) {
-      segments.push({
-        text: text.substring(lastIndex, nextMatch.index)
-      });
+
+    if (!nextMatch || !matchType) {
+      break;
     }
-    
-    // Process based on marker type
+
+    if (nextMatch.index > cursor) {
+      segments.push({ text: text.substring(cursor, nextMatch.index) });
+    }
+
     if (matchType === 'bold') {
-      segments.push({
-        text: nextMatch[1],
-        isBold: true
-      });
-      lastIndex = nextMatch.index + nextMatch[0].length;
-      nextBold = boldRegex.exec(text);
+      segments.push({ text: nextMatch[1], isBold: true });
     } else if (matchType === 'italic') {
-      segments.push({
-        text: nextMatch[1],
-        isItalic: true
-      });
-      lastIndex = nextMatch.index + nextMatch[0].length;
-      nextItalic = italicRegex.exec(text);
+      segments.push({ text: nextMatch[1], isItalic: true });
     } else if (matchType === 'link') {
-      segments.push({
-        text: nextMatch[1],
-        isLink: true,
-        url: nextMatch[2]
-      });
-      lastIndex = nextMatch.index + nextMatch[0].length;
-      nextLink = linkRegex.exec(text);
+      segments.push({ text: nextMatch[1], isLink: true, url: nextMatch[2] });
     } else if (matchType === 'red') {
-      segments.push({
-        text: nextMatch[1],
-        color: '#FF0000'  // Explicitly set to standard red color
-      });
-      lastIndex = nextMatch.index + nextMatch[0].length;
-      nextRed = redTextRegex.exec(text);
+      segments.push({ text: nextMatch[1], color: '#FF0000' });
+    }
+
+    cursor = nextMatch.index + nextMatch[0].length;
+  }
+
+  if (cursor < text.length) {
+    segments.push({ text: text.substring(cursor) });
+  }
+
+  return segments;
+}
+
+function splitSegmentsByNewlines(segments: TextSegment[]): TextSegment[][] {
+  const lines: TextSegment[][] = [[]];
+
+  for (const segment of segments) {
+    const parts = segment.text.split('\n');
+    for (let i = 0; i < parts.length; i++) {
+      const partText = parts[i];
+      if (partText.length > 0) {
+        lines[lines.length - 1].push({ ...segment, text: partText });
+      }
+      if (i < parts.length - 1) {
+        lines.push([]);
+      }
     }
   }
-  
-  // Add any remaining text
-  if (lastIndex < text.length) {
-    segments.push({
-      text: text.substring(lastIndex)
-    });
-  }
-  
-  console.log("Parsed segments:", segments);
-  
-  return segments;
+
+  return lines;
 }
 
 // Add a type for text styles including color
@@ -212,104 +213,99 @@ export function renderText(
   
   // For regular text, simply format it with style markers
   if (fontName === 'regular') {
-    // First split by explicit newlines
-    const paragraphs = text.split('\n');
     const result: Array<{
       html: string, 
       line?: string,
       links: Array<{start: number, end: number, url: string}>,
       styles: Array<{start: number, end: number, style: TextStyle}>
     }> = [];
-    
-    // Process each paragraph, applying text wrapping
-    for (const paragraph of paragraphs) {
-      // Wrap text if maxWidth is provided
-      const wrappedLines = options.maxWidth && options.maxWidth > 0 
-        ? wrapText(paragraph, options.maxWidth) 
+
+    // 1) Wrap text first (preserves existing layout behavior).
+    // 2) Parse styles across the full wrapped block so markers can span lines.
+    const rawWrappedLines: string[] = [];
+    for (const paragraph of text.split('\n')) {
+      const wrappedLines = options.maxWidth && options.maxWidth > 0
+        ? wrapText(paragraph, options.maxWidth)
         : [paragraph];
-      
-      // Process each wrapped line
-      for (const lineText of wrappedLines) {
-        const lineSegments = parseTextWithStyles(lineText);
-        let formattedLine = '';
-        let htmlLine = '';
-        const lineLinks: Array<{start: number, end: number, url: string}> = [];
-        const lineStyles: Array<{start: number, end: number, style: TextStyle}> = [];
-        let currentPos = 0;
-        
-        // Apply formatting based on segment styles
-        for (const segment of lineSegments) {
-          const startPos = currentPos;
-          const formattedSegment = segment.text; // Keep original text, we'll style it with metadata
-          
-          // Generate HTML with inline styles
-          let segmentHtml = segment.text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-          
-          // Apply styles using inline CSS
-          const cssStyles: string[] = [];
-          if (segment.isBold) cssStyles.push('font-weight: bold');
-          if (segment.isItalic) cssStyles.push('font-style: italic');
-          if (segment.color) cssStyles.push(`color: ${segment.color}`);
-          if (segment.isLink) cssStyles.push('color: #3498db; text-decoration: underline; cursor: pointer');
-          
-          if (cssStyles.length > 0 && !segment.isLink) {
-            segmentHtml = `<span style="${cssStyles.join('; ')}">${segmentHtml}</span>`;
-          }
-          
-          // Make links clickable
-          if (segment.isLink && segment.url) {
-            segmentHtml = `<a href="${segment.url}" 
-              style="${cssStyles.join('; ')}" 
-              data-link-url="${segment.url}" 
-              class="ascii-link" 
-              target="_blank" 
-              rel="noopener noreferrer">${segmentHtml}</a>`;
-          } else if (segment.isLink) {
-            segmentHtml = `<span style="color: #3498db; cursor: pointer;">${segmentHtml}</span>`;
-          }
-          
-          // Track style positions for all styles including color
-          if (segment.isBold || segment.isItalic || segment.isLink || segment.color) {
-            lineStyles.push({
-              start: startPos,
-              end: startPos + formattedSegment.length,
-              style: {
-                isBold: segment.isBold,
-                isItalic: segment.isItalic,
-                isLink: segment.isLink,
-                url: segment.url,
-                // Make link colors more prominent
-                color: segment.color || (segment.isLink ? '#3498db' : undefined)
-              }
-            });
-          }
-          
-          // Track link positions if this is a link
-          if (segment.isLink && segment.url) {
-            lineLinks.push({
-              start: startPos,
-              end: startPos + formattedSegment.length,
-              url: segment.url
-            });
-          }
-          
-          formattedLine += formattedSegment;
-          htmlLine += segmentHtml;
-          currentPos += formattedSegment.length;
-        }
-        
-        result.push({
-          html: htmlLine,
-          line: formattedLine, // Keep original line for backwards compatibility
-          links: lineLinks,
-          styles: lineStyles
-        });
-      }
+      rawWrappedLines.push(...wrappedLines);
     }
-    
+
+    const wrappedText = rawWrappedLines.join('\n');
+    const parsedSegments = parseTextWithStyles(wrappedText);
+    const segmentsByLine = splitSegmentsByNewlines(parsedSegments);
+
+    for (const lineSegments of segmentsByLine) {
+      let formattedLine = '';
+      let htmlLine = '';
+      const lineLinks: Array<{start: number, end: number, url: string}> = [];
+      const lineStyles: Array<{start: number, end: number, style: TextStyle}> = [];
+      let currentPos = 0;
+
+      for (const segment of lineSegments) {
+        const startPos = currentPos;
+        const formattedSegment = segment.text;
+
+        let segmentHtml = segment.text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        const cssStyles: string[] = [];
+        if (segment.isBold) cssStyles.push('font-weight: bold');
+        if (segment.isItalic) cssStyles.push('font-style: italic');
+        if (segment.color) cssStyles.push(`color: ${segment.color}`);
+        if (segment.isLink) cssStyles.push('color: #3498db; text-decoration: underline; cursor: pointer');
+
+        if (cssStyles.length > 0 && !segment.isLink) {
+          segmentHtml = `<span style="${cssStyles.join('; ')}">${segmentHtml}</span>`;
+        }
+
+        if (segment.isLink && segment.url) {
+          segmentHtml = `<a href="${segment.url}" 
+            style="${cssStyles.join('; ')}" 
+            data-link-url="${segment.url}" 
+            class="ascii-link" 
+            target="_blank" 
+            rel="noopener noreferrer">${segmentHtml}</a>`;
+        } else if (segment.isLink) {
+          segmentHtml = `<span style="color: #3498db; cursor: pointer;">${segmentHtml}</span>`;
+        }
+
+        if (segment.isBold || segment.isItalic || segment.isLink || segment.color) {
+          lineStyles.push({
+            start: startPos,
+            end: startPos + formattedSegment.length,
+            style: {
+              isBold: segment.isBold,
+              isItalic: segment.isItalic,
+              isLink: segment.isLink,
+              url: segment.url,
+              color: segment.color || (segment.isLink ? '#3498db' : undefined)
+            }
+          });
+        }
+
+        if (segment.isLink && segment.url) {
+          lineLinks.push({
+            start: startPos,
+            end: startPos + formattedSegment.length,
+            url: segment.url
+          });
+        }
+
+        formattedLine += formattedSegment;
+        htmlLine += segmentHtml;
+        currentPos += formattedSegment.length;
+      }
+
+      result.push({
+        html: htmlLine,
+        line: formattedLine,
+        links: lineLinks,
+        styles: lineStyles
+      });
+    }
+
     return result;
   }
   
@@ -571,17 +567,9 @@ export function renderFormattedText(
   const renderedLines = renderText(text, fontName, options);
   const linkData: Array<{line: number, start: number, end: number, url: string}> = [];
   const styleData: Array<{line: number, start: number, end: number, style: TextStyle}> = [];
-  
-  console.log("Original text:", text);
-  console.log("Rendered lines count:", renderedLines.length);
-  
+
   // Process links and styles data
   renderedLines.forEach((line, lineIdx) => {
-    if (line.styles && line.styles.length > 0) {
-      console.log(`Line ${lineIdx} has ${line.styles.length} style entries:`, 
-                  line.styles.map(s => `start=${s.start}, end=${s.end}, bold=${s.style.isBold}`));
-    }
-    
     line.links.forEach(link => {
       linkData.push({
         line: lineIdx,
@@ -592,11 +580,6 @@ export function renderFormattedText(
     });
     
     line.styles.forEach(style => {
-      // Log bold styles for debugging
-      if (style.style.isBold) {
-        console.log(`Adding bold style at line ${lineIdx}, from ${style.start} to ${style.end}`);
-      }
-      
       styleData.push({
         line: lineIdx,
         start: style.start,
@@ -649,9 +632,6 @@ export function renderFormattedText(
         spacedHtmlLines.push('');
       }
     });
-    
-    console.log("Before adjustment - Style data:", styleData);
-    console.log("After adjustment - Style data:", adjustedStyleData);
     
     return {
       text: spacedLines.join('\n'),

@@ -3,6 +3,7 @@ import {
     TextGridCell, 
     TextContentItem 
 } from '../../types';
+import { segmentGraphemeCells } from '../../utils';
 
 // --- Extracted Function: Populate Grid ---
 export const populateTextGrid = (
@@ -80,7 +81,7 @@ export const populateTextGrid = (
   if (textItem.preRenderedAscii) {
     textLines = textItem.preRenderedAscii.split('\n');
     maxLineLength = 0;
-    for (const line of textLines) maxLineLength = Math.max(maxLineLength, line.length);
+    for (const line of textLines) maxLineLength = Math.max(maxLineLength, segmentGraphemeCells(line).length);
     if (textItem.centered) {
       textBlockStartX = Math.floor(cols / 2) - Math.floor(maxLineLength / 2);
       gridX = textBlockStartX;
@@ -93,7 +94,7 @@ export const populateTextGrid = (
     );
     textLines = formattedResult.text.split('\n');
     maxLineLength = 0;
-    for (const line of textLines) maxLineLength = Math.max(maxLineLength, line.length);
+    for (const line of textLines) maxLineLength = Math.max(maxLineLength, segmentGraphemeCells(line).length);
     maxLineLength = Math.min(maxLineLength, maxWidth);
     if (textItem.centered) {
       textBlockStartX = Math.floor(cols / 2) - Math.floor(maxLineLength / 2) + Math.floor((textItem.x / 100) * cols);
@@ -113,14 +114,17 @@ export const populateTextGrid = (
   }
 
   for (let lineIndex = 0; lineIndex < finalLines.length; lineIndex++) {
-    let lineText = finalLines[lineIndex];
+    const lineText = finalLines[lineIndex];
     if (!lineText) continue;
-    if (!textItem.preRenderedAscii && lineText.length > maxWidth) {
-      lineText = lineText.substring(0, maxWidth);
-    }
+
+    const lineCells = segmentGraphemeCells(lineText);
+    const cellsToRender = !textItem.preRenderedAscii && lineCells.length > maxWidth
+      ? lineCells.slice(0, maxWidth)
+      : lineCells;
+
     const lineY = gridY + lineIndex;
     let textX = gridX;
-    const actualLineLength = lineText.length;
+    const actualLineLength = cellsToRender.length;
 
     // Recalculate textX based on alignment/centering as before
     if (textItem.centered) {
@@ -132,9 +136,10 @@ export const populateTextGrid = (
       else if (textItem.alignment === 'right') textX = gridX + maxWidth - actualLineLength;
     }
     
-    for (let charIndex = 0; charIndex < lineText.length; charIndex++) {
-      const x = textX + charIndex;
-      const char = lineText[charIndex];
+    for (let cellIndex = 0; cellIndex < cellsToRender.length; cellIndex++) {
+      const x = textX + cellIndex;
+      const cell = cellsToRender[cellIndex];
+      const char = cell.cell;
       if (char && char !== ' ') {
         // *** Populate the flat array ***
         const arrayIndex = (lineY - offsetY) * gridCols + x;
@@ -147,7 +152,7 @@ export const populateTextGrid = (
              // Check styles only if formattedResult exists (i.e., not preRenderedAscii)
              if (formattedResult) {
                for (const styleInfo of formattedResult.styles) {
-                 if (styleInfo.line === lineIndex && charIndex >= styleInfo.start && charIndex < styleInfo.end) {
+                 if (styleInfo.line === lineIndex && cell.start < styleInfo.end && cell.end > styleInfo.start) {
                    isBold = !!styleInfo.style.isBold;
                    isItalic = !!styleInfo.style.isItalic;
                    break; // Found the style for this character

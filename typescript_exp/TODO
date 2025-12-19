@@ -1,13 +1,22 @@
-- standard zoom on desktop bit bigger?
-
-- link overlap click test
-
-- double load after click
+- mobile about page
 
 - homepage subtitle: Exploring technological animism. 
 
-- + and - buttons on any page, and also dark mode switch
+- In narrow viewports, scrolling does not always reach the bottom of the page. Make sure the lowest blob can scroll until the middle of the page.
 
+- + and - buttons on any page, and also dark mode switch
+I want to extend the back ("<<<") blob, that is on every page except the homepage currently, a little bit; there should be "+" and "-" buttons below it and "dark" or "light" button. Every button should be just underlined blue text, similar to how "<<<" for back now is. the + and - buttons should change the character size in tiny increments, the dark and light buttons should change between dark mode and light mode. currently the website is only implemented in light mode, with a white bg and black text. dark mode should have a black background with white text. 
+
+- fix issue where fat / italic doesnt render on multi lines
+Text is rendered as bold or italic when it is encapsulated by == or // markers (e.g. "==bold text==" turns in "bold text" in bold), but when the encapsulation is closed on the next line due to wrapping, the text style is not triggered and the markers are displayed (e.g. "==bold\ntext==" while not being bold). Fix this rendering bug, while making sure the aesthetics of the website remain identical, and efficiency is not hurt.
+
+- award blob not centered / year is not displayed on narrow viewports / falls off the page
+The award blob on the about page is not centered correctly and in narrow viewports the year is not displayed and falls off the page. Fix this.
+
+- how to access actual pictures and videos?
+I want to have a "photorealistic" representation of the website that lives below the ASCII representation, accesible at any moment, so it should be rendered in low resolution on page load, scroll in sync with the ascii representation etc. When any ASCII art is clicked, a nearly identical fade out animation to the one used when navigating between pages should be triggered, but instead of fading to white, it should reveal the photorealistic representation of the website, while the high res version of every picture is rendered simultaneously. This photorealistic mode should display a white background, with images perfectly aligned with every blob that has an image coupled to it, as needs to be set in blob's their instantiation parameters. When in photorealistic mode the ASCII representation of the website needs to stop animating to save resources. Scrolling in photorealistic mode should be continuous and smooth. When any point on the website is clicked, or the browser back button is clicked, the website should switch back to ASCII mode. a fade to white animation should be triggered followed by the fade in animation that is currently used between page navigation in ASCII mode. The fade to white animation used here should be very similar to the ASCII mode fade to white animation between page nav, but it should be a "continuous" variant, where a faded growing circle from the clicking point consumes the page to white, after which the regular ASCII mode fade in is triggered. 
+
+When pre rendered ascii art is clicked, 
 
 - pull relevant documents from my GDrive
 > Coming up / ongoing

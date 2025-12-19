@@ -170,3 +170,4 @@ export const formatAwardsTable = (
   // Clean ASCII-only rows separated by pipes, without unsupported box characters
   return rows.join('\n');
 };
+

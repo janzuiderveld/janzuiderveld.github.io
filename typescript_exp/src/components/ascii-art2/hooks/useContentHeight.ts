@@ -21,15 +21,16 @@ export const useContentHeight = (
       maxY = Math.max(maxY, bounds.maxY); 
     });
     
-    // Add 1 because maxY is 0-indexed, then multiply by char height. Add padding.
-    return (maxY + 1) * CHAR_HEIGHT + 50; 
+    // Add 1 because maxY is 0-indexed, then multiply by char height.
+    return (maxY + 1) * CHAR_HEIGHT; 
   // Update dependency array to use textBounds
   }, [textBounds]); 
 
   // Calculate max scroll (logic remains the same)
   const maxScroll = useMemo(() => {
     if (!size.height) return 0;
-    const effectiveMaxHeight = maxScrollHeight || contentHeight;
+    const midViewportPaddingPx = Math.ceil((size.height / 2) / CHAR_HEIGHT) * CHAR_HEIGHT;
+    const effectiveMaxHeight = (maxScrollHeight || contentHeight) + midViewportPaddingPx;
     // Ensure maxScroll is never negative
     return Math.max(0, effectiveMaxHeight - size.height); 
   }, [size.height, contentHeight, maxScrollHeight]);

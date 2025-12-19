@@ -20,25 +20,34 @@ import {
 
 const CV_PATH = new URL('../assets/CV_minimal_NOV25.pdf', import.meta.url).href;
 
+const getViewportSize = () => {
+  if (typeof window === 'undefined') {
+    return { width: 1200, height: 900 };
+  }
+
+  const width = window.visualViewport?.width ?? window.innerWidth;
+  const height = window.visualViewport?.height ?? window.innerHeight;
+
+  return { width, height };
+};
+
 function AboutPage() {
   const [presentations, setPresentations] = useState<Presentation[]>(FALLBACK_PRESENTATIONS);
   const [awards, setAwards] = useState<Award[]>(FALLBACK_AWARDS);
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 1200
-  );
-  const [windowHeight, setWindowHeight] = useState(
-    typeof window !== 'undefined' ? window.innerHeight : 900
-  );
+  const [{ width: windowWidth, height: windowHeight }, setWindowSize] = useState(getViewportSize);
 
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      setWindowHeight(window.innerHeight);
+      setWindowSize(getViewportSize());
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -138,15 +147,14 @@ function AboutPage() {
     const maxTableWidth = Math.max(20, Math.floor(columnCount * (tableMaxWidthPercent / 100)));
     const awardsMaxWidth = Math.max(15, Math.floor(columnCount * (tableMaxWidthPercent / 100)));
     const presentationsAnchorOffsetX = -Math.floor(maxTableWidth / 2);
-    const awardsAnchorOffsetX = -Math.floor(awardsMaxWidth / 2);
 
     const janText = [
       janArt,
       '==~JAN ZUIDERVELD~==',
       '[[jan@warana.xyz](mailto:jan@warana.xyz)]',
-      `[[CV](${CV_PATH})]`,
-      '[[Scholar](https://scholar.google.com/citations?user=USER_ID)]',
       '[[Instagram](https://www.instagram.com/warana.xyz)]',
+      '[[Scholar](https://scholar.google.com/citations?user=USER_ID)]',
+      `[[CV](${CV_PATH})]`,
     ].join('\n');
 
     const presentationsTableText = formatPresentationsTable(presentations, isNarrow, maxTableWidth);
@@ -164,7 +172,7 @@ function AboutPage() {
     const awardsDrip = [
       '¸,ø¤º°`°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸,ø¤º°`',
       '      (  @   _   @  )    (  @   _   @  )      ',
-      '       \    (o)    /      \    (o)    /       ',
+      '       \\    (o)    /      \\    (o)    /       ',
       '________)         (________)         (________',
       '°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸,ø¤º°`°º¤ø,¸¸',
       '',
@@ -186,7 +194,7 @@ function AboutPage() {
 
     const textItems: TextContentItem[] = [
       { name: 'back', text: '[[<<<]](#/)', x: 2, y: 4, fixed: true },
-      { name: 'title', text: 'ABOUT', x: 0, y: 12, centered: true, fontName: 'ascii' },
+      { name: 'title', text: 'ABOUT', x: 0, y: 18, centered: true, fontName: 'ascii' },
       {
         name: 'subtitle',
         text: 'ARTIFICIAL PHYSICAL INTELLIGENCE',
@@ -241,12 +249,11 @@ function AboutPage() {
         text: awardsBlobText,
         x: 0,
         y: 0,
-        centered: false,
+        centered: true,
         fixed: false,
         anchorTo: 'exhibitions-blob',
         anchorPoint: 'bottomCenter',
         anchorOffsetY: 4,
-        anchorOffsetX: awardsAnchorOffsetX,
         maxWidthPercent: tableMaxWidthPercent,
         alignment: 'center'
       }
