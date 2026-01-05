@@ -14,7 +14,7 @@ const POINT_COUNT = 16;
 const SMOOTHING = 0.18;
 const NOISE_SCALE = 0.18;
 const MIN_RADIUS = 110;
-const RADIUS_SCALE = 2;
+const RADIUS_SCALE = 4;
 
 export const getPhotoHoverRadiusPx = () => {
   const { charWidth } = getCurrentCharMetrics();
@@ -99,6 +99,8 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   const { charWidth, charHeight } = getCurrentCharMetrics();
   const scaleX = item.scaleX ?? 1;
   const scaleY = item.scaleY ?? 1;
+  const stretchX = item.stretchX ?? 1;
+  const stretchY = item.stretchY ?? 1;
   const width = (bounds.maxX - bounds.minX + 1) * charWidth * scaleX;
   const height = (bounds.maxY - bounds.minY + 1) * charHeight * scaleY;
   const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
@@ -148,6 +150,8 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
               width,
               height,
               objectFit: item.objectFit ?? 'cover',
+              transform: `scale(${stretchX}, ${stretchY})`,
+              transformOrigin: 'center',
               opacity: 1
             }}
           />

@@ -16,6 +16,8 @@ export type PhotoTransform = {
   offsetY: number;
   scaleX: number;
   scaleY: number;
+  stretchX?: number;
+  stretchY?: number;
 };
 
 type PhotoState = 'ascii' | 'entering' | 'photo' | 'exiting';
@@ -45,7 +47,9 @@ const DEFAULT_PHOTO_TRANSFORM: PhotoTransform = {
   offsetX: 0,
   offsetY: 0,
   scaleX: 1,
-  scaleY: 1
+  scaleY: 1,
+  stretchX: 1,
+  stretchY: 1
 };
 
 const isMobileDevice = () => {
@@ -137,7 +141,10 @@ function PhotorealisticProjectPage({
         y: 20,
         centered: true,
         maxWidthPercent: IS_SAFARI ? 55 : 60,
-        alignment: 'left'
+        alignment: 'left',
+        anchorTo: 'title',
+        anchorPoint: 'bottomCenter',
+        anchorOffsetY: 4
       },
       {
         name: artName,
@@ -185,10 +192,23 @@ function PhotorealisticProjectPage({
         offsetX: alignment.offsetX,
         offsetY: alignment.offsetY,
         scaleX: alignment.scaleX,
-        scaleY: alignment.scaleY
+        scaleY: alignment.scaleY,
+        stretchX: alignment.stretchX ?? 1,
+        stretchY: alignment.stretchY ?? 1
       }
     ];
-  }, [alignment.offsetX, alignment.offsetY, alignment.scaleX, alignment.scaleY, artName, photo.alt, photo.src, photoModeEnabled]);
+  }, [
+    alignment.offsetX,
+    alignment.offsetY,
+    alignment.scaleX,
+    alignment.scaleY,
+    alignment.stretchX,
+    alignment.stretchY,
+    artName,
+    photo.alt,
+    photo.src,
+    photoModeEnabled
+  ]);
 
   const maxPhotoScrollHeight = useMemo(() => {
     if (!photoModeEnabled) {

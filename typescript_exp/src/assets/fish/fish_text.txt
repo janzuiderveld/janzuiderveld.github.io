@@ -1,7 +1,3 @@
-This is not a fish is staged here as a placeholder page while the full project archive is assembled.
+This installation transforms a Big Mouth Billy Bass, a pre-internet novelty animatronic, into an AI-enabled performative system that functions as a physical metaphor for contemporary digital culture. Through conversation and musical performance that integrates visitors' stories, exhibition context and self-referential commentary, the work fosters emotional connection while openly embracing its constructed nature. The fish's transformation from mass-produced entertainment into a platform for automated personalised interaction reflects broader shifts in how we create and consume culture in the digital age and makes tangible the often abstract dynamics of online engagement, memetic evolution, and technological mediation. 
 
-Expect a project summary, production details, exhibition context, and related links. The layout mirrors the scale of the Life on _ page so the ASCII scene and photorealistic mode stay aligned.
-
-The photo layer is a stand-in for now and the text will expand as documentation is finalized.
-
-More soon.
+By mirroring the behavior of social media performers, or perhaps revealing how such performers have themselves become algorithmic, the work questions the boundaries between authentic expression and automated performance. Ultimately, the installation becomes a social experiment: the longer visitors engage with this overtly artificial performer, the more they demonstrate our capacity to form genuine connections with explicitly synthetic entities.

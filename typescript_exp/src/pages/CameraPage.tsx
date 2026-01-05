@@ -110,7 +110,9 @@ const parseStoredTransform = (raw: string | null): PhotoTransform | null => {
       offsetX: parsed.offsetX,
       offsetY: parsed.offsetY,
       scaleX: parsed.scaleX,
-      scaleY: parsed.scaleY
+      scaleY: parsed.scaleY,
+      stretchX: isFiniteNumber(parsed.stretchX) ? parsed.stretchX : 1,
+      stretchY: isFiniteNumber(parsed.stretchY) ? parsed.stretchY : 1
     };
   } catch {
     return null;
@@ -128,6 +130,8 @@ type PhotoTransform = {
   offsetY: number;
   scaleX: number;
   scaleY: number;
+  stretchX: number;
+  stretchY: number;
 };
 type PhotoColumnMedia =
   | { id: string; type: 'image'; src: string; alt: string }
@@ -148,7 +152,9 @@ const DEFAULT_PHOTO_TRANSFORM: PhotoTransform = {
   offsetX: CAMERA_ALIGN_DEFAULT.offsetX,
   offsetY: CAMERA_ALIGN_DEFAULT.offsetY,
   scaleX: CAMERA_ALIGN_DEFAULT.scaleX,
-  scaleY: CAMERA_ALIGN_DEFAULT.scaleY
+  scaleY: CAMERA_ALIGN_DEFAULT.scaleY,
+  stretchX: CAMERA_ALIGN_DEFAULT.stretchX,
+  stretchY: CAMERA_ALIGN_DEFAULT.stretchY
 };
 
 const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) => {
@@ -437,7 +443,9 @@ function CameraPage() {
         offsetX: photoTransform.offsetX,
         offsetY: photoTransform.offsetY,
         scaleX: photoTransform.scaleX,
-        scaleY: photoTransform.scaleY
+        scaleY: photoTransform.scaleY,
+        stretchX: photoTransform.stretchX,
+        stretchY: photoTransform.stretchY
       },
       ...photoColumnLayout.items
     ];
@@ -447,7 +455,9 @@ function CameraPage() {
     photoTransform.offsetX,
     photoTransform.offsetY,
     photoTransform.scaleX,
-    photoTransform.scaleY
+    photoTransform.scaleY,
+    photoTransform.stretchX,
+    photoTransform.stretchY
   ]);
 
   const photoImageItems = useMemo(() => photoItems.filter(isImageItem), [photoItems]);
@@ -515,10 +525,13 @@ function CameraPage() {
       'Shift+R defaults',
       overrideLabel,
       'Arrows move (shift=fast)',
-      '= / - scale (shift=fast)',
+      '= / - scale all (shift=fast)',
+      '[ / ] stretch X (shift=fast)',
+      ', / . stretch Y (shift=fast)',
       'R reset',
       `dx ${formatValue(photoTransform.offsetX)} dy ${formatValue(photoTransform.offsetY)}`,
-      `sc ${formatValue(photoTransform.scaleX)}`
+      `scx ${formatValue(photoTransform.scaleX)} scy ${formatValue(photoTransform.scaleY)}`,
+      `stx ${formatValue(photoTransform.stretchX)} sty ${formatValue(photoTransform.stretchY)}`
     ].join('\n');
 
     return {
@@ -529,7 +542,18 @@ function CameraPage() {
       fixed: true,
       maxWidthPercent: 40
     };
-  }, [alignmentMode, localOverrideActive, photoState, photoTransform.offsetX, photoTransform.offsetY, photoTransform.scaleX, saveFlashMessage]);
+  }, [
+    alignmentMode,
+    localOverrideActive,
+    photoState,
+    photoTransform.offsetX,
+    photoTransform.offsetY,
+    photoTransform.scaleX,
+    photoTransform.scaleY,
+    photoTransform.stretchX,
+    photoTransform.stretchY,
+    saveFlashMessage
+  ]);
 
   const renderedTextContent = useMemo(() => {
     if (!alignmentPanel) return textContent;
@@ -1001,6 +1025,15 @@ function CameraPage() {
 
       const moveStep = event.shiftKey ? 2 : 0.5;
       const scaleStep = event.shiftKey ? 0.1 : 0.02;
+      const adjustStretch = (axis: 'x' | 'y', delta: number) => {
+        setPhotoTransform(prev => {
+          const current = axis === 'x' ? prev.stretchX : prev.stretchY;
+          const nextScale = clampScale(current + delta);
+          return axis === 'x'
+            ? { ...prev, stretchX: nextScale }
+            : { ...prev, stretchY: nextScale };
+        });
+      };
 
       switch (key) {
         case 'ArrowUp':
@@ -1023,17 +1056,39 @@ function CameraPage() {
         case '+':
           event.preventDefault();
           setPhotoTransform(prev => {
-            const nextScale = clampScale(prev.scaleX + scaleStep);
-            return { ...prev, scaleX: nextScale, scaleY: nextScale };
+            const nextScaleX = clampScale(prev.scaleX + scaleStep);
+            const nextScaleY = clampScale(prev.scaleY + scaleStep);
+            return { ...prev, scaleX: nextScaleX, scaleY: nextScaleY };
           });
           break;
         case '-':
         case '_':
           event.preventDefault();
           setPhotoTransform(prev => {
-            const nextScale = clampScale(prev.scaleX - scaleStep);
-            return { ...prev, scaleX: nextScale, scaleY: nextScale };
+            const nextScaleX = clampScale(prev.scaleX - scaleStep);
+            const nextScaleY = clampScale(prev.scaleY - scaleStep);
+            return { ...prev, scaleX: nextScaleX, scaleY: nextScaleY };
           });
+          break;
+        case '[':
+        case '{':
+          event.preventDefault();
+          adjustStretch('x', -scaleStep);
+          break;
+        case ']':
+        case '}':
+          event.preventDefault();
+          adjustStretch('x', scaleStep);
+          break;
+        case ',':
+        case '<':
+          event.preventDefault();
+          adjustStretch('y', -scaleStep);
+          break;
+        case '.':
+        case '>':
+          event.preventDefault();
+          adjustStretch('y', scaleStep);
           break;
         case 'r':
         case 'R':

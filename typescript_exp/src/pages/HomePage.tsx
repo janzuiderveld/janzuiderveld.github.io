@@ -267,7 +267,7 @@ function HomePage() {
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(FALLBACK_EXHIBITIONS);
 
   // Define the threshold for switching layouts based on aspect ratio (width/height)
-  const ASPECT_RATIO_THRESHOLD = 1.3; // Switch to narrow layout if width < height
+  const ASPECT_RATIO_THRESHOLD = 2; // Switch to narrow layout if width < height
   
   // Calculate aspect ratio at component level
   const aspectRatio = windowHeight > 0 ? windowWidth / windowHeight : 1; 
@@ -369,15 +369,15 @@ function HomePage() {
         // Extract individual works from the works text
         const works = [
           { title: "[[Life on _]](#camera)", x: 19, y: 22, name: "work-camera" },
-          { title: "[[Coffee Machine]](#coffee)", x: 72, y: 39, name: "work-coffee" },
-          { title: "[[Microwave]](#microwave)", x: 85, y: 30, name: "work-microwave" },
-          { title: "[[Copy Machine]](#copy)", x: 78, y: 55, name: "work-copy" },
           { title: "[[This is not a fish]](#fish)", x: 8, y: 39, name: "work-fish" },
-          { title: "[[REDACTED(WIP)]](#/construction)", x: 25, y: 49, name: "work-radio" },
-          { title: "[[Touching Distance]](#touching)", x: 33, y: 80, name: "work-touching" },
-          { title: "[[Lasers]](#lasers)", x: 26, y: 77, name: "work-lasers" },
-          { title: "[[Shedrick]](#shedrick)", x: 92, y: 22, name: "work-shedrick" },
           { title: "[[Conversations Beyond the Ordinary]](#conversations-beyond-the-ordinary)", x: 40, y: 72, name: "work-conversations" },
+          { title: "[[Shedrick]](#shedrick)", x: 92, y: 22, name: "work-shedrick" },
+          { title: "[[Microwave]](#microwave)", x: 85, y: 30, name: "work-microwave" },
+          { title: "[[Coffee Machine]](#coffee)", x: 72, y: 39, name: "work-coffee" },
+          { title: "[[Copy Machine]](#copy)", x: 78, y: 55, name: "work-copy" },
+          { title: "[[REDACTED(WIP)]](#/construction)", x: 25, y: 49, name: "work-radio" },
+          { title: "[[Touching Distance]](#/construction)", x: 33, y: 80, name: "work-touching" },
+          { title: "[[Lasers]](#/construction)", x: 26, y: 77, name: "work-lasers" },
         ];
 
         let textItems: TextContentItem[] = [];

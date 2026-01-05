@@ -1,6 +1,8 @@
 export const COFFEE_ALIGN_DEFAULT = {
-  "offsetX": -7.5,
-  "offsetY": -16.5,
-  "scaleX": 1.3000000000000003,
-  "scaleY": 1.3000000000000003
+  "offsetX": -3,
+  "offsetY": -3,
+  "scaleX": 1.08,
+  "scaleY": 1.08,
+  "stretchX": 1.1,
+  "stretchY": 1
 } as const;

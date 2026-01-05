@@ -9,6 +9,8 @@ type PhotoAlign = {
   offsetY: number;
   scaleX: number;
   scaleY: number;
+  stretchX?: number;
+  stretchY?: number;
 };
 
 type ProjectPageProps = {
@@ -72,7 +74,10 @@ const ProjectPage = ({
         y: 20,
         centered: true,
         maxWidthPercent: IS_SAFARI ? 55 : 60,
-        alignment: 'left'
+        alignment: 'left',
+        anchorTo: 'title',
+        anchorPoint: 'bottomCenter',
+        anchorOffsetY: 4
       },
       {
         name: heroName,
@@ -109,9 +114,22 @@ const ProjectPage = ({
       offsetX: align.offsetX,
       offsetY: align.offsetY,
       scaleX: align.scaleX,
-      scaleY: align.scaleY
+      scaleY: align.scaleY,
+      stretchX: align.stretchX ?? 1,
+      stretchY: align.stretchY ?? 1
     }
-  ], [align.offsetX, align.offsetY, align.scaleX, align.scaleY, heroName, photo.alt, photo.src, title]);
+  ], [
+    align.offsetX,
+    align.offsetY,
+    align.scaleX,
+    align.scaleY,
+    align.stretchX,
+    align.stretchY,
+    heroName,
+    photo.alt,
+    photo.src,
+    title
+  ]);
 
   return (
     <div

@@ -10,6 +10,8 @@ type PhotoLayerBase = {
   offsetY?: number;
   scaleX?: number;
   scaleY?: number;
+  stretchX?: number;
+  stretchY?: number;
   boundsSource?: 'raw' | 'padded';
   objectFit?: React.CSSProperties['objectFit'];
   fixed?: boolean;
@@ -75,6 +77,8 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     const heightChars = bounds.maxY - bounds.minY + 1;
     const scaleX = item.scaleX ?? 1;
     const scaleY = item.scaleY ?? 1;
+    const stretchX = item.stretchX ?? 1;
+    const stretchY = item.stretchY ?? 1;
 
     const width = widthChars * charWidth * scaleX;
     const height = heightChars * charHeight * scaleY;
@@ -129,7 +133,8 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       objectFit: item.objectFit ?? 'cover',
       imageRendering: 'pixelated',
       filter: 'blur(6px)',
-      transform: 'scale(1.01)',
+      transform: `scale(${1.01 * stretchX}, ${1.01 * stretchY})`,
+      transformOrigin: 'center',
       opacity: shouldShowHighRes && isHighResLoaded ? 0 : 1,
       transition: 'opacity 0.4s ease',
       willChange: 'opacity'
@@ -141,6 +146,8 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       width: '100%',
       height: '100%',
       objectFit: item.objectFit ?? 'cover',
+      transform: `scale(${stretchX}, ${stretchY})`,
+      transformOrigin: 'center',
       opacity: shouldShowHighRes && isHighResLoaded ? 1 : 0,
       transition: 'opacity 0.6s ease',
       willChange: 'opacity'

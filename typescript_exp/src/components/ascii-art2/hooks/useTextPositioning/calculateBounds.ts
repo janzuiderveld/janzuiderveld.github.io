@@ -109,7 +109,9 @@ export const calculateTextBoundsAndLinks = (
     }
   } else {
     const formattedResult = renderFormattedText(
-      textItem.text, fontName, { maxWidth: fontName === 'regular' ? maxWidth : undefined, respectLineBreaks: true }
+      textItem.text,
+      fontName,
+      { maxWidth, respectLineBreaks: true }
     );
     textLines = formattedResult.text.split('\n');
     linkData = formattedResult.links;

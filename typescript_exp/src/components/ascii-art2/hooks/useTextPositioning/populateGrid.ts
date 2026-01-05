@@ -91,7 +91,9 @@ export const populateTextGrid = (
   } else {
     // Calculate formattedResult here for non-preRendered text
     formattedResult = renderFormattedText(
-      textItem.text, fontName, { maxWidth: fontName === 'regular' ? maxWidth : undefined, respectLineBreaks: true }
+      textItem.text,
+      fontName,
+      { maxWidth, respectLineBreaks: true }
     );
     textLines = formattedResult.text.split('\n');
     maxLineLength = 0;

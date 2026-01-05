@@ -11,6 +11,8 @@ type PhotoTransform = {
   offsetY: number;
   scaleX: number;
   scaleY: number;
+  stretchX: number;
+  stretchY: number;
 };
 
 type WhiteInRequest = {
@@ -71,7 +73,9 @@ const parseStoredTransform = (raw: string | null): PhotoTransform | null => {
       offsetX: parsed.offsetX,
       offsetY: parsed.offsetY,
       scaleX: parsed.scaleX,
-      scaleY: parsed.scaleY
+      scaleY: parsed.scaleY,
+      stretchX: isFiniteNumber(parsed.stretchX) ? parsed.stretchX : 1,
+      stretchY: isFiniteNumber(parsed.stretchY) ? parsed.stretchY : 1
     };
   } catch {
     return null;
@@ -115,7 +119,9 @@ const PhotoModeScene = ({
       offsetX: baseItem?.offsetX ?? 0,
       offsetY: baseItem?.offsetY ?? 0,
       scaleX: baseItem?.scaleX ?? 1,
-      scaleY: baseItem?.scaleY ?? 1
+      scaleY: baseItem?.scaleY ?? 1,
+      stretchX: baseItem?.stretchX ?? 1,
+      stretchY: baseItem?.stretchY ?? 1
     };
   });
   const [localOverrideActive, setLocalOverrideActive] = useState(false);
@@ -171,7 +177,9 @@ const PhotoModeScene = ({
       offsetX: baseItem?.offsetX ?? 0,
       offsetY: baseItem?.offsetY ?? 0,
       scaleX: baseItem?.scaleX ?? 1,
-      scaleY: baseItem?.scaleY ?? 1
+      scaleY: baseItem?.scaleY ?? 1,
+      stretchX: baseItem?.stretchX ?? 1,
+      stretchY: baseItem?.stretchY ?? 1
     };
   }, [alignmentTargetItem, photoItems]);
 
@@ -223,10 +231,21 @@ const PhotoModeScene = ({
         offsetX: photoTransform.offsetX,
         offsetY: photoTransform.offsetY,
         scaleX: photoTransform.scaleX,
-        scaleY: photoTransform.scaleY
+        scaleY: photoTransform.scaleY,
+        stretchX: photoTransform.stretchX,
+        stretchY: photoTransform.stretchY
       };
     });
-  }, [photoItems, photoTransform.offsetX, photoTransform.offsetY, photoTransform.scaleX, photoTransform.scaleY, resolvedAlignmentTargetId]);
+  }, [
+    photoItems,
+    photoTransform.offsetX,
+    photoTransform.offsetY,
+    photoTransform.scaleX,
+    photoTransform.scaleY,
+    photoTransform.stretchX,
+    photoTransform.stretchY,
+    resolvedAlignmentTargetId
+  ]);
 
   const hoverPreviewItems = useMemo(
     () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
@@ -447,6 +466,15 @@ const PhotoModeScene = ({
 
       const moveStep = event.shiftKey ? 2 : 0.5;
       const scaleStep = event.shiftKey ? 0.1 : 0.02;
+      const adjustStretch = (axis: 'x' | 'y', delta: number) => {
+        setPhotoTransform(prev => {
+          const current = axis === 'x' ? prev.stretchX : prev.stretchY;
+          const nextScale = clampScale(current + delta);
+          return axis === 'x'
+            ? { ...prev, stretchX: nextScale }
+            : { ...prev, stretchY: nextScale };
+        });
+      };
 
       switch (key) {
         case 'ArrowUp':
@@ -469,17 +497,39 @@ const PhotoModeScene = ({
         case '+':
           event.preventDefault();
           setPhotoTransform(prev => {
-            const nextScale = clampScale(prev.scaleX + scaleStep);
-            return { ...prev, scaleX: nextScale, scaleY: nextScale };
+            const nextScaleX = clampScale(prev.scaleX + scaleStep);
+            const nextScaleY = clampScale(prev.scaleY + scaleStep);
+            return { ...prev, scaleX: nextScaleX, scaleY: nextScaleY };
           });
           break;
         case '-':
         case '_':
           event.preventDefault();
           setPhotoTransform(prev => {
-            const nextScale = clampScale(prev.scaleX - scaleStep);
-            return { ...prev, scaleX: nextScale, scaleY: nextScale };
+            const nextScaleX = clampScale(prev.scaleX - scaleStep);
+            const nextScaleY = clampScale(prev.scaleY - scaleStep);
+            return { ...prev, scaleX: nextScaleX, scaleY: nextScaleY };
           });
+          break;
+        case '[':
+        case '{':
+          event.preventDefault();
+          adjustStretch('x', -scaleStep);
+          break;
+        case ']':
+        case '}':
+          event.preventDefault();
+          adjustStretch('x', scaleStep);
+          break;
+        case ',':
+        case '<':
+          event.preventDefault();
+          adjustStretch('y', -scaleStep);
+          break;
+        case '.':
+        case '>':
+          event.preventDefault();
+          adjustStretch('y', scaleStep);
           break;
         case 'r':
         case 'R':
@@ -717,10 +767,13 @@ const PhotoModeScene = ({
       'Shift+R defaults',
       overrideLabel,
       'Arrows move (shift=fast)',
-      '= / - scale (shift=fast)',
+      '= / - scale all (shift=fast)',
+      '[ / ] stretch X (shift=fast)',
+      ', / . stretch Y (shift=fast)',
       'R reset',
       `dx ${formatValue(photoTransform.offsetX)} dy ${formatValue(photoTransform.offsetY)}`,
-      `sc ${formatValue(photoTransform.scaleX)}`
+      `scx ${formatValue(photoTransform.scaleX)} scy ${formatValue(photoTransform.scaleY)}`,
+      `stx ${formatValue(photoTransform.stretchX)} sty ${formatValue(photoTransform.stretchY)}`
     ].join('\n');
 
     return {
@@ -738,6 +791,9 @@ const PhotoModeScene = ({
     photoTransform.offsetX,
     photoTransform.offsetY,
     photoTransform.scaleX,
+    photoTransform.scaleY,
+    photoTransform.stretchX,
+    photoTransform.stretchY,
     saveFlashMessage
   ]);
 
