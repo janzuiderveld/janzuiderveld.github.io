@@ -16,7 +16,8 @@ export const useLinks = (
   scrollOffsetRef: React.MutableRefObject<number>,
   startWhiteout: (position: { x: number; y: number }, targetUrl: string) => void,
   textRef: React.RefObject<HTMLPreElement>,
-  externalScrollingRef?: React.MutableRefObject<boolean>
+  externalScrollingRef?: React.MutableRefObject<boolean>,
+  disabled: boolean = false
 ) => {
   const linkPositionsRef = useRef<LinkPosition[]>([]);
   const [, setOverlayRevision] = useState(0);
@@ -94,15 +95,18 @@ export const useLinks = (
 
   // Update link overlays with improved positioning
   const updateLinkOverlays = useCallback(() => {
-    if (!size.width || !size.height) {
+    if (disabled || !size.width || !size.height) {
       return;
     }
 
     setOverlayRevision(prev => prev + 1);
-  }, [size.height, size.width]);
+  }, [disabled, size.height, size.width]);
 
   // Add direct DOM event listeners for more reliable click detection
   useEffect(() => {
+    if (disabled) {
+      return;
+    }
     // Function to handle direct click events on the document
     const handleDocumentClick = (e: MouseEvent) => {
       // First try proximity resolution so overlapping overlays choose the nearest link center
@@ -110,7 +114,7 @@ export const useLinks = (
       if (proximityMatch) {
         e.preventDefault();
         e.stopPropagation();
-        (e as any).stopImmediatePropagation?.();
+        e.stopImmediatePropagation();
 
         console.log('Direct DOM proximity match:', proximityMatch.link.url);
         startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
@@ -174,7 +178,7 @@ export const useLinks = (
         // Found a link! Prevent default navigation and handle it
         e.preventDefault();
         e.stopPropagation();
-        (e as any).stopImmediatePropagation?.();
+        e.stopImmediatePropagation();
         
         // Find the position of the click relative to textRef
         if (!document.body.contains(target)) {
@@ -200,7 +204,7 @@ export const useLinks = (
       if (proximityMatch) {
         e.preventDefault();
         e.stopPropagation();
-        (e as any).stopImmediatePropagation?.();
+        e.stopImmediatePropagation();
 
         console.log('Touch proximity match:', proximityMatch.link.url);
         startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
@@ -263,10 +267,13 @@ export const useLinks = (
       document.removeEventListener('click', handleDocumentClick, { capture: true });
       document.removeEventListener('touchstart', handleDocumentTouch, { capture: true });
     };
-  }, [resolveClosestLink, startWhiteout]);
+  }, [disabled, resolveClosestLink, startWhiteout]);
 
   // Improved link click handling with enhanced scroll awareness
   const handleClick = useCallback((e: MouseEvent) => {
+    if (disabled) {
+      return;
+    }
     if (!textRef.current || !size.width || !size.height) return;
     
     // Don't process clicks during active scrolling
@@ -284,7 +291,7 @@ export const useLinks = (
       console.log(`Proximity-selected link: ${proximityMatch.link.url}`);
       e.preventDefault();
       e.stopPropagation();
-      (e as any).stopImmediatePropagation?.();
+      e.stopImmediatePropagation();
       startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
       return;
     }
@@ -297,12 +304,7 @@ export const useLinks = (
       // Completely stop event propagation and prevent default behavior
       e.preventDefault();
       e.stopPropagation();
-      try {
-        // Try to stop immediate propagation if available
-        (e as any).stopImmediatePropagation?.();
-      } catch (err) {
-        // Ignore errors if this method isn't available
-      }
+      e.stopImmediatePropagation();
       
       const rect = textRef.current!.getBoundingClientRect();
       const normalizedX = rect.width ? ((e.clientX - rect.left) / rect.width) * 2 - 1 : 0;
@@ -414,7 +416,7 @@ export const useLinks = (
     }
     
     console.log("No link found at click position with current scroll:", scrolledY);
-  }, [calculateSafariOffset, resolveClosestLink, size.height, size.width, textPositionCache.bounds, scrollOffsetRef, startWhiteout, textRef]);
+  }, [calculateSafariOffset, disabled, resolveClosestLink, size.height, size.width, textPositionCache.bounds, scrollOffsetRef, startWhiteout, textRef]);
 
   // Force update link overlays when scroll position changes
   useEffect(() => {

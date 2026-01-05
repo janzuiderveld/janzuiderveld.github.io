@@ -8,6 +8,16 @@ export interface AsciiArtGeneratorProps {
   textContent: TextContentItem[];
   maxScrollHeight?: number;
   onScrollOffsetChange?: (offset: number) => void;
+  onLayoutChange?: (layout: AsciiLayoutInfo) => void;
+  onAsciiClickStart?: (position: { x: number; y: number }) => void;
+  onAsciiClickComplete?: (position: { x: number; y: number }) => void;
+  asciiClickTargets?: string[];
+  pauseAnimation?: boolean;
+  transparentBackground?: boolean;
+  disableLinks?: boolean;
+  initialScrollOffset?: number;
+  whiteInRequest?: { position: { x: number; y: number }; token: number; startProgress?: number };
+  externalContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -28,7 +38,7 @@ export interface TextContentItem {
   anchorTo?: string;
   anchorOffsetX?: number;
   anchorOffsetY?: number;
-  anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter' | 'middleLeft' | 'middleRight';
+  anchorPoint?: 'topLeft' | 'topCenter' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter' | 'middleLeft' | 'middleRight';
 }
 
 export interface TextBox extends TextContentItem {
@@ -41,6 +51,12 @@ export interface TextBox extends TextContentItem {
 export interface Size {
   height: number | null;
   width: number | null;
+}
+
+export interface AsciiLayoutInfo {
+  namedBounds: Record<string, TextBounds>;
+  namedRawBounds: Record<string, TextBounds>;
+  size: Size;
 }
 
 export interface GridDimensions {
@@ -132,7 +148,9 @@ export interface WhiteoutState {
   active: boolean;
   position: { x: number; y: number };
   timestamp: number;
-  targetUrl: string;
+  targetUrl?: string;
+  onComplete?: () => void;
+  allowWhiteOverlay?: boolean;
   progress: number; // 0 to 1, representing the progress of the whiteout effect
   duration: number; // Duration in ms for the complete whiteout
   justStarted?: boolean; // Flag to indicate the whiteout has just started
@@ -144,6 +162,7 @@ export interface WhiteInState {
   timestamp: number;
   progress: number; // 1 to 0, representing the progress of the white-in effect (1 = all white, 0 = fully visible)
   duration: number; // Duration in ms for the complete white-in
+  startProgress?: number;
 }
 
 export interface WhiteOverlayState {

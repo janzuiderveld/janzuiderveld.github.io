@@ -4,11 +4,29 @@
  */
 
 // Import font definitions from separate file
-import { asciiChars, smallAsciiChars, microAsciiChars } from '../asciiFonts';
+import {
+  asciiChars,
+  blockAsciiChars,
+  blockAsciiDoubleChars,
+  outlineAsciiChars,
+  lineAsciiChars,
+  twinRailWireframeChars,
+  smallAsciiChars,
+  microAsciiChars
+} from '../asciiFonts';
 import { countGraphemeCells } from './utils';
 
 // ADDED/MODIFIED: FontName type to include all supported fonts
-export type FontName = 'regular' | 'ascii' | 'smallAscii' | 'microAscii';
+export type FontName =
+  | 'regular'
+  | 'ascii'
+  | 'blockAscii'
+  | 'blockAsciiDouble'
+  | 'outlineAscii'
+  | 'lineAscii'
+  | 'twinRailWireframe'
+  | 'smallAscii'
+  | 'microAscii';
 
 /**
  * Interface for a styled text segment
@@ -40,7 +58,7 @@ function wrapText(text: string, maxWidth: number = 80): string[] {
     return text.split('\n');
   }
 
-  const shouldUseGraphemeWidths = /[^\x00-\x7F]/.test(text);
+  const shouldUseGraphemeWidths = Array.from(text).some(char => (char.codePointAt(0) ?? 0) > 127);
   const measureWidth = (value: string) => (shouldUseGraphemeWidths ? countGraphemeCells(value) : value.length);
 
   const lines: string[] = [];
@@ -190,17 +208,284 @@ interface TextStyle {
   color?: string; // Add color field
 }
 
+interface StyledChar {
+  char: string;
+  style: TextStyle;
+}
+
+function buildStyledChars(segments: TextSegment[]): StyledChar[] {
+  const chars: StyledChar[] = [];
+
+  for (const segment of segments) {
+    const style: TextStyle = {
+      isBold: segment.isBold,
+      isItalic: segment.isItalic,
+      isLink: segment.isLink,
+      url: segment.url,
+      color: segment.isLink ? '#3498db' : segment.color
+    };
+
+    for (let i = 0; i < segment.text.length; i++) {
+      chars.push({ char: segment.text[i], style });
+    }
+  }
+
+  return chars;
+}
+
+function trimLeadingSpaces(chars: StyledChar[]): StyledChar[] {
+  let start = 0;
+  while (start < chars.length && chars[start].char === ' ') {
+    start += 1;
+  }
+  return chars.slice(start);
+}
+
+function trimTrailingSpaces(chars: StyledChar[]): StyledChar[] {
+  let end = chars.length;
+  while (end > 0 && chars[end - 1].char === ' ') {
+    end -= 1;
+  }
+  return chars.slice(0, end);
+}
+
+function findLastSpaceIndex(chars: StyledChar[]): number {
+  for (let i = chars.length - 1; i >= 0; i--) {
+    if (chars[i].char === ' ') {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function measureStyledWidth(chars: StyledChar[], fontName: FontName): number {
+  return chars.reduce((total, { char }) => total + getAsciiCharWidth(char, fontName), 0);
+}
+
+function wrapStyledChars(
+  styledChars: StyledChar[],
+  fontName: FontName,
+  options: TextWrapOptions
+): StyledChar[][] {
+  const maxWidth = options.maxWidth;
+  const respectLineBreaks = options.respectLineBreaks !== false;
+  const lines: StyledChar[][] = [];
+  let current: StyledChar[] = [];
+  let currentWidth = 0;
+  let lastBreakIndex = -1;
+
+  const pushCurrent = () => {
+    lines.push(trimTrailingSpaces(current));
+    current = [];
+    currentWidth = 0;
+    lastBreakIndex = -1;
+  };
+
+  for (const styledChar of styledChars) {
+    if (respectLineBreaks && styledChar.char === '\n') {
+      pushCurrent();
+      continue;
+    }
+
+    if (maxWidth && maxWidth > 0) {
+      const charWidth = getAsciiCharWidth(styledChar.char, fontName);
+      let needsPlacement = true;
+
+      while (needsPlacement && current.length > 0 && currentWidth + charWidth > maxWidth) {
+        if (styledChar.char === ' ') {
+          pushCurrent();
+          needsPlacement = false;
+          break;
+        }
+
+        if (lastBreakIndex >= 0) {
+          const line = current.slice(0, lastBreakIndex);
+          lines.push(trimTrailingSpaces(line));
+          current = trimLeadingSpaces(current.slice(lastBreakIndex + 1));
+          currentWidth = measureStyledWidth(current, fontName);
+          lastBreakIndex = findLastSpaceIndex(current);
+          continue;
+        }
+
+        pushCurrent();
+      }
+
+      if (!needsPlacement) {
+        continue;
+      }
+
+      current.push(styledChar);
+      currentWidth += charWidth;
+      if (styledChar.char === ' ') {
+        lastBreakIndex = current.length - 1;
+      }
+    } else {
+      current.push(styledChar);
+    }
+  }
+
+  pushCurrent();
+  return lines;
+}
+
+function buildAsciiRanges(
+  lineText: string,
+  styleMap: Record<number, TextStyle>,
+  fontName: FontName
+) {
+  const linkRanges: Array<{start: number, end: number, url: string}> = [];
+  const styleRanges: Array<{start: number, end: number, style: TextStyle}> = [];
+  let currentLinkStart = -1;
+  let currentStyleStart = -1;
+  let currentStyle: TextStyle | null = null;
+  let currentUrl = '';
+  let styledLength = 0;
+
+  for (let i = 0; i < lineText.length; i++) {
+    const style = styleMap[i] || {};
+    const charWidth = getAsciiCharWidth(lineText[i], fontName);
+
+    if (style.color || style.isBold || style.isItalic || style.isLink) {
+      if (currentStyleStart === -1 || JSON.stringify(currentStyle) !== JSON.stringify(style)) {
+        if (currentStyleStart !== -1 && currentStyle) {
+          styleRanges.push({
+            start: currentStyleStart,
+            end: styledLength,
+            style: currentStyle
+          });
+        }
+        currentStyleStart = styledLength;
+        currentStyle = { ...style };
+      }
+    } else if (currentStyleStart !== -1 && currentStyle) {
+      styleRanges.push({
+        start: currentStyleStart,
+        end: styledLength,
+        style: currentStyle
+      });
+      currentStyleStart = -1;
+      currentStyle = null;
+    }
+
+    if (style.isLink) {
+      if (currentLinkStart === -1) {
+        currentLinkStart = styledLength;
+        currentUrl = style.url || '';
+      }
+    } else if (currentLinkStart !== -1) {
+      linkRanges.push({
+        start: currentLinkStart,
+        end: styledLength,
+        url: currentUrl
+      });
+      currentLinkStart = -1;
+    }
+
+    styledLength += charWidth;
+  }
+
+  if (currentStyleStart !== -1 && currentStyle) {
+    styleRanges.push({
+      start: currentStyleStart,
+      end: styledLength,
+      style: currentStyle
+    });
+  }
+
+  if (currentLinkStart !== -1) {
+    linkRanges.push({
+      start: currentLinkStart,
+      end: styledLength,
+      url: currentUrl
+    });
+  }
+
+  return { linkRanges, styleRanges };
+}
+
+function getAsciiFontHeight(fontName: FontName): number {
+  const fontSet = selectAsciiFont(fontName);
+  const sample = fontSet['A'] || fontSet['a'] || fontSet['0'] || fontSet[' '] || [''];
+  return sample.length;
+}
+
+function renderStyledAsciiLines(
+  lineText: string,
+  styleMap: Record<number, TextStyle>,
+  fontName: FontName
+): Array<{
+  html?: string,
+  line?: string,
+  links: Array<{start: number, end: number, url: string}>,
+  styles: Array<{start: number, end: number, style: TextStyle}>
+}> {
+  let asciiLines = renderAsciiArt(lineText, fontName);
+  if (lineText.length === 0) {
+    asciiLines = Array.from({ length: getAsciiFontHeight(fontName) }, () => '');
+  }
+
+  const { linkRanges, styleRanges } = buildAsciiRanges(lineText, styleMap, fontName);
+  const renderedLines: Array<{
+    html?: string,
+    line?: string,
+    links: Array<{start: number, end: number, url: string}>,
+    styles: Array<{start: number, end: number, style: TextStyle}>
+  }> = [];
+
+  for (const line of asciiLines) {
+    let styledLine = '';
+    let htmlLine = '';
+    let lastCharEnd = 0;
+
+    for (let i = 0; i < lineText.length; i++) {
+      const style = styleMap[i] || {};
+      const charWidth = getAsciiCharWidth(lineText[i], fontName);
+      const charStart = lastCharEnd;
+      const charEnd = charStart + charWidth;
+      const charSection = line.substring(charStart, charEnd);
+
+      let htmlCharSection = charSection
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      if (style.color && !style.isLink) {
+        htmlCharSection = `<span style="color: ${style.color};">${htmlCharSection}</span>`;
+      }
+
+      if (style.isLink && style.url) {
+        htmlCharSection = `<a href="${style.url}" style="color: #3498db; cursor: pointer; text-decoration: underline;" data-link-url="${style.url}" class="ascii-link" target="_blank" rel="noopener noreferrer">${htmlCharSection}</a>`;
+      } else if (style.isLink) {
+        htmlCharSection = `<span style="color: #3498db; cursor: pointer;">${htmlCharSection}</span>`;
+      }
+
+      styledLine += charSection;
+      htmlLine += htmlCharSection;
+      lastCharEnd = charEnd;
+    }
+
+    renderedLines.push({
+      line: styledLine,
+      html: htmlLine,
+      links: linkRanges,
+      styles: styleRanges
+    });
+  }
+
+  return renderedLines;
+}
+
 /**
  * Renders text with styles and applies formatting
  * @param text The text to render with style markers (bold, italic, links)
- * @param fontName The font to use: 'regular', 'ascii', 'smallAscii', or 'microAscii'
+ * @param fontName The font to use: 'regular', 'ascii', 'blockAscii', 'blockAsciiDouble', 'outlineAscii', 'lineAscii', 'twinRailWireframe', 'smallAscii', or 'microAscii'
  * @param options Additional options including text wrapping
  * @returns An array of styled text lines with metadata
  */
 export function renderText(
   text: string, 
   fontName: FontName = 'regular',
-  options: TextWrapOptions = { maxWidth: 80, respectLineBreaks: true }
+  options: TextWrapOptions = { respectLineBreaks: true }
 ): Array<{
   html?: string,
   line?: string,
@@ -219,13 +504,14 @@ export function renderText(
       links: Array<{start: number, end: number, url: string}>,
       styles: Array<{start: number, end: number, style: TextStyle}>
     }> = [];
+    const maxWidth = options.maxWidth ?? 80;
 
     // 1) Wrap text first (preserves existing layout behavior).
     // 2) Parse styles across the full wrapped block so markers can span lines.
     const rawWrappedLines: string[] = [];
     for (const paragraph of text.split('\n')) {
-      const wrappedLines = options.maxWidth && options.maxWidth > 0
-        ? wrapText(paragraph, options.maxWidth)
+      const wrappedLines = maxWidth && maxWidth > 0
+        ? wrapText(paragraph, maxWidth)
         : [paragraph];
       rawWrappedLines.push(...wrappedLines);
     }
@@ -312,152 +598,27 @@ export function renderText(
   // For ASCII art text, render the text as ASCII art
   // Parse text into segments first
   const segments = parseTextWithStyles(text);
-  
-  // Create a map of character positions to their styles
-  const styleMap: Record<number, TextStyle> = {};
-  let position = 0;
-  
-  segments.forEach(segment => {
-    for (let i = 0; i < segment.text.length; i++) {
-      styleMap[position + i] = {
-        isBold: segment.isBold,
-        isItalic: segment.isItalic,
-        isLink: segment.isLink,
-        url: segment.url,
-        // Use more prominent colors for links
-        color: segment.isLink ? '#3498db' : segment.color // Blue for links
-      };
+  const styledChars = buildStyledChars(segments);
+  const wrappedLines = wrapStyledChars(styledChars, fontName, options);
+
+  const renderedLines: Array<{
+    html?: string,
+    line?: string,
+    links: Array<{start: number, end: number, url: string}>,
+    styles: Array<{start: number, end: number, style: TextStyle}>
+  }> = [];
+
+  for (const lineChars of wrappedLines) {
+    const lineText = lineChars.map(({ char }) => char).join('');
+    const styleMap: Record<number, TextStyle> = {};
+    for (let i = 0; i < lineChars.length; i++) {
+      styleMap[i] = lineChars[i].style;
     }
-    position += segment.text.length;
-  });
-  
-  const plainText = segments.map(s => s.text).join('');
-  const asciiLines = renderAsciiArt(plainText, fontName);
-  
-  // Apply styles to ASCII art with improved HTML generation
-  const styledAsciiLines: string[] = [];
-  const htmlAsciiLines: string[] = []; // Add HTML output for ASCII art
-  const linkRanges: Array<{start: number, end: number, url: string}> = [];
-  const styleRanges: Array<{start: number, end: number, style: TextStyle}> = [];
-  
-  // For ASCII art we'll transform the ASCII characters based on style
-  for (let line of asciiLines) {
-    let styledLine = '';
-    let htmlLine = ''; // HTML version of the line
-    let lastCharEnd = 0;
-    
-    // For links and styles, track the ranges
-    let currentLinkStart = -1;
-    let currentStyleStart = -1;
-    let currentStyle: TextStyle | null = null;
-    let currentUrl = '';
-    
-    for (let i = 0; i < plainText.length; i++) {
-      const style = styleMap[i];
-      if (!style) continue;
-      
-      // Find the next character's position in the ASCII art
-      const charWidth = getAsciiCharWidth(plainText[i], fontName);
-      const charStart = lastCharEnd;
-      const charEnd = charStart + charWidth;
-      
-      // Extract this character's ASCII representation in this line
-      let charSection = line.substring(charStart, charEnd);
-      
-      // Track style ranges (for color and other styles)
-      if (style.color || style.isBold || style.isItalic || style.isLink) {
-        if (currentStyleStart === -1 || JSON.stringify(currentStyle) !== JSON.stringify(style)) {
-          // End previous style range if exists
-          if (currentStyleStart !== -1) {
-            styleRanges.push({
-              start: currentStyleStart,
-              end: styledLine.length,
-              style: currentStyle!
-            });
-          }
-          // Start new style range
-          currentStyleStart = styledLine.length;
-          currentStyle = {...style};
-        }
-      } else if (currentStyleStart !== -1) {
-        // End of style
-        styleRanges.push({
-          start: currentStyleStart,
-          end: styledLine.length,
-          style: currentStyle!
-        });
-        currentStyleStart = -1;
-        currentStyle = null;
-      }
-      
-      // Track link ranges
-      if (style.isLink) {
-        if (currentLinkStart === -1) {
-          currentLinkStart = styledLine.length;
-          currentUrl = style.url || '';
-        }
-      } else if (currentLinkStart !== -1) {
-        // End of link
-        linkRanges.push({
-          start: currentLinkStart,
-          end: styledLine.length,
-          url: currentUrl
-        });
-        currentLinkStart = -1;
-      }
-      
-      // Generate HTML for this character section with styles
-      let htmlCharSection = charSection
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-      
-      // Apply color if needed
-      if (style.color && !style.isLink) {
-        htmlCharSection = `<span style="color: ${style.color};">${htmlCharSection}</span>`;
-      }
-      
-      // Link setup
-      if (style.isLink && style.url) {
-        htmlCharSection = `<a href="${style.url}" style="color: #3498db; cursor: pointer; text-decoration: underline;" data-link-url="${style.url}" class="ascii-link" target="_blank" rel="noopener noreferrer">${htmlCharSection}</a>`;
-      } else if (style.isLink) {
-        htmlCharSection = `<span style="color: #3498db; cursor: pointer;">${htmlCharSection}</span>`;
-      }
-      
-      styledLine += charSection;
-      htmlLine += htmlCharSection;
-      lastCharEnd = charEnd;
-    }
-    
-    // Close any open style at the end of line
-    if (currentStyleStart !== -1) {
-      styleRanges.push({
-        start: currentStyleStart,
-        end: styledLine.length,
-        style: currentStyle!
-      });
-    }
-    
-    // Close any open link at the end of line
-    if (currentLinkStart !== -1) {
-      linkRanges.push({
-        start: currentLinkStart,
-        end: styledLine.length,
-        url: currentUrl
-      });
-    }
-    
-    styledAsciiLines.push(styledLine);
-    htmlAsciiLines.push(htmlLine);
+
+    renderedLines.push(...renderStyledAsciiLines(lineText, styleMap, fontName));
   }
-  
-  // Return the styled ASCII art with style and link metadata
-  return styledAsciiLines.map((line, index) => ({
-    line,
-    html: htmlAsciiLines[index], // Include HTML output for ASCII art
-    links: linkRanges,
-    styles: styleRanges
-  }));
+
+  return renderedLines;
 }
 
 /**
@@ -473,14 +634,14 @@ function getAsciiCharWidth(char: string, fontName: FontName): number {
 /**
  * Renders text with styles as a string
  * @param text The text to render
- * @param fontName The font to use: 'regular', 'ascii', 'smallAscii', or 'microAscii'
+ * @param fontName The font to use: 'regular', 'ascii', 'blockAscii', 'blockAsciiDouble', 'outlineAscii', 'lineAscii', 'twinRailWireframe', 'smallAscii', or 'microAscii'
  * @param options Additional options including text wrapping
  * @returns A rendered string with style information
  */
 export function renderTextString(
   text: string, 
   fontName: FontName = 'regular', 
-  options: TextWrapOptions = { maxWidth: 80, respectLineBreaks: true }
+  options: TextWrapOptions = { respectLineBreaks: true }
 ): string {
   const renderedLines = renderText(text, fontName, options);
   return renderedLines.map(l => l.line).join('\n');
@@ -508,7 +669,7 @@ function renderAsciiArt(text: string, fontName: FontName = 'ascii'): string[] {
   
   // Get the first character's ASCII art
   const firstChar = text[0];
-  let result = [...(fontSet[firstChar] || fontSet[' '])];
+  const result = [...(fontSet[firstChar] || fontSet[' '])];
   
   // Process the rest of the characters
   for (let i = 1; i < text.length; i++) {
@@ -550,14 +711,14 @@ function renderAsciiArtString(text: string, fontName: FontName = 'ascii'): strin
 /**
  * Renders text with styles and returns formatted result
  * @param text The text to render with style markers
- * @param fontName The font to use: 'regular', 'ascii', 'smallAscii', or 'microAscii'
+ * @param fontName The font to use: 'regular', 'ascii', 'blockAscii', 'blockAsciiDouble', 'outlineAscii', 'lineAscii', 'twinRailWireframe', 'smallAscii', or 'microAscii'
  * @param options Additional options including text wrapping
  * @returns Formatted text and link data
  */
 export function renderFormattedText(
   text: string, 
   fontName: FontName = 'regular',
-  options: TextWrapOptions = { maxWidth: 80, respectLineBreaks: true }
+  options: TextWrapOptions = { respectLineBreaks: true }
 ): {
   text: string;
   html: string; // Add HTML output
@@ -654,6 +815,16 @@ export { renderAsciiArt, renderAsciiArtString };
 
 function selectAsciiFont(fontName: FontName) {
   switch (fontName) {
+    case 'blockAscii':
+      return blockAsciiChars;
+    case 'blockAsciiDouble':
+      return blockAsciiDoubleChars;
+    case 'outlineAscii':
+      return outlineAsciiChars;
+    case 'lineAscii':
+      return lineAsciiChars;
+    case 'twinRailWireframe':
+      return twinRailWireframeChars;
     case 'smallAscii':
       return smallAsciiChars;
     case 'microAscii':

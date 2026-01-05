@@ -24,6 +24,10 @@ type SegmenterLike = {
 };
 
 let graphemeSegmenter: SegmenterLike | null = null;
+type SegmenterOptions = {
+  granularity?: 'grapheme' | 'word' | 'sentence';
+};
+type SegmenterConstructor = new (locales?: string | string[], options?: SegmenterOptions) => SegmenterLike;
 
 const getGraphemeSegmenter = (): SegmenterLike | null => {
   if (graphemeSegmenter !== null) {
@@ -35,7 +39,7 @@ const getGraphemeSegmenter = (): SegmenterLike | null => {
     return graphemeSegmenter;
   }
 
-  const SegmenterCtor = (Intl as unknown as { Segmenter?: new (...args: any[]) => SegmenterLike }).Segmenter;
+  const SegmenterCtor = (Intl as unknown as { Segmenter?: SegmenterConstructor }).Segmenter;
   if (!SegmenterCtor) {
     graphemeSegmenter = null;
     return graphemeSegmenter;

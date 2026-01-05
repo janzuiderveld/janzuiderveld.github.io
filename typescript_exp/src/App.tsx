@@ -7,6 +7,14 @@ import './App.css'
 import CameraPage from './pages/CameraPage';
 import HomePage from './pages/HomePage'; // Make sure this points to the correct file
 import ConstructionPage from './pages/ConstructionPage';
+import CoffeeMachinePage from './pages/CoffeeMachinePage';
+import MicrowavePage from './pages/MicrowavePage';
+import CopyMachinePage from './pages/CopyMachinePage';
+import FishPage from './pages/FishPage';
+import TouchingDistancePage from './pages/TouchingDistancePage';
+import LasersPage from './pages/LasersPage';
+import ShedrickPage from './pages/ShedrickPage';
+import ConversationsBeyondTheOrdinaryPage from './pages/ConversationsBeyondTheOrdinaryPage';
 import AboutPage from './pages/AboutPage';
 import AllPresentationsPage from './pages/AllPresentationsPage';
 
@@ -26,6 +34,22 @@ function App() {
       console.log(`🧭 App: Home route detected - should render HomePage component`);
     } else if (location.pathname === '/camera') {
       console.log(`🧭 App: Camera route detected - should render CameraPage component`);
+    } else if (location.pathname === '/coffee') {
+      console.log(`🧭 App: Coffee route detected - should render CoffeeMachinePage component`);
+    } else if (location.pathname === '/microwave') {
+      console.log(`🧭 App: Microwave route detected - should render MicrowavePage component`);
+    } else if (location.pathname === '/copy') {
+      console.log(`🧭 App: Copy route detected - should render CopyMachinePage component`);
+    } else if (location.pathname === '/fish') {
+      console.log(`🧭 App: Fish route detected - should render FishPage component`);
+    } else if (location.pathname === '/touching') {
+      console.log(`🧭 App: Touching Distance route detected - should render TouchingDistancePage component`);
+    } else if (location.pathname === '/lasers') {
+      console.log(`🧭 App: Lasers route detected - should render LasersPage component`);
+    } else if (location.pathname === '/shedrick') {
+      console.log(`🧭 App: Shedrick route detected - should render ShedrickPage component`);
+    } else if (location.pathname === '/conversations-beyond-the-ordinary') {
+      console.log(`🧭 App: Conversations route detected - should render ConversationsBeyondTheOrdinaryPage component`);
     } else if (location.pathname === '/about') {
       console.log(`🧭 App: About route detected - should render AboutPage component`);
     } else if (location.pathname === '/presentations') {
@@ -43,6 +67,19 @@ function App() {
       
       {/* Camera page route */}
       <Route path="/camera" element={<CameraPage />} />
+
+      <Route path="/coffee" element={<CoffeeMachinePage />} />
+      <Route path="/microwave" element={<MicrowavePage />} />
+      <Route path="/copy" element={<CopyMachinePage />} />
+      <Route path="/fish" element={<FishPage />} />
+      <Route path="/touching" element={<TouchingDistancePage />} />
+      <Route path="/lasers" element={<LasersPage />} />
+
+      {/* Shedrick page route */}
+      <Route path="/shedrick" element={<ShedrickPage />} />
+
+      {/* Conversations beyond the ordinary page route */}
+      <Route path="/conversations-beyond-the-ordinary" element={<ConversationsBeyondTheOrdinaryPage />} />
 
       <Route path="/presentations" element={<AllPresentationsPage />} />
 

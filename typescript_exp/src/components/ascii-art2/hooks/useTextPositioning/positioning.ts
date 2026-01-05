@@ -39,6 +39,7 @@ export const calculatePosition = (
       let anchorY = 0;
       switch(textItem.anchorPoint || 'topLeft') {
         case 'topLeft': anchorX = textBounds[anchorKey].minX; anchorY = textBounds[anchorKey].minY; break;
+        case 'topCenter': anchorX = Math.floor((textBounds[anchorKey].minX + textBounds[anchorKey].maxX) / 2); anchorY = textBounds[anchorKey].minY; break;
         case 'topRight': anchorX = textBounds[anchorKey].maxX; anchorY = textBounds[anchorKey].minY; break;
         case 'bottomLeft': anchorX = textBounds[anchorKey].minX; anchorY = textBounds[anchorKey].maxY; break;
         case 'bottomRight': anchorX = textBounds[anchorKey].maxX; anchorY = textBounds[anchorKey].maxY; break;
@@ -173,7 +174,7 @@ export const calculateTextBounds = (
     bounds.minY = Math.min(bounds.minY, lineY);
     bounds.maxY = Math.max(bounds.maxY, lineY);
     
-    let textX = calculateTextAlignment(
+    const textX = calculateTextAlignment(
       context, 
       lineIndex, 
       line.length

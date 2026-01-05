@@ -5,7 +5,7 @@ import {
   CHAR_HEIGHT,
   IS_SAFARI
 } from '../constants';
-import { Size, TextPositionCacheResult } from '../types';
+import { LinkPosition, Size, TextPositionCacheResult } from '../types';
 import { getGridDimensions } from '../utils';
 import { clearCharacterCache, CharacterPrecomputation } from '../renderer';
 
@@ -29,7 +29,8 @@ export const useAnimation = (
   textPositionCache: TextPositionCacheResult,
   isScrolling: React.MutableRefObject<boolean>,
   scrollVelocity: React.MutableRefObject<number>,
-  linkPositionsRef: React.MutableRefObject<any[]>,
+  linkPositionsRef: React.MutableRefObject<LinkPosition[]>,
+  isPaused: boolean = false,
   setLinkClicked?: React.Dispatch<React.SetStateAction<string | null>>
 ) => {
   const lastFrameTimeRef = useRef<number>(0);
@@ -42,7 +43,7 @@ export const useAnimation = (
 
   useEffect(() => {
     const element = textRef.current;
-    if (!element || !size.width || !size.height) {
+    if (!element || !size.width || !size.height || isPaused) {
       return;
     }
 
@@ -80,7 +81,8 @@ export const useAnimation = (
 
     element.addEventListener('click', handleLinkClick);
 
-    let { cols, rows } = getGridDimensions(size.width, size.height);
+    const { cols, rows: baseRows } = getGridDimensions(size.width, size.height);
+    let rows = baseRows;
 
     if (IS_SAFARI) {
       const charHeightPx = CHAR_HEIGHT;
@@ -222,8 +224,8 @@ export const useAnimation = (
 
         let activeRowStart = 0;
         let activeRowEnd = rows;
-        let activeColStart = 0;
-        let activeColEnd = cols;
+        const activeColStart = 0;
+        const activeColEnd = cols;
         let boundsMinY = Number.POSITIVE_INFINITY;
         let boundsMaxY = Number.NEGATIVE_INFINITY;
         const offsetY = textPositionCache.offsetY;
@@ -477,6 +479,7 @@ export const useAnimation = (
     isScrolling,
     scrollVelocity,
     linkPositionsRef,
+    isPaused,
     setLinkClicked,
     textPositionCache.bounds
   ]);

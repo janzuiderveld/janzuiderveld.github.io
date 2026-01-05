@@ -133,7 +133,7 @@ export const useScrolling = (
       updateCursorScrollingState(true); // Update cursor state
       
       const scrollMultiplier = 0.7;
-      let delta = e.deltaY * scrollMultiplier;
+      const delta = e.deltaY * scrollMultiplier;
       
       let newScrollOffset = scrollOffsetRef.current + delta;
       newScrollOffset = Math.max(0, Math.min(maxScroll, newScrollOffset));
@@ -213,7 +213,7 @@ export const useScrolling = (
       scrollOffsetRef.current = newScrollOffset;
     };
     
-    const handleTouchEnd = (_: TouchEvent) => {
+    const handleTouchEnd = () => {
       if (!isTouching.current) return;
       isTouching.current = false;
       

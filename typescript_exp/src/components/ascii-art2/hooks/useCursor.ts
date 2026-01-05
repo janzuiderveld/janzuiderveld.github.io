@@ -22,6 +22,7 @@ export const useCursor = (
   const lastMouseMoveTime = useRef(0);
   const maxRipples = Number.POSITIVE_INFINITY; // Allow unlimited ripple animations
   const whiteInAnimationRef = useRef<number | null>(null);
+  const whiteInTimeoutRef = useRef<number | null>(null);
   const whiteoutAnimationRef = useRef<number | null>(null);
   const whiteOverlayAnimationRef = useRef<number | null>(null);
   // Add mousedown tracking for hold duration
@@ -427,8 +428,27 @@ export const useCursor = (
     setCursor({...cursorRef.current});
   };
 
+  const clearWhiteOverlayArtifacts = () => {
+    if (typeof document !== 'undefined') {
+      const overlay = document.getElementById('white-transition-overlay');
+      if (overlay?.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }
+
+    try {
+      sessionStorage.removeItem('whiteOverlayActive');
+      sessionStorage.removeItem('whiteOverlayTimestamp');
+    } catch (e) {
+      console.warn('Unable to clear white overlay state from sessionStorage', e);
+    }
+  };
+
   // Function to start a white-in effect
-  const startWhiteIn = (position: { x: number; y: number }) => {
+  const startWhiteIn = (
+    position: { x: number; y: number },
+    options?: { startProgress?: number }
+  ) => {
     console.log('🌟 Starting white-in effect');
     
     // Before starting the white-in effect, ensure the cursor position is initialized
@@ -452,30 +472,54 @@ export const useCursor = (
       setCursor({...cursorRef.current});
     }
     
+    clearWhiteOverlayArtifacts();
+
+    const startProgress = Math.max(0, Math.min(1, options?.startProgress ?? 1));
+
     // Create a fresh white-in object
     const newWhiteIn: WhiteInState = {
       active: true,
       position,
       timestamp: Date.now(),
-      progress: 1, // Start fully white (1) and fade in to fully visible (0)
-      duration: 1000 // 2 seconds for the full white-in
+      progress: startProgress, // Start at the desired white amount (1 = all white, 0 = fully visible)
+      duration: 1000,
+      startProgress
     };
     
     // Clear any existing animation frame
     if (whiteInAnimationRef.current) {
       cancelAnimationFrame(whiteInAnimationRef.current);
     }
+    if (whiteInTimeoutRef.current) {
+      clearTimeout(whiteInTimeoutRef.current);
+    }
     
     // Directly update cursor state to trigger immediate re-render
     cursorRef.current = {
       ...cursorRef.current,
-      whiteIn: newWhiteIn
+      whiteIn: newWhiteIn,
+      whiteOverlay: null
     };
     
     setCursor({...cursorRef.current});
     
     // Start the animation immediately
     animateWhiteIn(newWhiteIn);
+
+    whiteInTimeoutRef.current = window.setTimeout(() => {
+      const currentWhiteIn = cursorRef.current.whiteIn;
+      if (!currentWhiteIn || currentWhiteIn.timestamp !== newWhiteIn.timestamp) {
+        return;
+      }
+
+      clearWhiteOverlayArtifacts();
+      cursorRef.current = {
+        ...cursorRef.current,
+        whiteIn: null,
+        whiteOverlay: null
+      };
+      setCursor({ ...cursorRef.current });
+    }, newWhiteIn.duration + 200);
   };
 
   // Animate the white-in effect
@@ -487,7 +531,8 @@ export const useCursor = (
       
       const elapsed = currentTime - whiteIn.timestamp;
       // Progress goes from 1 to 0 (reverse of whiteout)
-      const progress = Math.max(0, 1 - (elapsed / whiteIn.duration));
+      const baseProgress = whiteIn.startProgress ?? 1;
+      const progress = Math.max(0, baseProgress * (1 - (elapsed / whiteIn.duration)));
       
       // Update the white-in progress
       cursorRef.current = {
@@ -509,6 +554,10 @@ export const useCursor = (
       // If the white-in is complete, clean up
       if (progress <= 0) {
         console.log('✅ White-in complete');
+        if (whiteInTimeoutRef.current) {
+          clearTimeout(whiteInTimeoutRef.current);
+          whiteInTimeoutRef.current = null;
+        }
         // Set white-in to inactive
         cursorRef.current = {
           ...cursorRef.current,
@@ -566,7 +615,11 @@ export const useCursor = (
   };
 
   // Function to start a whiteout effect
-  const startWhiteout = (position: { x: number; y: number }, targetUrl: string) => {
+  const startWhiteout = (
+    position: { x: number; y: number },
+    targetUrl?: string,
+    options?: { onComplete?: () => void; allowWhiteOverlay?: boolean; duration?: number }
+  ) => {
     console.log('🌟 Starting whiteout effect to:', targetUrl);
     
     // Create a fresh whiteout object without carrying over any previous state
@@ -575,8 +628,10 @@ export const useCursor = (
       position,
       timestamp: Date.now(),
       targetUrl,
+      onComplete: options?.onComplete,
+      allowWhiteOverlay: options?.allowWhiteOverlay,
       progress: 0,
-      duration: 1000, // 1.5 seconds for the full whiteout
+      duration: options?.duration ?? 1000, // 1.5 seconds for the full whiteout
       justStarted: true // Flag to indicate this is the beginning of the whiteout
     };
     
@@ -634,13 +689,36 @@ export const useCursor = (
       
       // Check if we need to activate the white overlay
       // Activate when progress is above 95% (final 5% of animation)
-      if (progress > 0.95 && !cursorRef.current.whiteOverlay?.active) {
+      if (progress > 0.95 && whiteout.allowWhiteOverlay !== false && !whiteout.onComplete && !cursorRef.current.whiteOverlay?.active) {
         activateWhiteOverlay();
       }
       
       // If the whiteout is complete, navigate to the target URL
       if (progress >= 1) {
-        console.log('✅ Whiteout complete, navigating to:', whiteout.targetUrl);
+        if (whiteout.onComplete) {
+          console.log('✅ Whiteout complete, running callback');
+          cursorRef.current = {
+            ...cursorRef.current,
+            whiteout: null,
+            whiteOverlay: null
+          };
+          setCursor({ ...cursorRef.current });
+          whiteout.onComplete();
+          return;
+        }
+
+        const targetUrl = whiteout.targetUrl;
+        if (!targetUrl) {
+          console.log('⚠️ Whiteout complete with no target URL');
+          cursorRef.current = {
+            ...cursorRef.current,
+            whiteout: null
+          };
+          setCursor({ ...cursorRef.current });
+          return;
+        }
+
+        console.log('✅ Whiteout complete, navigating to:', targetUrl);
 
         // Store a flag in sessionStorage to indicate we need a white-in on the next page
         try {
@@ -657,7 +735,7 @@ export const useCursor = (
         }
 
         setTimeout(() => {
-          window.location.href = whiteout.targetUrl;
+          window.location.href = targetUrl;
         }, 100); // Small delay to ensure the whiteout is fully visible
       } else {
         whiteoutAnimationRef.current = requestAnimationFrame(updateWhiteout);
@@ -747,6 +825,9 @@ export const useCursor = (
       }
       if (whiteInAnimationRef.current) {
         cancelAnimationFrame(whiteInAnimationRef.current);
+      }
+      if (whiteInTimeoutRef.current) {
+        clearTimeout(whiteInTimeoutRef.current);
       }
       if (whiteOverlayAnimationRef.current) {
         cancelAnimationFrame(whiteOverlayAnimationRef.current);

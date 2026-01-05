@@ -185,6 +185,21 @@ function AboutPage() {
     const subtitleXOffsetPercent = 0;
     const bioXOffsetPercent = 0;
 
+    const bioIntroText = 'warana.xyz is an artistic studio and evolving host organism for embodied algorithms, initiated by artist-researcher Jan Zuiderveld. Grounded in cognitive science and AI, the studio explores the emergence of technological animism: the moment our tools transition from servants into beings. We embed algorithms into physical objects, turning them into living actors that observe, converse, and (mis)behave in interaction.\n\nOur work has been awarded by Ars Electronica and presented across the Netherlands, the United States, China, Canada, Qatar, Portugal, Germany, the United Kingdom, Estonia, Romania, and Switzerland. We share our research through talks and workshops in both academic and art contexts, with current support from Creative Industries Fund NL through their Talent Development program.';
+    const bioApproachText = 'APPROACH';
+    const bioMiddleText = [
+      'Our inquiry into technological animism centers on one question: //what happens when our tools start to gaze back?// To find out, we must first understand what makes something feel alive. Each work stages a controlled encounter, testing conditions where perceptions of aliveness can emerge. ',
+      '',
+      'Aliveness is not explainable. It\'s felt. We don\’t perceive aliveness by inspecting what something is made of. We infer it from how it behaves: actions that seem directed, responses that carry personality, behaviour that feels authentic. The moment something seems to want, the category shifts.',
+      
+      '',
+      'Traditional computer interfaces break that inference. A screen announces "this is a computer," and that label frames all behaviour as mechanical output. Aliveness is ruled out before interaction begins. This frame holds because the internal processes of digital systems are hard to grasp; we expect anything, so nothing surprises.',
+      '',
+      'Our experiments subvert expected utility, turning familiar tools feral. A photocopier that stops copying to collaborate on your drawings, a camera that narrates your movements like a wildlife documentary. By embodying intelligence in physical technology, we bypass the "just a computer" frame. Sometimes, this results in interactions that slip past logic and feel like genuine encounters.',
+      '',
+      'These installations are performative probes, completed by the audience. A visitor leans toward a vending machine, whispering, trying to convince it. The machine pauses, deliberates, refuses. They\'re publicly rehearsing a new social relationship. The work lives in this spectacle: a human genuinely negotiating with an object, an object responding as if it has a position. The tool stops being a servant. It becomes something that holds your gaze.'
+
+    ].join('\n');
     const janMaxWidthPercent = isNarrow ? 32 : 26;
     const janXPercent = 98 - janMaxWidthPercent; // Position so right edge is near screen edge
 
@@ -208,8 +223,8 @@ function AboutPage() {
         alignment: 'center'
       },
       {
-        name: 'bio',
-                text: 'Warana is an artistic research studio and evolving host-organism for embodied algorithms, initiated by artist-researcher Jan Zuiderveld. Grounded in cognitive science and AI, the studio explores the emergence of technological animism: the moment our tools transition from servants into beings.\n\nWe embed algorithms into physical objects, turning them into our temporary organs: living actors that observe, converse, and (mis)behave in interaction.\n\nWhen people interact with traditional computer interfaces, they often expect magic. Because the internal processes of computers are opaque, we rely on a "magic box" mental model where any behaviour can be explained; the wonder is neutralized before it starts. Removing this context creates space for a more naive, direct form of observing.\n\nWe achieve this by subverting the utility of everyday objects. Consider a photocopier that stops copying to collaborate creatively on your drawings, or a camera that narrates your movements like a wildlife documentary. By anchoring AI in familiar physical tools, we bypass the expectation of digital omnipotence. The interaction slips past logic and hits you in the gut: the machine appears undeniably alive.\n\nOur installations function as performative probes that rely on the audience to complete them. A visitor sweet-talking a vending machine to charm it into dispensing coffee is not merely interacting; they are performing a new type of social relationship. The art exists in that public spectacle: a human genuinely negotiating with an object, rehearsing a future where anything can gaze back.\n\nOur work has been awarded by Ars Electronica and has been presented across the Netherlands, the United States, China, Canada, Qatar, Portugal, Germany, the United Kingdom, Estonia, Romania, Switzerland, among other places. We share our research through talks and workshops in academic and art contexts.\n\nCurrently supported by Creative Industries Fund NL through their Talent Development program.',
+        name: 'bio-intro',
+        text: bioIntroText,
         x: bioXOffsetPercent,
         y: approxBioYPercent,
         centered: true,
@@ -218,6 +233,31 @@ function AboutPage() {
         anchorOffsetY: bioAnchorOffsetRows,
         maxWidthPercent: bioMaxWidthPercent,
         alignment: 'center'
+      },
+      {
+        name: 'bio-approach',
+        text: bioApproachText,
+        x: -30,
+        y: 0,
+        centered: true,
+        fontName: 'microAscii',
+        anchorTo: 'bio-intro',
+        anchorPoint: 'bottomCenter',
+        anchorOffsetY: 0,
+        maxWidthPercent: bioMaxWidthPercent,
+        alignment: 'left'
+      },
+      {
+        name: 'bio-middle',
+        text: bioMiddleText,
+        x: bioXOffsetPercent,
+        y: 0,
+        centered: true,
+        anchorTo: 'bio-approach',
+        anchorPoint: 'bottomCenter',
+        anchorOffsetY: -10,
+        maxWidthPercent: bioMaxWidthPercent,
+        alignment: 'left'
       },
       {
         name: 'jan',
@@ -236,7 +276,7 @@ function AboutPage() {
         y: 0,
         centered: false,
         fixed: false,
-        anchorTo: 'bio',
+        anchorTo: 'bio-middle',
         anchorPoint: 'bottomCenter',
         anchorOffsetY: exhibitionsAnchorOffsetY,
         anchorOffsetX: presentationsAnchorOffsetX,

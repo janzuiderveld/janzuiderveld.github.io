@@ -28,7 +28,11 @@ export const renderText = (
   const fontName = textItem.fontName || 'regular';
   if (fontName !== 'regular') {
     // Render special font
-    textLines = renderTextString(textItem.text, fontName).split('\n');
+    textLines = renderTextString(
+      textItem.text,
+      fontName,
+      { maxWidth, respectLineBreaks: true }
+    ).split('\n');
     for (const line of textLines) {
       maxLineLength = Math.max(maxLineLength, line.length);
     }

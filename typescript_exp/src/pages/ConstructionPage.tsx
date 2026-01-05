@@ -1,21 +1,11 @@
 // src/pages/ConstructionPage.tsx
 import { useState, useEffect, useMemo } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
+import { TextContentItem } from '../components/ascii-art2/types';
 import constructionAsciiArt from '../assets/construction/construction_ascii.txt?raw';
 function ConstructionPage() {
   
-  const [textContent, setTextContent] = useState<Array<{
-    text: string, 
-    x: number, 
-    y: number, 
-    isTitle?: boolean, 
-    centered?: boolean, 
-    preRenderedAscii?: string,
-    useSmallFont?: boolean,
-    fixed?: boolean,
-    maxWidthPercent?: number,
-    alignment?: 'left' | 'center' | 'right'
-  }>>([]);
+  const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const preRenderedArt = useMemo(() => {
@@ -28,12 +18,12 @@ function ConstructionPage() {
     const fetchTextContent = async () => {
       setIsLoading(true);
       try {        
-        const textItems = [
-          { text: "UNDER", x: 0, y: 10, isTitle: true, centered: true, fontName: 'ascii'},
-          { text: "CONSTRUCTION", x: 0, y: 20, isTitle: true, centered: true, fontName: 'ascii'},
-          { text: "construction", x: 0, y: 40, preRenderedAscii: preRenderedArt.construction, centered: true },
-          { text: "This page is under [construction]. Please check back soon.\nFor the time being, find my portfolio on [[GDrive]](https://drive.google.com/drive/folders/1pBavD3QyfrVsQM2Y7ryHKej7CWvFH-rM) or [[Instagram]](https://www.instagram.com/warana.xyz).\nIf in need of more info, contact me at jan@warana.xyz or janzuiderveld@gmail.com", x: 0, y: 30, centered: true, maxWidthPercent: 60, alignment: 'center' as 'center' },
-          { text: "[[<<<]](#/)", x: 2, y: 2, centered: false, maxWidthPercent: 60, alignment: "left" as 'left', fontName: 'regular'},
+        const textItems: TextContentItem[] = [
+          { text: 'UNDER', x: 0, y: 10, centered: true, fontName: 'ascii' },
+          { text: 'CONSTRUCTION', x: 0, y: 20, centered: true, fontName: 'ascii' },
+          { text: 'construction', x: 0, y: 40, preRenderedAscii: preRenderedArt.construction, centered: true },
+          { text: 'This page is under [construction]. Please check back soon. If in need of more info, contact me at jan@warana.xyz or janzuiderveld@gmail.com', x: 0, y: 30, centered: true, maxWidthPercent: 60, alignment: 'center' },
+          { text: '[[<<<]](#/)', x: 2, y: 2, centered: false, maxWidthPercent: 60, alignment: 'left', fontName: 'regular' },
           
           // Test Links - clearly labeled to distinguish them
           // { text: "LINK 1: [Click me](https://www.google.com)", x: 50, y: 20, centered: true, fixed: true },

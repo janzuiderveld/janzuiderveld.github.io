@@ -16,7 +16,7 @@ export interface TextContentItem {
   anchorTo?: string;
   anchorOffsetX?: number;
   anchorOffsetY?: number;
-  anchorPoint?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter' | 'middleLeft' | 'middleRight';
+  anchorPoint?: 'topLeft' | 'topCenter' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center' | 'bottomCenter' | 'middleLeft' | 'middleRight';
 }
 
 export interface UseTextPositioningParams {
