@@ -117,7 +117,7 @@ function parseTextWithStyles(text: string): TextSegment[] {
   // marker pair is split across wrapped lines (e.g. "==bold\\ntext==").
   const boldRegex = /==([\s\S]*?)==/g;
   const italicRegex = /\/\/([\s\S]*?)\/\//g; // Double slash for italic
-  const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+  const linkRegex = /\[([\s\S]*?)\]\(([\s\S]*?)\)/g;
   const redTextRegex = /&&([\s\S]*?)&&/g; // Text between && markers
 
   while (cursor < text.length) {

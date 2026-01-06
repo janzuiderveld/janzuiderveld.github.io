@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
 import CompatibilityOverlay from '../components/CompatibilityOverlay';
 import { BLOB_PADDING, getCurrentCharMetrics } from '../components/ascii-art2/constants';
@@ -240,6 +240,31 @@ const markCompatibilityMessageSeen = () => {
   }
 };
 
+const HOME_INTRO_RIPPLE_KEY = 'homeIntroRippleSeen';
+
+const hasSeenHomeIntroRipple = () => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+  try {
+    return sessionStorage.getItem(HOME_INTRO_RIPPLE_KEY) === 'true';
+  } catch (error) {
+    console.warn('Unable to read intro ripple flag', error);
+    return false;
+  }
+};
+
+const markHomeIntroRippleSeen = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  try {
+    sessionStorage.setItem(HOME_INTRO_RIPPLE_KEY, 'true');
+  } catch (error) {
+    console.warn('Unable to store intro ripple flag', error);
+  }
+};
+
 const COMPATIBILITY_MESSAGE = [
   'Please visit on desktop',
   'with a chromium based browser',
@@ -255,6 +280,10 @@ function HomePage() {
   const [narrowShiftRows, setNarrowShiftRows] = useState(0);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const asciiContainerRef = useRef<HTMLDivElement | null>(null);
+  const introRippleTimeoutRef = useRef<number | null>(null);
+  const introRippleAttemptsRef = useRef(0);
+  const introRippleScheduledRef = useRef(false);
   const [showCompatibilityOverlay, setShowCompatibilityOverlay] = useState(() => {
     if (typeof window === 'undefined') {
       return false;
@@ -305,6 +334,50 @@ function HomePage() {
     setNarrowShiftRows(prev => (prev === nextShiftRows ? prev : nextShiftRows));
   }, [isNarrow, narrowShiftRows]);
 
+  const triggerIntroRipple = useCallback(() => {
+    if (introRippleScheduledRef.current || hasSeenHomeIntroRipple()) {
+      return;
+    }
+
+    introRippleScheduledRef.current = true;
+    introRippleAttemptsRef.current = 0;
+
+    const attemptRipple = () => {
+      const container = asciiContainerRef.current;
+      const pre = container?.querySelector('pre');
+      const rect = pre?.getBoundingClientRect();
+
+      if (!rect || rect.width === 0 || rect.height === 0) {
+        introRippleAttemptsRef.current += 1;
+        if (introRippleAttemptsRef.current <= 4) {
+          introRippleTimeoutRef.current = window.setTimeout(attemptRipple, 150);
+          return;
+        }
+        introRippleScheduledRef.current = false;
+        return;
+      }
+
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      window.dispatchEvent(new MouseEvent('mousemove', {
+        clientX: centerX,
+        clientY: centerY,
+        bubbles: true
+      }));
+
+      window.dispatchEvent(new MouseEvent('click', {
+        clientX: centerX,
+        clientY: centerY,
+        bubbles: true
+      }));
+
+      markHomeIntroRippleSeen();
+    };
+
+    introRippleTimeoutRef.current = window.setTimeout(attemptRipple, 160);
+  }, []);
+
   // Effect to update window dimensions state on resize
   useEffect(() => {
     const handleResize = () => {
@@ -315,6 +388,20 @@ function HomePage() {
     // Cleanup listener on component unmount
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (isLoading || showCompatibilityOverlay || hasSeenHomeIntroRipple()) {
+      return;
+    }
+
+    triggerIntroRipple();
+
+    return () => {
+      if (introRippleTimeoutRef.current !== null) {
+        window.clearTimeout(introRippleTimeoutRef.current);
+      }
+    };
+  }, [isLoading, showCompatibilityOverlay, triggerIntroRipple]);
 
   useEffect(() => {
     let isMounted = true;
@@ -551,6 +638,7 @@ function HomePage() {
           textContent={textContent}
           initialScrollOffset={initialScrollOffset ?? undefined}
           onLayoutChange={handleLayoutChange}
+          externalContainerRef={asciiContainerRef}
         />
       )}
       {showCompatibilityOverlay && (
