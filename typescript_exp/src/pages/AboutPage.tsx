@@ -195,7 +195,7 @@ function AboutPage() {
       '',
       'Traditional computer interfaces break that inference. A screen announces "this is a computer," and that label frames all behaviour as mechanical output. Aliveness is ruled out before interaction begins. This frame holds because the internal processes of digital systems are hard to grasp; we expect anything, so nothing surprises.',
       '',
-      'Our experiments subvert expected utility, turning familiar tools feral. A photocopier that stops copying to collaborate on your drawings, a camera that narrates your movements like a wildlife documentary. By embodying intelligence in physical technology, we bypass the "just a computer" frame. Sometimes, this results in interactions that slip past logic and feel like genuine encounters.',
+      'Our experiments subvert expected utility, turning familiar tools feral. A photocopier that stops copying to collaborate on your drawings, a camera that narrates your movements like a wildlife documentary. By embodying intelligence in physical technology, we bypass the "just a computer" frame. Sometimes, this results in interactions that slip past logic and create an emotional connection.',
       '',
       'These installations are performative probes, completed by the audience. A visitor leans toward a vending machine, whispering, trying to convince it. The machine pauses, deliberates, refuses. They\'re publicly rehearsing a new social relationship. The work lives in this spectacle: a human genuinely negotiating with an object, an object responding as if it has a position. The tool stops being a servant. It becomes something that holds your gaze.'
 
