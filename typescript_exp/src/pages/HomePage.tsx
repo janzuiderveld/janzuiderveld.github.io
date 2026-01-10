@@ -268,7 +268,7 @@ const markHomeIntroRippleSeen = () => {
 const COMPATIBILITY_MESSAGE = [
   'Please visit on desktop',
   'with a chromium based browser',
-  'for the intended experience.'
+  'for a frictionless experience.'
 ].join('\n');
 
 function HomePage() {
