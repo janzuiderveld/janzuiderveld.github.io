@@ -2,7 +2,7 @@ import ProjectPage from '../components/ProjectPage';
 import projectAscii from '../assets/coffee/coffee_ascii.txt?raw';
 import projectText from '../assets/coffee/coffee_text.txt?raw';
 import projectPhoto from '../assets/coffee/pictures/coffee_placeholder.png';
-import nieuweInstituutVideo from '../assets/coffee/pictures/Het Nieuwe Instituut (1).mp4';
+import nieuweInstituutVideo from '../assets/coffee/pictures/Het Nieuwe Instituut (1).mov';
 import { COFFEE_ALIGN_DEFAULT } from '../assets/coffee/align';
 
 const VIMEO_COFFEE_SRC = 'https://player.vimeo.com/video/897392617?autoplay=1&muted=1&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1';
