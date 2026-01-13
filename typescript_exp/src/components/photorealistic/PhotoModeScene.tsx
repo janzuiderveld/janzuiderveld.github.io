@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import AsciiArtGenerator from '../ascii-art2/AsciiArtGenerator';
 import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
-import { IS_SAFARI, getCurrentCharMetrics } from '../ascii-art2/constants';
+import { CHAR_HEIGHT, IS_SAFARI, getCurrentCharMetrics } from '../ascii-art2/constants';
 import PhotorealisticLayer, { PhotoLayerItem, PhotorealisticLayout } from './PhotorealisticLayer';
 import PhotoHoverWindow, { getPhotoHoverRadiusPx } from './PhotoHoverWindow';
 
@@ -21,14 +21,27 @@ type WhiteInRequest = {
   startProgress?: number;
 };
 
+type PhotoVideoItem = Extract<PhotoLayerItem, { mediaType: 'video' }>;
+
+type PhotoVideoFrameProps = {
+  item: PhotoVideoItem;
+  style: CSSProperties;
+  onForwardWheel: (event: WheelEvent) => void;
+};
+
 type PhotoModeSceneProps = {
   textContent: TextContentItem[];
   photoItems: PhotoLayerItem[];
   asciiClickTargets: string[];
   maxScrollHeight?: number;
   disablePhotoMode?: boolean;
+  autoEnterPhoto?: boolean;
+  centerOnLoad?: boolean;
+  centerOnEnter?: boolean;
+  initialScrollTargetId?: string;
   alignmentKey?: string;
   alignmentTargetId?: string;
+  layoutAugmenter?: (layout: PhotorealisticLayout) => PhotorealisticLayout;
 };
 
 const PHOTO_EXIT_FADE_DURATION = 1000;
@@ -82,14 +95,96 @@ const parseStoredTransform = (raw: string | null): PhotoTransform | null => {
   }
 };
 
+const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) => {
+  const frameRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const node = frameRef.current;
+    if (!node) {
+      return;
+    }
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onForwardWheel(event);
+    };
+    node.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      node.removeEventListener('wheel', handleWheel);
+    };
+  }, [onForwardWheel]);
+
+  const background = (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundColor: 'black'
+      }}
+    />
+  );
+
+  if (item.kind === 'embed') {
+    return (
+      <div ref={frameRef} data-photo-video="true" style={style}>
+        {background}
+        <iframe
+          src={item.embedSrc}
+          title={item.alt}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            border: 0
+          }}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          loading="eager"
+        />
+      </div>
+    );
+  }
+
+  const controls = item.controls ?? true;
+  const playsInline = item.playsInline ?? true;
+  return (
+    <div ref={frameRef} data-photo-video="true" style={style}>
+      {background}
+      <video
+        src={item.videoSrc}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: item.objectFit ?? 'cover'
+        }}
+        autoPlay={Boolean(item.autoplay)}
+        loop={Boolean(item.loop)}
+        muted={Boolean(item.muted)}
+        controls={controls}
+        playsInline={playsInline}
+        preload="metadata"
+        poster={item.poster}
+      />
+    </div>
+  );
+};
+
 const PhotoModeScene = ({
   textContent,
   photoItems,
   asciiClickTargets,
   maxScrollHeight,
   disablePhotoMode = false,
+  autoEnterPhoto = false,
+  centerOnLoad = false,
+  centerOnEnter = false,
+  initialScrollTargetId,
   alignmentKey,
-  alignmentTargetId
+  alignmentTargetId,
+  layoutAugmenter
 }: PhotoModeSceneProps) => {
   const photoModeEnabled = useMemo(() => {
     if (disablePhotoMode) {
@@ -101,6 +196,9 @@ const PhotoModeScene = ({
     return !(IS_SAFARI || isMobileDevice());
   }, [disablePhotoMode]);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [initialScrollOffset, setInitialScrollOffset] = useState<number | undefined>(undefined);
+  const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
+  const [initialScrollReady, setInitialScrollReady] = useState(!centerOnLoad);
   const [photoState, setPhotoState] = useState<PhotoState>('ascii');
   const [photoLayout, setPhotoLayout] = useState<PhotorealisticLayout>({
     rawBounds: {},
@@ -143,6 +241,44 @@ const PhotoModeScene = ({
   const hoverItemsRef = useRef<PhotoLayerItem[]>([]);
   const hoverLayoutRef = useRef(photoLayout);
   const hoverScrollOffsetRef = useRef(scrollOffset);
+  const initialScrollLockRef = useRef(false);
+  const photoParamActiveRef = useRef(false);
+
+  const getPhotoHashParam = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    const hash = window.location.hash || '#/';
+    const [, query = ''] = hash.split('?');
+    const params = new URLSearchParams(query);
+    return params.get('photo');
+  }, []);
+
+  const hasPhotoHashParam = useCallback(() => {
+    const value = (getPhotoHashParam() ?? '').toLowerCase();
+    return value === '1' || value === 'true' || value === 'yes' || value === 'on';
+  }, [getPhotoHashParam]);
+
+  const stripPhotoHashParam = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const hash = window.location.hash || '#/';
+    const [path, query = ''] = hash.split('?');
+    const params = new URLSearchParams(query);
+    if (!params.has('photo')) {
+      return;
+    }
+    params.delete('photo');
+    const nextQuery = params.toString();
+    const nextHash = nextQuery ? `${path}?${nextQuery}` : path;
+    if (nextHash === window.location.hash) {
+      return;
+    }
+    window.history.replaceState(window.history.state, '', nextHash);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  }, []);
+  const asciiContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     photoStateRef.current = photoState;
@@ -251,18 +387,123 @@ const PhotoModeScene = ({
     () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
     [alignedPhotoItems]
   );
+  const photoImageItems = useMemo(
+    () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
+    [alignedPhotoItems]
+  );
+  const photoVideoItems = useMemo(
+    () => alignedPhotoItems.filter(item => item.mediaType === 'video') as PhotoVideoItem[],
+    [alignedPhotoItems]
+  );
 
   useEffect(() => {
     hoverItemsRef.current = hoverPreviewItems;
   }, [hoverPreviewItems]);
 
+  const mergedPhotoLayout = useMemo(() => {
+    if (!layoutAugmenter) {
+      return photoLayout;
+    }
+    return layoutAugmenter(photoLayout);
+  }, [layoutAugmenter, photoLayout]);
+
+  const computeCenteredScrollOffset = useCallback(() => {
+    if (!initialScrollTargetId) {
+      return null;
+    }
+    const bounds = mergedPhotoLayout.rawBounds[initialScrollTargetId];
+    const { charHeight } = getCurrentCharMetrics();
+    if (!bounds || !charHeight || !window.innerHeight) {
+      return null;
+    }
+    const targetCenterRow = (bounds.minY + bounds.maxY) / 2;
+    const viewportRows = window.innerHeight / charHeight;
+    const desiredScrollRows = Math.max(0, targetCenterRow - viewportRows / 2);
+    return desiredScrollRows * charHeight;
+  }, [initialScrollTargetId, mergedPhotoLayout.rawBounds]);
+
+  const maybeCenterScroll = useCallback((force: boolean) => {
+    if (!initialScrollTargetId) {
+      return;
+    }
+    const bounds = mergedPhotoLayout.rawBounds[initialScrollTargetId];
+    const { charHeight } = getCurrentCharMetrics();
+    if (!bounds || !charHeight || !window.innerHeight) {
+      return;
+    }
+    const centeredOffset = computeCenteredScrollOffset();
+    if (centeredOffset == null) {
+      return;
+    }
+    if (!force) {
+      const topPx = bounds.minY * charHeight - scrollOffset;
+      const bottomPx = (bounds.maxY + 1) * charHeight - scrollOffset;
+      if (topPx >= 0 && bottomPx <= window.innerHeight) {
+        return;
+      }
+    }
+    setScrollToOffset(centeredOffset);
+  }, [computeCenteredScrollOffset, initialScrollTargetId, mergedPhotoLayout.rawBounds, scrollOffset]);
+
   useEffect(() => {
-    hoverLayoutRef.current = photoLayout;
-  }, [photoLayout]);
+    if (!centerOnLoad) {
+      setInitialScrollOffset(undefined);
+      setInitialScrollReady(true);
+      initialScrollLockRef.current = false;
+      return;
+    }
+    if (initialScrollLockRef.current || !initialScrollTargetId) {
+      return;
+    }
+    const nextOffset = computeCenteredScrollOffset();
+    if (nextOffset == null) {
+      return;
+    }
+    setInitialScrollOffset(nextOffset);
+    setScrollToOffset(nextOffset);
+    setInitialScrollReady(true);
+    initialScrollLockRef.current = true;
+  }, [centerOnLoad, computeCenteredScrollOffset, initialScrollTargetId]);
+
+  const maxPhotoScrollHeight = useMemo(() => {
+    const bounds = mergedPhotoLayout.rawBounds;
+    const boundValues = Object.values(bounds);
+    if (!boundValues.length) {
+      return undefined;
+    }
+
+    let maxY = 0;
+    boundValues.forEach(value => {
+      if (!value.fixed) {
+        maxY = Math.max(maxY, value.maxY);
+      }
+    });
+
+    return (maxY + 1) * CHAR_HEIGHT;
+  }, [mergedPhotoLayout.rawBounds]);
+
+  useEffect(() => {
+    hoverLayoutRef.current = mergedPhotoLayout;
+  }, [mergedPhotoLayout]);
 
   useEffect(() => {
     hoverScrollOffsetRef.current = scrollOffset;
   }, [scrollOffset]);
+
+  const forwardVideoWheel = useCallback((event: WheelEvent) => {
+    const container = asciiContainerRef.current;
+    if (!container) {
+      return;
+    }
+    const forwarded = new WheelEvent('wheel', {
+      deltaX: event.deltaX,
+      deltaY: event.deltaY,
+      deltaMode: event.deltaMode,
+      bubbles: true,
+      cancelable: true
+    });
+    container.dispatchEvent(forwarded);
+  }, []);
 
   const handleLayoutChange = useCallback((layout: AsciiLayoutInfo) => {
     setPhotoLayout({
@@ -358,6 +599,10 @@ const PhotoModeScene = ({
     if (!photoModeEnabled || photoStateRef.current !== 'ascii') {
       return;
     }
+    photoParamActiveRef.current = hasPhotoHashParam();
+    if (centerOnEnter) {
+      maybeCenterScroll(false);
+    }
     if (enterTimeoutRef.current) {
       clearTimeout(enterTimeoutRef.current);
       enterTimeoutRef.current = null;
@@ -373,7 +618,7 @@ const PhotoModeScene = ({
     enterTimeoutRef.current = window.setTimeout(() => {
       completePhotoEnter();
     }, PHOTO_ENTER_FADE_DURATION);
-  }, [completePhotoEnter, photoModeEnabled]);
+  }, [centerOnEnter, completePhotoEnter, hasPhotoHashParam, maybeCenterScroll, photoModeEnabled]);
 
   const handleAsciiClickStart = useCallback(() => {
     beginPhotoEnter();
@@ -382,6 +627,21 @@ const PhotoModeScene = ({
   const handleAsciiClickComplete = useCallback(() => {
     completePhotoEnter();
   }, [completePhotoEnter]);
+
+  useEffect(() => {
+    if (!autoEnterPhoto || !photoModeEnabled || !initialScrollReady) {
+      return;
+    }
+    if (photoStateRef.current !== 'ascii') {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      beginPhotoEnter();
+    }, 80);
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [autoEnterPhoto, beginPhotoEnter, initialScrollReady, photoModeEnabled]);
 
   useEffect(() => {
     if (!photoModeEnabled) {
@@ -600,18 +860,29 @@ const PhotoModeScene = ({
   const requestPhotoExit = useCallback((origin: { x: number; y: number }) => {
     const shouldPopHistory = photoHistoryPushedRef.current;
     exitPhotoMode(origin);
+    if (photoParamActiveRef.current) {
+      photoParamActiveRef.current = false;
+      stripPhotoHashParam();
+      return;
+    }
     if (shouldPopHistory) {
       exitRequestedRef.current = true;
       window.history.back();
     }
-  }, [exitPhotoMode]);
+  }, [exitPhotoMode, stripPhotoHashParam]);
 
   useEffect(() => {
     if (!photoModeEnabled || photoState !== 'photo') {
       return;
     }
 
+    const isPhotoVideoTarget = (target: EventTarget | null) =>
+      target instanceof HTMLElement && Boolean(target.closest('[data-photo-video="true"]'));
+
     const handleClick = (event: MouseEvent) => {
+      if (isPhotoVideoTarget(event.target)) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       requestPhotoExit({ x: event.clientX, y: event.clientY });
@@ -619,6 +890,9 @@ const PhotoModeScene = ({
 
     const handleTouch = (event: TouchEvent) => {
       if (event.touches.length !== 1) {
+        return;
+      }
+      if (isPhotoVideoTarget(event.target)) {
         return;
       }
       event.preventDefault();
@@ -684,10 +958,26 @@ const PhotoModeScene = ({
 
   useEffect(() => {
     if (photoState === 'photo' && !photoHistoryPushedRef.current) {
-      window.history.pushState({ photoMode: true }, '', window.location.href);
-      photoHistoryPushedRef.current = true;
+      if (!photoParamActiveRef.current) {
+        window.history.pushState({ photoMode: true }, '', window.location.href);
+        photoHistoryPushedRef.current = true;
+      }
     }
   }, [photoState]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const api = {
+      enter: beginPhotoEnter,
+      exit: () => exitPhotoMode({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    };
+    (window as typeof window & { __projectPhotoMode?: typeof api }).__projectPhotoMode = api;
+    return () => {
+      delete (window as typeof window & { __projectPhotoMode?: typeof api }).__projectPhotoMode;
+    };
+  }, [beginPhotoEnter, exitPhotoMode]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -750,10 +1040,73 @@ const PhotoModeScene = ({
   const asciiOverlayTransition = photoModeEnabled
     ? `opacity ${PHOTO_ENTER_FADE_DURATION}ms linear`
     : 'opacity 0.2s ease';
+  const effectiveMaxScrollHeight = maxScrollHeight ?? maxPhotoScrollHeight;
   const photoLayerOpacity = alignmentPhotoActive ? ALIGNMENT_PHOTO_OPACITY : (photoModeEnabled ? photoOpacity : 0);
   const photoLayerTransition = alignmentPhotoActive ? 'opacity 0.2s ease' : photoOpacityTransition;
   const photoLayerHighRes = showHighRes || alignmentPhotoActive;
-  const photoLayerItems = photoModeEnabled ? alignedPhotoItems : [];
+  const photoLayerItems = photoModeEnabled ? photoImageItems : [];
+  const showPhotoVideos = showPhotorealisticLayer && !alignmentPhotoActive;
+  const photoVideoNodes = useMemo(() => {
+    if (!showPhotoVideos || photoVideoItems.length === 0) {
+      return null;
+    }
+
+    const { charWidth, charHeight } = getCurrentCharMetrics();
+    if (!charWidth || !charHeight) {
+      return null;
+    }
+
+    const transition = photoLayerTransition ?? (showPhotoVideos ? 'opacity 0.2s ease' : 'opacity 0s');
+
+    return photoVideoItems.map(item => {
+      const boundsMap = item.boundsSource === 'padded' ? mergedPhotoLayout.paddedBounds : mergedPhotoLayout.rawBounds;
+      const bounds = boundsMap[item.anchorName];
+      if (!bounds) {
+        return null;
+      }
+
+      const widthChars = bounds.maxX - bounds.minX + 1;
+      const heightChars = bounds.maxY - bounds.minY + 1;
+      const scaleX = item.scaleX ?? 1;
+      const scaleY = item.scaleY ?? 1;
+      const width = widthChars * charWidth * scaleX;
+      const height = heightChars * charHeight * scaleY;
+      const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
+      const top = (bounds.minY + (item.offsetY ?? 0)) * charHeight;
+      const isFixed = item.fixed ?? bounds.fixed;
+      const transform = isFixed ? 'none' : `translate3d(0, ${-scrollOffset}px, 0)`;
+
+      return (
+        <PhotoVideoFrame
+          key={item.id}
+          item={item}
+          onForwardWheel={forwardVideoWheel}
+          style={{
+            position: 'fixed',
+            left,
+            top,
+            width,
+            height,
+            transform,
+            zIndex: 3,
+            opacity: photoLayerOpacity,
+            transition,
+            pointerEvents: photoLayerOpacity > 0 ? 'auto' : 'none',
+            willChange: 'transform, opacity'
+          }}
+        />
+      );
+    });
+  }, [
+    forwardVideoWheel,
+    mergedPhotoLayout.paddedBounds,
+    mergedPhotoLayout.rawBounds,
+    photoLayerOpacity,
+    photoLayerTransition,
+    photoVideoItems,
+    scrollOffset,
+    showPhotoVideos
+  ]);
 
   const alignmentPanel = useMemo<TextContentItem | null>(() => {
     if (photoState !== 'ascii' || !alignmentMode) return null;
@@ -807,7 +1160,7 @@ const PhotoModeScene = ({
       {photoModeEnabled && photoLayerItems.length > 0 && (
         <PhotorealisticLayer
           items={photoLayerItems}
-          layout={photoLayout}
+          layout={mergedPhotoLayout}
           scrollOffset={scrollOffset}
           isVisible={showPhotorealisticLayer}
           showHighRes={photoLayerHighRes}
@@ -816,10 +1169,11 @@ const PhotoModeScene = ({
           opacityTransition={photoLayerTransition}
         />
       )}
+      {photoModeEnabled && photoVideoNodes}
       {photoModeEnabled && (
         <PhotoHoverWindow
           item={photoState === 'ascii' && !alignmentMode ? hoveredPhotoItem : null}
-          layout={photoLayout}
+          layout={mergedPhotoLayout}
           scrollOffset={scrollOffset}
           cursorRef={hoverCursorRef}
           isActive={photoState === 'ascii' && hoverPreviewActive && !alignmentMode}
@@ -837,7 +1191,9 @@ const PhotoModeScene = ({
       >
         <AsciiArtGenerator
           textContent={renderedTextContent}
-          maxScrollHeight={maxScrollHeight}
+          maxScrollHeight={effectiveMaxScrollHeight}
+          initialScrollOffset={initialScrollOffset}
+          scrollToOffset={scrollToOffset}
           onScrollOffsetChange={setScrollOffset}
           onLayoutChange={handleLayoutChange}
           onAsciiClickStart={photoModeEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickStart : undefined}
@@ -847,6 +1203,7 @@ const PhotoModeScene = ({
           transparentBackground={true}
           disableLinks={photoState !== 'ascii' || alignmentMode}
           whiteInRequest={whiteInRequest}
+          externalContainerRef={asciiContainerRef}
         />
       </div>
     </>

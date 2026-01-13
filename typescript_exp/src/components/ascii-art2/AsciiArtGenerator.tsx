@@ -36,6 +36,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   transparentBackground = false,
   disableLinks = false,
   initialScrollOffset,
+  scrollToOffset,
   whiteInRequest,
   externalContainerRef
 }) => {
@@ -47,6 +48,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   const [size, setSize] = useState<Size>({ height: null, width: null });
   const scrollOffsetRef = useRef<number>(0);
   const appliedInitialScrollRef = useRef<number | null>(null);
+  const appliedScrollToRef = useRef<number | null>(null);
   const [contentLoaded, setContentLoaded] = useState(false);
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     containerRef.current = node;
@@ -159,6 +161,67 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   const { cursor, cursorRef, startWhiteout, startWhiteIn } = useCursor(textRef, size);
   const isWhiteoutActive = Boolean(cursor.whiteout?.active);
   const isWhiteInActive = Boolean(cursor.whiteIn?.active);
+  const normalizeHashPath = useCallback((value: string) => {
+    const trimmed = value.startsWith('#') ? value.slice(1) : value;
+    const [path] = trimmed.split('?');
+    const normalized = path || '/';
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
+  }, []);
+  const isPhotoParam = useCallback((value: string | null) => {
+    if (!value) return false;
+    const normalized = value.toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+  }, []);
+  const handlePhotoLink = useCallback((url: string) => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    if (!url.startsWith('#')) {
+      return false;
+    }
+    const [path, query = ''] = url.slice(1).split('?');
+    const params = new URLSearchParams(query);
+    if (!isPhotoParam(params.get('photo'))) {
+      return false;
+    }
+    const currentPath = normalizeHashPath(window.location.hash || '#/');
+    const targetPath = normalizeHashPath(path ? `#${path}` : '#/');
+    if (currentPath !== targetPath) {
+      return false;
+    }
+    const api = (window as typeof window & { __projectPhotoMode?: { enter?: () => void } }).__projectPhotoMode;
+    if (!api?.enter) {
+      return false;
+    }
+    if (window.location.hash !== url) {
+      window.history.replaceState(window.history.state, '', url);
+    }
+    api.enter();
+    return true;
+  }, [isPhotoParam, normalizeHashPath]);
+  const handleLinkClick = useCallback((position: { x: number; y: number }, url: string) => {
+    if (handlePhotoLink(url)) {
+      return;
+    }
+    const hasActiveOverlay = Boolean(cursor.whiteOverlay?.active);
+
+    if (hasActiveOverlay) {
+      try {
+        sessionStorage.setItem('needsWhiteIn', 'true');
+        sessionStorage.setItem('lastWhiteInTimestamp', String(Date.now()));
+        sessionStorage.setItem('whiteInPosition', JSON.stringify({ x: 0, y: 0 }));
+      } catch (e) {
+        console.warn('Error storing navigation data in sessionStorage', e);
+      }
+
+      setTimeout(() => {
+        window.location.href = url;
+      }, 50);
+      return;
+    }
+
+    startWhiteout(position, url);
+  }, [cursor.whiteOverlay?.active, handlePhotoLink, startWhiteout]);
   const hasAsciiClickHandlers = Boolean(onAsciiClickStart || onAsciiClickComplete);
   const isAsciiClickTarget = useCallback((
     clientX: number,
@@ -296,6 +359,36 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     setScrollOffset
   ]);
 
+  useEffect(() => {
+    if (scrollToOffset == null || Number.isNaN(scrollToOffset)) {
+      appliedScrollToRef.current = null;
+      return;
+    }
+
+    const clampedOffset = Math.max(0, Math.min(maxScroll, scrollToOffset));
+    if (appliedScrollToRef.current !== null && Math.abs(appliedScrollToRef.current - clampedOffset) < 0.5) {
+      return;
+    }
+
+    appliedScrollToRef.current = clampedOffset;
+    scrollOffsetRef.current = clampedOffset;
+    scrollingOffsetRef.current = clampedOffset;
+    scrollVelocity.current = 0;
+    isScrolling.current = false;
+
+    if (scrollOffset !== clampedOffset) {
+      setScrollOffset(clampedOffset);
+    }
+  }, [
+    scrollToOffset,
+    isScrolling,
+    maxScroll,
+    scrollOffset,
+    scrollVelocity,
+    scrollingOffsetRef,
+    setScrollOffset
+  ]);
+
   // Update the scrollOffsetRef when scrollOffset changes
   useEffect(() => {
     scrollOffsetRef.current = scrollOffset;
@@ -311,30 +404,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   const { 
     updateLinkOverlays, 
     handleClick 
-  } = useLinks(size, textPositionCache, scrollOffsetRef, (position, url) => {
-    // Before starting the whiteout, check if we already have an active overlay
-    const hasActiveOverlay = Boolean(cursor.whiteOverlay?.active);
-    
-    if (hasActiveOverlay) {
-      // Skip the whiteout animation and navigate directly
-      try {
-        sessionStorage.setItem('needsWhiteIn', 'true');
-        sessionStorage.setItem('lastWhiteInTimestamp', String(Date.now()));
-        // Use center position for white-in on next page
-        sessionStorage.setItem('whiteInPosition', JSON.stringify({ x: 0, y: 0 }));
-      } catch (e) {
-        console.warn('Error storing navigation data in sessionStorage', e);
-      }
-      
-      // Navigate after a short delay
-      setTimeout(() => {
-        window.location.href = url;
-      }, 50);
-    } else {
-      // Normal flow - start whiteout animation
-      startWhiteout(position, url);
-    }
-  }, textRef, isScrolling, disableLinks);
+  } = useLinks(size, textPositionCache, scrollOffsetRef, handleLinkClick, textRef, isScrolling, disableLinks);
 
   // Update the ref with the real function
   useEffect(() => {
@@ -860,7 +930,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         const normalizedX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         const normalizedY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
         
-        startWhiteout({ x: normalizedX, y: normalizedY }, url);
+        handleLinkClick({ x: normalizedX, y: normalizedY }, url);
       }
     };
     
@@ -871,7 +941,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         containerRef.current.removeEventListener('click', handleContainerClick);
       }
     };
-  }, [startWhiteout, disableLinks]);
+  }, [disableLinks, handleLinkClick]);
 
   // Ensure the pre element always covers the viewport (Safari can shrink visualViewport)
   const preHeightPx = (() => {

@@ -25,7 +25,19 @@ export type PhotoLayerItem =
   })
   | (PhotoLayerBase & {
     mediaType: 'video';
+    kind: 'embed';
     embedSrc: string;
+  })
+  | (PhotoLayerBase & {
+    mediaType: 'video';
+    kind: 'file';
+    videoSrc: string;
+    autoplay?: boolean;
+    loop?: boolean;
+    muted?: boolean;
+    controls?: boolean;
+    playsInline?: boolean;
+    poster?: string;
   });
 
 export type PhotorealisticLayout = {
@@ -95,28 +107,57 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     };
 
     if (item.mediaType === 'video') {
+      const background = (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'black'
+          }}
+        />
+      );
+      if (item.kind === 'embed') {
+        return (
+          <div key={item.id} data-photo-video="true" style={baseStyle}>
+            {background}
+            <iframe
+              src={item.embedSrc}
+              title={item.alt}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                border: 0
+              }}
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              loading="eager"
+            />
+          </div>
+        );
+      }
+
+      const controls = item.controls ?? true;
+      const playsInline = item.playsInline ?? true;
       return (
-        <div key={item.id} style={baseStyle}>
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: 'black'
-            }}
-          />
-          <iframe
-            src={item.embedSrc}
-            title={item.alt}
+        <div key={item.id} data-photo-video="true" style={baseStyle}>
+          {background}
+          <video
+            src={item.videoSrc}
             style={{
               position: 'absolute',
               inset: 0,
               width: '100%',
               height: '100%',
-              border: 0
+              objectFit: item.objectFit ?? 'cover'
             }}
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            loading="eager"
+            autoPlay={Boolean(item.autoplay)}
+            loop={Boolean(item.loop)}
+            muted={Boolean(item.muted)}
+            controls={controls}
+            playsInline={playsInline}
+            preload="metadata"
           />
         </div>
       );

@@ -16,6 +16,7 @@ export interface AsciiArtGeneratorProps {
   transparentBackground?: boolean;
   disableLinks?: boolean;
   initialScrollOffset?: number;
+  scrollToOffset?: number | null;
   whiteInRequest?: { position: { x: number; y: number }; token: number; startProgress?: number };
   externalContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
 }

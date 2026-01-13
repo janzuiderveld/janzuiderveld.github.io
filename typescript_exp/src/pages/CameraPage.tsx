@@ -119,8 +119,8 @@ const parseStoredTransform = (raw: string | null): PhotoTransform | null => {
   }
 };
 
-const isVideoItem = (item: PhotoLayerItem): item is Extract<PhotoLayerItem, { mediaType: 'video' }> =>
-  item.mediaType === 'video';
+const isVideoItem = (item: PhotoLayerItem): item is Extract<PhotoLayerItem, { mediaType: 'video'; kind: 'embed' }> =>
+  item.mediaType === 'video' && item.kind === 'embed';
 
 const isImageItem = (item: PhotoLayerItem): item is Exclude<PhotoLayerItem, { mediaType: 'video' }> =>
   item.mediaType !== 'video';
@@ -143,7 +143,7 @@ type PhotoColumnVideo = {
   position: number;
 };
 type PhotoVideoFrameProps = {
-  item: Extract<PhotoLayerItem, { mediaType: 'video' }>;
+  item: Extract<PhotoLayerItem, { mediaType: 'video'; kind: 'embed' }>;
   style: CSSProperties;
   onForwardWheel: (event: WheelEvent) => void;
 };
@@ -401,6 +401,7 @@ function CameraPage() {
           id: item.id,
           anchorName,
           mediaType: 'video',
+          kind: 'embed',
           embedSrc: item.embedSrc,
           alt: item.alt
         });

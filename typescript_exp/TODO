@@ -1,3 +1,7 @@
+- after page load, first click on ascii art makes the page jump to centering the image. this should not happen. however loading the photo mode from link directly should do this.
+
+- life on page should also have visuals button
+
 - mailing list
 
 - photos for all projects
