@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
-import CompatibilityOverlay from '../components/CompatibilityOverlay';
 import { BLOB_PADDING, getCurrentCharMetrics } from '../components/ascii-art2/constants';
 import { loadCsv, CsvRecord } from '../utils/csv';
 import { AsciiLayoutInfo } from '../components/ascii-art2/types';
@@ -32,6 +31,10 @@ type Exhibition = {
   subtitle?: string;
   location?: string;
   dateRange?: string;
+};
+
+type HomePageProps = {
+  compatibilityOverlayActive?: boolean;
 };
 
 const UPCOMING_EXHIBITIONS_PATH = '/upcoming_exhibitions.csv';
@@ -187,59 +190,6 @@ const formatUpcomingText = (entries: Exhibition[]): string => {
   return [heading, ...blocks].join('\n\n');
 };
 
-type NavigatorWithUAData = Navigator & {
-  userAgentData?: {
-    brands?: Array<{ brand: string }>;
-  };
-};
-
-const isDesktopChromium = () => {
-  if (typeof navigator === 'undefined') {
-    return true;
-  }
-
-  const ua = navigator.userAgent || '';
-  const touchMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
-  const isDesktop = !/Mobi|Android|iPhone|iPad/i.test(ua) && !touchMac;
-  const chromiumTokens = ['Chrome', 'Chromium', 'Edg', 'OPR', 'Brave', 'Vivaldi', 'Arc'];
-
-  const uaData = (navigator as NavigatorWithUAData).userAgentData;
-  const hasChromiumBrand = uaData?.brands?.some(entry => /Chrom(e|ium)|Edge|Opera|Brave/i.test(entry.brand)) ?? false;
-
-  if (!isDesktop) {
-    return false;
-  }
-
-  if (hasChromiumBrand) {
-    return true;
-  }
-
-  return chromiumTokens.some(token => ua.includes(token));
-};
-
-const hasSeenCompatibilityMessage = () => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  try {
-    return sessionStorage.getItem('compatMessageSeen') === 'true';
-  } catch (error) {
-    console.warn('Unable to read compatibility message flag', error);
-    return false;
-  }
-};
-
-const markCompatibilityMessageSeen = () => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    sessionStorage.setItem('compatMessageSeen', 'true');
-  } catch (error) {
-    console.warn('Unable to store compatibility message flag', error);
-  }
-};
-
 const HOME_INTRO_RIPPLE_KEY = 'homeIntroRippleSeen';
 
 const hasSeenHomeIntroRipple = () => {
@@ -265,13 +215,7 @@ const markHomeIntroRippleSeen = () => {
   }
 };
 
-const COMPATIBILITY_MESSAGE = [
-  'Please visit on desktop',
-  'with a chromium based browser',
-  'for a frictionless experience.'
-].join('\n');
-
-function HomePage() {
+function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
   // console.log("HomePage component rendering - should only show on homepage route");
 
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
@@ -284,15 +228,6 @@ function HomePage() {
   const introRippleTimeoutRef = useRef<number | null>(null);
   const introRippleAttemptsRef = useRef(0);
   const introRippleScheduledRef = useRef(false);
-  const [showCompatibilityOverlay, setShowCompatibilityOverlay] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    if (isDesktopChromium()) {
-      return false;
-    }
-    return !hasSeenCompatibilityMessage();
-  });
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(FALLBACK_EXHIBITIONS);
 
   // Define the threshold for switching layouts based on aspect ratio (width/height)
@@ -390,7 +325,7 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (isLoading || showCompatibilityOverlay || hasSeenHomeIntroRipple()) {
+    if (isLoading || compatibilityOverlayActive || hasSeenHomeIntroRipple()) {
       return;
     }
 
@@ -401,7 +336,7 @@ function HomePage() {
         window.clearTimeout(introRippleTimeoutRef.current);
       }
     };
-  }, [isLoading, showCompatibilityOverlay, triggerIntroRipple]);
+  }, [compatibilityOverlayActive, isLoading, triggerIntroRipple]);
 
   useEffect(() => {
     let isMounted = true;
@@ -456,12 +391,12 @@ function HomePage() {
         // Extract individual works from the works text
         const works = [
           { title: "[[Life on _]](#camera)", x: 19, y: 22, name: "work-camera" },
+          { title: "[[Coffee Machine]](#coffee)", x: 72, y: 39, name: "work-coffee" },
+          { title: "[[Copy Machine]](#copy)", x: 78, y: 55, name: "work-copy" },
+          { title: "[[Microwave]](#microwave)", x: 85, y: 30, name: "work-microwave" },
           { title: "[[This is not a fish]](#fish)", x: 8, y: 39, name: "work-fish" },
           { title: "[[Conversations Beyond the Ordinary]](#conversations-beyond-the-ordinary)", x: 40, y: 72, name: "work-conversations" },
           { title: "[[Shedrick]](#shedrick)", x: 92, y: 22, name: "work-shedrick" },
-          { title: "[[Microwave]](#microwave)", x: 85, y: 30, name: "work-microwave" },
-          { title: "[[Coffee Machine]](#coffee)", x: 72, y: 39, name: "work-coffee" },
-          { title: "[[Copy Machine]](#copy)", x: 78, y: 55, name: "work-copy" },
           { title: "[[REDACTED(WIP)]](#/construction)", x: 25, y: 49, name: "work-radio" },
           { title: "[[Touching Distance]](#/construction)", x: 33, y: 80, name: "work-touching" },
           { title: "[[Lasers]](#/construction)", x: 26, y: 77, name: "work-lasers" },
@@ -602,11 +537,6 @@ function HomePage() {
   // Rerun this effect when window dimensions change or new exhibition data arrives
   }, [windowWidth, windowHeight, preRenderedArt, exhibitions, narrowShiftRows]);
 
-  const handleCompatibilityComplete = () => {
-    markCompatibilityMessageSeen();
-    setShowCompatibilityOverlay(false);
-  };
-
   return (
     <div style={{
       height: '100vh',
@@ -639,12 +569,6 @@ function HomePage() {
           initialScrollOffset={initialScrollOffset ?? undefined}
           onLayoutChange={handleLayoutChange}
           externalContainerRef={asciiContainerRef}
-        />
-      )}
-      {showCompatibilityOverlay && (
-        <CompatibilityOverlay
-          message={COMPATIBILITY_MESSAGE}
-          onComplete={handleCompatibilityComplete}
         />
       )}
     </div>

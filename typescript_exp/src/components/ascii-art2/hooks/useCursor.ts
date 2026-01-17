@@ -25,6 +25,9 @@ export const useCursor = (
   const whiteInTimeoutRef = useRef<number | null>(null);
   const whiteoutAnimationRef = useRef<number | null>(null);
   const whiteOverlayAnimationRef = useRef<number | null>(null);
+  const pendingWhiteInRef = useRef(false);
+  const pendingWhiteInPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const overlayObserverRef = useRef<MutationObserver | null>(null);
   // Add mousedown tracking for hold duration
   const mouseDownInfo = useRef<{
     active: boolean;
@@ -773,9 +776,26 @@ export const useCursor = (
 
   // Check for "needsWhiteIn" in sessionStorage on mount
   useEffect(() => {
+    const clearOverlayObserver = () => {
+      if (overlayObserverRef.current) {
+        overlayObserverRef.current.disconnect();
+        overlayObserverRef.current = null;
+      }
+    };
+
+    const isCompatibilityOverlayActive = () => {
+      const overlay = document.querySelector('.compatibility-overlay');
+      if (!overlay) {
+        return false;
+      }
+      return !overlay.classList.contains('compatibility-overlay--transparent');
+    };
+
     try {
       const needsWhiteIn = sessionStorage.getItem('needsWhiteIn');
-      if (needsWhiteIn === 'true' && size.width && size.height) {
+      if (needsWhiteIn === 'true' && size.width !== null && size.height !== null) {
+        const gridWidth = size.width;
+        const gridHeight = size.height;
         // Get the stored position for white-in
         let position = { x: 0, y: 0 }; // Default to center
         try {
@@ -787,30 +807,65 @@ export const useCursor = (
           console.warn('Error parsing stored position', e);
         }
 
-        // Clear the flag to prevent duplicate white-ins
-        sessionStorage.removeItem('needsWhiteIn');
-        
-        // Initialize cursor state with the white-in position before starting the effect
-        const gridDimensions = getGridDimensions(size.width, size.height);
-        // Convert from normalized (-1 to 1) to grid coordinates
-        const gridX = Math.floor(((position.x + 1) / 2) * gridDimensions.cols);
-        const gridY = Math.floor(((position.y + 1) / 2) * gridDimensions.rows);
-        
-        // Update cursor state to indicate the mouse is in the window at the white-in position
-        cursorRef.current = {
-          ...cursorRef.current,
-          grid: { x: gridX, y: gridY },
-          normalized: position,
-          isInWindow: true, // Critical for background animation
+        const startWhiteInNow = (targetPosition: { x: number; y: number }) => {
+          // Clear the flag to prevent duplicate white-ins
+          sessionStorage.removeItem('needsWhiteIn');
+          sessionStorage.setItem('lastWhiteInTimestamp', String(Date.now()));
+
+          // Initialize cursor state with the white-in position before starting the effect
+          const gridDimensions = getGridDimensions(gridWidth, gridHeight);
+          // Convert from normalized (-1 to 1) to grid coordinates
+          const gridX = Math.floor(((targetPosition.x + 1) / 2) * gridDimensions.cols);
+          const gridY = Math.floor(((targetPosition.y + 1) / 2) * gridDimensions.rows);
+          
+          // Update cursor state to indicate the mouse is in the window at the white-in position
+          cursorRef.current = {
+            ...cursorRef.current,
+            grid: { x: gridX, y: gridY },
+            normalized: targetPosition,
+            isInWindow: true, // Critical for background animation
+          };
+          
+          // Update cursor state immediately
+          setCursor({...cursorRef.current});
+          
+          // Execute white-in on the next frame to avoid a visible gap
+          requestAnimationFrame(() => {
+            startWhiteIn(targetPosition);
+          });
         };
-        
-        // Update cursor state immediately
-        setCursor({...cursorRef.current});
-        
-        // Execute white-in after a short delay to ensure the page is ready
-        setTimeout(() => {
-          startWhiteIn(position);
-        }, 100);
+
+        if (isCompatibilityOverlayActive()) {
+          pendingWhiteInPositionRef.current = position;
+          if (pendingWhiteInRef.current) {
+            return;
+          }
+          pendingWhiteInRef.current = true;
+          clearOverlayObserver();
+
+          const checkOverlay = () => {
+            if (isCompatibilityOverlayActive()) {
+              return;
+            }
+            clearOverlayObserver();
+            pendingWhiteInRef.current = false;
+            const pendingPosition = pendingWhiteInPositionRef.current ?? position;
+            pendingWhiteInPositionRef.current = null;
+            startWhiteInNow(pendingPosition);
+          };
+
+          overlayObserverRef.current = new MutationObserver(checkOverlay);
+          overlayObserverRef.current.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class']
+          });
+          checkOverlay();
+          return;
+        }
+
+        startWhiteInNow(position);
       }
     } catch (e) {
       console.warn('Error checking sessionStorage for needsWhiteIn', e);
@@ -832,6 +887,12 @@ export const useCursor = (
       if (whiteOverlayAnimationRef.current) {
         cancelAnimationFrame(whiteOverlayAnimationRef.current);
       }
+      if (overlayObserverRef.current) {
+        overlayObserverRef.current.disconnect();
+        overlayObserverRef.current = null;
+      }
+      pendingWhiteInRef.current = false;
+      pendingWhiteInPositionRef.current = null;
     };
   }, []);
 

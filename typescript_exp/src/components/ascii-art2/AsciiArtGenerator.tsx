@@ -433,6 +433,8 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         // Not from navigation, handle it here
         contentStateRef.current.needsWhiteIn = true;
         contentStateRef.current.whiteInStarted = false;
+      } else {
+        contentStateRef.current.needsWhiteIn = false;
       }
       
       setContentLoaded(true);
