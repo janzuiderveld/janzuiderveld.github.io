@@ -54,5 +54,5 @@ export const markCompatibilityMessageSeen = () => {
 export const COMPATIBILITY_MESSAGE = [
   'Please visit on desktop',
   'w/ a chromium based browser',
-  'for a smooth experience'
+  'for a frictionless experience'
 ].join('\n');

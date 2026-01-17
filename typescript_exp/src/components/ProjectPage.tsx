@@ -21,6 +21,7 @@ type ProjectVideoConfig = {
   alt: string;
   position?: 'above' | 'below';
   heightRatio?: number;
+  widthScale?: number;
   minHeight?: number;
   maxHeight?: number;
   gap?: number;
@@ -269,14 +270,28 @@ const ProjectPage = ({
       const nextPaddedBounds = { ...layout.paddedBounds };
       const aboveEntries = videoEntries.filter(entry => (entry.position ?? 'above') === 'above');
       const belowEntries = videoEntries.filter(entry => (entry.position ?? 'above') === 'below');
-      const frameWidth = heroBounds.maxX - heroBounds.minX + 1;
+      const baseFrameWidth = heroBounds.maxX - heroBounds.minX + 1;
+      const frameCenterX = Math.round((heroBounds.minX + heroBounds.maxX) / 2);
       let aboveEdge = heroBounds.minY;
       let belowEdge = heroBounds.maxY;
 
-      const applyBounds = (entry: typeof videoEntries[number], minY: number, frameHeight: number) => {
+      const getFrameWidth = (entry: typeof videoEntries[number]) => {
+        const widthScale = entry.widthScale ?? 1;
+        const safeScale = Number.isFinite(widthScale) && widthScale > 0 ? widthScale : 1;
+        return Math.max(1, Math.round(baseFrameWidth * safeScale));
+      };
+
+      const applyBounds = (
+        entry: typeof videoEntries[number],
+        minY: number,
+        frameHeight: number,
+        frameWidth: number
+      ) => {
+        const minX = frameCenterX - Math.floor(frameWidth / 2);
+        const maxX = minX + frameWidth - 1;
         const bounds: TextBounds = {
-          minX: heroBounds.minX,
-          maxX: heroBounds.maxX,
+          minX,
+          maxX,
           minY,
           maxY: minY + frameHeight - 1,
           fixed: heroBounds.fixed
@@ -291,10 +306,11 @@ const ProjectPage = ({
         const maxHeight = entry.maxHeight ?? DEFAULT_VIDEO_MAX_HEIGHT;
         const gap = entry.gap ?? DEFAULT_VIDEO_GAP;
         const offsetRows = entry.offsetRows ?? 0;
+        const frameWidth = getFrameWidth(entry);
         const targetHeight = Math.round(frameWidth * heightRatio);
         const frameHeight = Math.min(maxHeight, Math.max(minHeight, targetHeight));
         const minY = aboveEdge - gap - frameHeight + offsetRows;
-        applyBounds(entry, minY, frameHeight);
+        applyBounds(entry, minY, frameHeight, frameWidth);
         aboveEdge = minY;
       });
 
@@ -304,10 +320,11 @@ const ProjectPage = ({
         const maxHeight = entry.maxHeight ?? DEFAULT_VIDEO_MAX_HEIGHT;
         const gap = entry.gap ?? DEFAULT_VIDEO_GAP;
         const offsetRows = entry.offsetRows ?? 0;
+        const frameWidth = getFrameWidth(entry);
         const targetHeight = Math.round(frameWidth * heightRatio);
         const frameHeight = Math.min(maxHeight, Math.max(minHeight, targetHeight));
         const minY = belowEdge + gap + 1 + offsetRows;
-        applyBounds(entry, minY, frameHeight);
+        applyBounds(entry, minY, frameHeight, frameWidth);
         belowEdge = minY + frameHeight - 1;
       });
 

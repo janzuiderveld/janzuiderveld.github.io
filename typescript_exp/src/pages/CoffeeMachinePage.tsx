@@ -21,6 +21,7 @@ function CoffeeMachinePage() {
           embedSrc: VIMEO_COFFEE_SRC,
           alt: 'Coffee Machine video',
           position: 'above',
+          widthScale: 2.5,
           gap: 15
         },
         {
@@ -29,7 +30,8 @@ function CoffeeMachinePage() {
           alt: 'Het Nieuwe Instituut video',
           position: 'below',
           gap: 15,
-          heightRatio: 1.0,
+          heightRatio: 1.06,
+          widthScale: 1.5,
           maxHeight: 160,
           objectFit: 'contain',
           controls: true,
