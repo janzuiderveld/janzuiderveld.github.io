@@ -17,6 +17,13 @@ import {
   formatAwardsTable,
   mapAward
 } from '../utils/awards';
+import {
+  FALLBACK_PUBLICATIONS,
+  Publication,
+  SELECTED_PUBLICATIONS_PATH,
+  formatPublicationsTable,
+  mapPublication
+} from '../utils/publications';
 
 const CV_PATH = new URL('../assets/CV_minimal_NOV25.pdf', import.meta.url).href;
 
@@ -34,6 +41,7 @@ const getViewportSize = () => {
 function AboutPage() {
   const [presentations, setPresentations] = useState<Presentation[]>(FALLBACK_PRESENTATIONS);
   const [awards, setAwards] = useState<Award[]>(FALLBACK_AWARDS);
+  const [publications, setPublications] = useState<Publication[]>(FALLBACK_PUBLICATIONS);
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [{ width: windowWidth, height: windowHeight }, setWindowSize] = useState(getViewportSize);
@@ -113,6 +121,36 @@ function AboutPage() {
         console.error('Failed to load awards CSV', error);
       });
 
+    // Load publications
+    loadCsv(SELECTED_PUBLICATIONS_PATH)
+      .then(records => {
+        if (!isMounted) {
+          return;
+        }
+        const parsed = records
+          .map(mapPublication)
+          .filter((item): item is Publication => Boolean(item));
+
+        if (parsed.length) {
+          setPublications(current => {
+            const sameLength = current.length === parsed.length;
+            const sameContent = sameLength && current.every((entry, index) => (
+              entry.year === parsed[index].year &&
+              entry.title === parsed[index].title &&
+              entry.titleNarrow === parsed[index].titleNarrow &&
+              entry.venue === parsed[index].venue &&
+              entry.venueNarrow === parsed[index].venueNarrow &&
+              entry.url === parsed[index].url
+            ));
+
+            return sameContent ? current : parsed;
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load publications CSV', error);
+      });
+
     return () => {
       isMounted = false;
     };
@@ -159,6 +197,7 @@ function AboutPage() {
 
     const presentationsTableText = formatPresentationsTable(presentations, isNarrow, maxTableWidth);
     const awardsTableText = formatAwardsTable(awards, isNarrow, awardsMaxWidth);
+    const publicationsTableText = formatPublicationsTable(publications, isNarrow, maxTableWidth);
 
     const presentationsDrip = [
 '⋰⋱⋰⋱⋰⋱⋰⋱⋰⋱⋰⋱',
@@ -179,8 +218,17 @@ function AboutPage() {
       '==SELECTED AWARDS=='
     ].join('\n');
 
+    const publicationsDrip = [
+      '–––––––––––––––––––––',
+      '–––––––––––––––––––––',
+      '–––––––––––––––––––––',
+      // '',
+      '==SELECTED PUBLICATIONS=='
+    ].join('\n');
+
     const presentationsBlobText = [presentationsDrip, presentationsTableText, '[[ALL PRESENTATIONS]](#/presentations)'].join('\n\n');
     const awardsBlobText = [awardsDrip, awardsTableText].join('\n');
+    const publicationsBlobText = [publicationsDrip, publicationsTableText].join('\n');
 
     const subtitleXOffsetPercent = 0;
     const bioXOffsetPercent = 0;
@@ -193,7 +241,7 @@ function AboutPage() {
       'Aliveness is not explainable. It\'s felt. We don\’t perceive aliveness by inspecting what something is made of. We infer it from how it behaves: actions that seem directed, responses that carry personality, behaviour that feels authentic. The moment something seems to want, the category shifts.',
       
       '',
-      'Traditional computer interfaces break that inference. A screen announces "this is a computer," and that label frames all behaviour as mechanical output. Aliveness is ruled out before interaction begins. This frame holds because the internal processes of digital systems are hard to grasp; we expect anything, so nothing surprises.',
+      'Traditional interfaces to smart technology break that inference. A screen announces "this is a computer," and that label frames all behaviour as mechanical output. Aliveness is ruled out before interaction begins. This frame holds because the internal processes of digital systems are hard to grasp; we expect anything, so nothing surprises.',
       '',
       'Our experiments subvert expected utility, turning familiar tools feral. A photocopier that stops copying to collaborate on your drawings, a camera that narrates your movements like a wildlife documentary. By embodying intelligence in physical technology, we bypass the "just a computer" frame. Sometimes, this results in interactions that slip past logic and create an emotional connection.',
       '',
@@ -296,6 +344,19 @@ function AboutPage() {
         anchorOffsetY: 4,
         maxWidthPercent: tableMaxWidthPercent,
         alignment: 'center'
+      },
+      {
+        name: 'publications-blob',
+        text: publicationsBlobText,
+        x: 0,
+        y: 0,
+        centered: true,
+        fixed: false,
+        anchorTo: 'awards-blob',
+        anchorPoint: 'bottomCenter',
+        anchorOffsetY: 4,
+        maxWidthPercent: tableMaxWidthPercent,
+        alignment: 'center'
       }
     ];
 
@@ -303,7 +364,7 @@ function AboutPage() {
       setTextContent(textItems);
       setIsLoading(false);
     }, 50);
-  }, [windowWidth, windowHeight, presentations, awards]);
+  }, [windowWidth, windowHeight, presentations, awards, publications]);
 
   return (
     <div style={{

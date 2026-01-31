@@ -1,4 +1,5 @@
-year,title,title_narrow,venue,venue_narrow
-2021,Towards Lightweight Controllable Audio Synthesis with Conditional Implicit Neural Representations,Lightweight Audio Synthesis with PCINRs,NeurIPS ML4CD Workshop,NeurIPS ML4CD
-
-
+year,title,title_narrow,venue,venue_narrow,url
+2026,Beyond Divergent Creativity: A Human-Based Evaluation of Creativity in Large Language Models, A Human-Based Evaluation of Creativity in Large Language Models, EACL, EACL, https://arxiv.org/abs/2601.20546
+2023,Unraveling Artificial Creativity, Unraveling Artificial Creativity, Royal Conservatoire The Hague, Royal Conservatoire The Hague, /docs/Jan_Thesis_MMu.pdf
+2022,Style-Content Disentanglement in Language-Image Pretraining Representations for Zero-Shot Sketch-to-Image Synthesis,Language-Image Pretraining Representations for Sketch-to-Image,Arxiv,Arxiv, https://arxiv.org/pdf/2206.01661
+2021,Towards Lightweight Controllable Audio Synthesis with Conditional Implicit Neural Representations,Lightweight Audio Synthesis with PCINRs,NeurIPS ML4CD Workshop,NeurIPS ML4CD, https://arxiv.org/pdf/2111.08462

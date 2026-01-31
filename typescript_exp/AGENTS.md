@@ -77,3 +77,5 @@ NODE
 - Components and pages use PascalCase filenames (e.g., `CameraPage.tsx`); hooks live under `src/components` as `useThing.ts`.
 - Keep router-visible paths defined in `App.tsx`; mirror route names in folder names.
 - Run `npm run lint` before committing; it enforces React Hooks rules and import ordering.
+
+ALWAYS UPDATE THIS FILE WHEN PROJECT GUIDELINES CHANGE, OR YOU LEARN NEW THINGS THAT SHOULD BE DOCUMENTED FOR FUTURE CONTRIBUTORS.

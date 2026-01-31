@@ -94,7 +94,6 @@ const ABOUT_BOX_LINES = [
 ];
 const TITLE_TO_SUBTITLE_OFFSET_Y = -BLOB_PADDING + 0;
 // const TITLE_TO_SUBTITLE_OFFSET_Y = -BLOB_PADDING + 4;
-const SUBTITLE_TO_UPCOMING_OFFSET_Y = -BLOB_PADDING + 4;
 // const SUBTITLE_TO_UPCOMING_OFFSET_Y = -BLOB_PADDING + 6;
 const ABOUT_TO_UPCOMING_OFFSET_Y = 3;
 
@@ -230,12 +229,8 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
   const introRippleScheduledRef = useRef(false);
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(FALLBACK_EXHIBITIONS);
 
-  // Define the threshold for switching layouts based on aspect ratio (width/height)
-  const ASPECT_RATIO_THRESHOLD = 2; // Switch to narrow layout if width < height
-  
-  // Calculate aspect ratio at component level
-  const aspectRatio = windowHeight > 0 ? windowWidth / windowHeight : 1; 
-  const isNarrow = aspectRatio < ASPECT_RATIO_THRESHOLD;
+  // Always use the stacked (narrow) layout.
+  const isNarrow = true;
 
   useEffect(() => {
     if (!isNarrow) {
@@ -404,128 +399,78 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
 
         let textItems: TextContentItem[] = [];
 
-	        if (isNarrow) {
-            const titleOffsetY = 50 + narrowShiftRows;
-	          // --- Narrow Layout (Anchored - Portrait/Tall Viewport) ---
-	          // Title is the first element, positioned near the top center
-	          textItems = [
-	            { name: "title", text: "WARANA>", preRenderedAscii: HOME_TITLE_ASCII, x: 0, y: titleOffsetY, centered: true, fontName: 'ascii' },
-	            {
-	              name: 'subtitle',
-	              text: HOME_SUBTITLE,
-              x: 0,
-              y: 0,
-              centered: true,
-              anchorTo: 'title',
-              anchorPoint: 'bottomCenter',
-              anchorOffsetY: TITLE_TO_SUBTITLE_OFFSET_Y,
-              alignment: 'center',
-              maxWidthPercent: 90
-            },
-            // Anchor the about box below the center of "title"
-            ...ABOUT_BOX_LINES.map(line => {
-              const isCenterLine = line.name === 'about';
-              return {
-                name: line.name,
-                text: line.text,
-                x: 0,
-                y: 0,
-                centered: true,
-                anchorTo: isCenterLine ? 'title' : 'about',
-                anchorPoint: 'center' as const,
-                anchorOffsetY: isCenterLine ? 50 : line.offsetY,
-                alignment: 'center' as const,
-                maxWidthPercent: 80
-              };
-            }),
-            // Anchor "upcoming" below the center of the about box
-            { name: "upcoming", text: upcomingText, x: 0, y: 0, centered: true, anchorTo: "about-burst-bottom", anchorPoint: 'center' as const, anchorOffsetY: ABOUT_TO_UPCOMING_OFFSET_Y, alignment: "center" as const, maxWidthPercent: 80 },
-             // Add individual works anchored one after another, below the center of the previous one
-            ...works.map((work, index) => {
-              const anchorTo = index === 0 ? "upcoming" : works[index - 1].name;
-              const isFirstWork = index === 0;
-              return {
-                name: work.name,
-                text: work.title,
-                centered: true,
-                x: Math.random() * 20 - 10, // Keep random x position between -10 and 10
-                y: 0,
-                anchorTo: anchorTo,
-                anchorPoint: isFirstWork ? 'bottomRight' as const : 'center' as const, // Anchor to bottom of upcoming text
-                anchorOffsetY: isFirstWork ? 0 : 15, // Larger gaps for Safari mobile rendering
-                alignment: "center" as const,
-                isTitle: false,
-                useSmallFont: true
-              };
-            }),
-            // // Add a spacer at the end to ensure Safari recognizes there's scrollable space beyond the last item
-            // { 
-            //   name: "spacer", 
-            //   text: "\n\n\n\n\n\n\n\n\n\n.", // Multiline spacer to extend content height in portrait
-            //   x: 0, 
-            //   y: 0, 
-            //   centered: true, 
-            //   anchorTo: works[works.length - 1].name, 
-            //   anchorPoint: 'center' as const, 
-            //   anchorOffsetY: 60, 
-            //   alignment: "center" as const 
-            // }
-          ];
-
-	        } else {
-	          // --- Wide Layout (Absolute Positioning - Landscape/Wide Viewport) ---
-	           textItems = [
-	            { name: 'title', text: "WARANA>", preRenderedAscii: HOME_TITLE_ASCII, x: 0, y: 15, centered: true, fontName: 'ascii'}, // Adjusted y position slightly for title
-	            {
-	              name: 'subtitle',
-	              text: HOME_SUBTITLE,
-              x: 0,
-              y: 0,
-              centered: true,
-              anchorTo: 'title',
-              anchorPoint: 'bottomCenter',
-              anchorOffsetY: TITLE_TO_SUBTITLE_OFFSET_Y,
-              alignment: 'center',
-              maxWidthPercent: 90
-            },
-            {
-              text: upcomingText,
-              x: 0,
-              y: 0,
-              isTitle: false,
-              centered: true,
-              anchorTo: 'subtitle',
-              anchorPoint: 'bottomCenter',
-              anchorOffsetY: SUBTITLE_TO_UPCOMING_OFFSET_Y,
-              maxWidthPercent: 45,
-              alignment: "center" as const
-            },
-            ...ABOUT_BOX_LINES.map(line => ({
+        const titleOffsetY = 50 + narrowShiftRows;
+        // --- Narrow Layout (Anchored - Portrait/Tall Viewport) ---
+        // Title is the first element, positioned near the top center
+        textItems = [
+          { name: "title", text: "WARANA>", preRenderedAscii: HOME_TITLE_ASCII, x: 0, y: titleOffsetY, centered: true, fontName: 'ascii' },
+          {
+            name: 'subtitle',
+            text: HOME_SUBTITLE,
+            x: 0,
+            y: 0,
+            centered: true,
+            anchorTo: 'title',
+            anchorPoint: 'bottomCenter',
+            anchorOffsetY: TITLE_TO_SUBTITLE_OFFSET_Y,
+            alignment: 'center',
+            maxWidthPercent: 90
+          },
+          // Anchor the about box below the center of "title"
+          ...ABOUT_BOX_LINES.map(line => {
+            const isCenterLine = line.name === 'about';
+            return {
               name: line.name,
               text: line.text,
-              x: 60,
-              y: 10 + line.offsetY,
-              isTitle: false,
-              maxWidthPercent: 40,
-              alignment: "left" as const
-            })),
-            // { text: "", x: 50, y: 40, isTitle: false, centered: true }, // Empty spacer, might not be needed
-            // Add individual works as separate text items positioned around the page
-            ...works.map(work => ({
+              x: 0,
+              y: 0,
+              centered: true,
+              anchorTo: isCenterLine ? 'title' : 'about',
+              anchorPoint: 'center' as const,
+              anchorOffsetY: isCenterLine ? 50 : line.offsetY,
+              alignment: 'center' as const,
+              maxWidthPercent: 80
+            };
+          }),
+          // Anchor "upcoming" below the center of the about box
+          { name: "upcoming", text: upcomingText, x: 0, y: 0, centered: true, anchorTo: "about-burst-bottom", anchorPoint: 'center' as const, anchorOffsetY: ABOUT_TO_UPCOMING_OFFSET_Y, alignment: "center" as const, maxWidthPercent: 80 },
+          // Add individual works anchored one after another, below the center of the previous one
+          ...works.map((work, index) => {
+            const anchorTo = index === 0 ? "upcoming" : works[index - 1].name;
+            const isFirstWork = index === 0;
+            return {
+              name: work.name,
               text: work.title,
-              x: work.x,
-              y: work.y,
+              centered: true,
+              x: Math.random() * 20 - 10, // Keep random x position between -10 and 10
+              y: 0,
+              anchorTo: anchorTo,
+              anchorPoint: isFirstWork ? 'bottomRight' as const : 'center' as const, // Anchor to bottom of upcoming text
+              anchorOffsetY: isFirstWork ? 0 : 15, // Larger gaps for Safari mobile rendering
+              alignment: "center" as const,
               isTitle: false,
               useSmallFont: true
-            }))
-          ];
-        }
+            };
+          }),
+          // // Add a spacer at the end to ensure Safari recognizes there's scrollable space beyond the last item
+          // {
+          //   name: "spacer",
+          //   text: "\n\n\n\n\n\n\n\n\n\n.", // Multiline spacer to extend content height in portrait
+          //   x: 0,
+          //   y: 0,
+          //   centered: true,
+          //   anchorTo: works[works.length - 1].name,
+          //   anchorPoint: 'center' as const,
+          //   anchorOffsetY: 60,
+          //   alignment: "center" as const
+          // }
+        ];
 
         // Small delay to ensure proper content height calculation on Safari
         setTimeout(() => {
           setTextContent(textItems);
           setIsLoading(false);
-        }, isNarrow ? 150 : 50); // Longer delay on mobile to help Safari calculate bounds
+        }, 150); // Longer delay to help Safari calculate bounds
 
       } catch (error) {
         console.error("Error generating text content:", error);

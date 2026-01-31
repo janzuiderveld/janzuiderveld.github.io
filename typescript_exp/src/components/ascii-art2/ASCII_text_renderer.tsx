@@ -58,11 +58,28 @@ function wrapText(text: string, maxWidth: number = 80): string[] {
     return text.split('\n');
   }
 
-  const shouldUseGraphemeWidths = Array.from(text).some(char => (char.codePointAt(0) ?? 0) > 127);
-  const measureWidth = (value: string) => (shouldUseGraphemeWidths ? countGraphemeCells(value) : value.length);
+  const protectLinkSpaces = (value: string) => value.replace(
+    /\[([\s\S]*?)\]\(([\s\S]*?)\)/g,
+    (_match, textPart: string, urlPart: string) => {
+      const protectedText = textPart.replace(/ /g, '\u00A0');
+      return `[${protectedText}](${urlPart})`;
+    }
+  );
+  const processedText = protectLinkSpaces(text);
+  const stripMarkupForMeasure = (value: string) => value
+    .replace(/\[([\s\S]*?)\]\(([\s\S]*?)\)/g, '$1')
+    .replace(/==([\s\S]*?)==/g, '$1')
+    .replace(/\/\/([\s\S]*?)\/\//g, '$1')
+    .replace(/&&([\s\S]*?)&&/g, '$1');
+  const measureSource = stripMarkupForMeasure(processedText);
+  const shouldUseGraphemeWidths = Array.from(measureSource).some(char => (char.codePointAt(0) ?? 0) > 127);
+  const measureWidth = (value: string) => {
+    const stripped = stripMarkupForMeasure(value);
+    return shouldUseGraphemeWidths ? countGraphemeCells(stripped) : stripped.length;
+  };
 
   const lines: string[] = [];
-  const paragraphs = text.split('\n');
+  const paragraphs = processedText.split('\n');
 
   // Process each paragraph
   for (const paragraph of paragraphs) {

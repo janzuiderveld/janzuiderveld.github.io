@@ -6,6 +6,7 @@ export type Publication = {
   titleNarrow?: string;
   venue: string;
   venueNarrow?: string;
+  url: string;
 };
 
 export const SELECTED_PUBLICATIONS_PATH = '/selected_publications.csv';
@@ -17,6 +18,7 @@ export const FALLBACK_PUBLICATIONS: Publication[] = [
     titleNarrow: 'Lightweight Audio Synthesis with PCINRs',
     venue: 'NeurIPS ML4CD Workshop',
     venueNarrow: 'NeurIPS ML4CD',
+    url: 'https://example.com/publication-1'
   },
 ];
 
@@ -24,6 +26,7 @@ export const mapPublication = (record: CsvRecord): Publication | null => {
   const year = record.year?.trim();
   const title = record.title?.trim();
   const venue = record.venue?.trim();
+  const url = record.url?.trim() || record.link?.trim() || '#';
 
   if (!year || !title || !venue) {
     return null;
@@ -33,6 +36,7 @@ export const mapPublication = (record: CsvRecord): Publication | null => {
     year,
     title,
     venue,
+    url,
   };
 
   const titleNarrow = record['title_narrow']?.trim();
@@ -133,6 +137,10 @@ export const formatPublicationsTable = (
     return 'No publications found.';
   }
 
+  const contentMaxWidth = typeof maxWidth === 'number'
+    ? Math.max(1, maxWidth - 2)
+    : undefined;
+
   const orderedSizes = entries.reduce(
     (acc, entry) => {
       const title = (isNarrow ? entry.titleNarrow : entry.title) || entry.title;
@@ -147,7 +155,7 @@ export const formatPublicationsTable = (
     { year: 4, title: 10, venue: 10 }
   );
 
-  const sizes = clampColumnWidths(orderedSizes, maxWidth);
+  const sizes = clampColumnWidths(orderedSizes, contentMaxWidth);
 
   const rows = entries.map(entry => {
     const title = (isNarrow ? entry.titleNarrow : entry.title) || entry.title;
@@ -160,12 +168,16 @@ export const formatPublicationsTable = (
     return `${yearText} | ${titleText} | ${venueText}`;
   });
 
-  const tableWidth = Math.max(...rows.map(r => r.length));
-  const paddedRows = rows.map(r => r.padEnd(tableWidth, ' '));
+  const contentWidth = Math.max(...rows.map(r => r.length));
+  const paddedRows = rows.map(r => r.padEnd(contentWidth, ' '));
+  const tableWidth = contentWidth + 2; // account for bracketed link text
   const topBorder = `┌${'─'.repeat(tableWidth)}┐`;
   const bottomBorder = `└${'─'.repeat(tableWidth)}┘`;
 
-  return [topBorder, ...paddedRows.map(r => `|${r}|`), bottomBorder].join('\n');
+  const linkedRows = paddedRows.map((row, index) => {
+    const url = entries[index]?.url || '#';
+    return `[${row}](${url})`;
+  });
+
+  return [topBorder, ...linkedRows.map(r => `|${r}|`), bottomBorder].join('\n');
 };
-
-
