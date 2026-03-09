@@ -17,6 +17,7 @@ import ShedrickPage from './pages/ShedrickPage';
 import ConversationsBeyondTheOrdinaryPage from './pages/ConversationsBeyondTheOrdinaryPage';
 import AboutPage from './pages/AboutPage';
 import AllPresentationsPage from './pages/AllPresentationsPage';
+import VendingMachineOrganoidPage from './pages/VendingMachineOrganoidPage';
 import CompatibilityOverlay from './components/CompatibilityOverlay';
 import {
   COMPATIBILITY_MESSAGE,
@@ -74,6 +75,8 @@ function App() {
       console.log(`🧭 App: About route detected - should render AboutPage component`);
     } else if (location.pathname === '/presentations') {
       console.log(`🧭 App: AllPresentations route detected - should render AllPresentationsPage component`);
+    } else if (location.pathname === '/vending' || location.pathname === '/vending-machine-organoid') {
+      console.log(`🧭 App: Vending Machine Organoid route detected - should render VendingMachineOrganoidPage component`);
     } else {
       console.log(`🧭 App: Unknown route "${location.pathname}" - will redirect to construction`);
     }
@@ -103,6 +106,8 @@ function App() {
         <Route path="/conversations-beyond-the-ordinary" element={<ConversationsBeyondTheOrdinaryPage />} />
 
         <Route path="/presentations" element={<AllPresentationsPage />} />
+        <Route path="/vending" element={<VendingMachineOrganoidPage />} />
+        <Route path="/vending-machine-organoid" element={<Navigate to="/vending" replace />} />
 
         {/* Construction page route */}
         <Route path="/construction" element={<ConstructionPage />} />

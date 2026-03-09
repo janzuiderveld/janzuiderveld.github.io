@@ -50,12 +50,34 @@ type VideoEntry =
 
 type ProjectPageProps = {
   title: string;
+  displayTitle?: string;
   text: string;
   asciiArt: string;
-  photo: { src: string; alt: string };
+  photo:
+    | { kind?: 'image'; src: string; alt: string }
+    | {
+      kind: 'embed';
+      embedSrc: string;
+      alt: string;
+    }
+    | {
+      kind: 'file';
+      videoSrc: string;
+      alt: string;
+      autoplay?: boolean;
+      loop?: boolean;
+      muted?: boolean;
+      controls?: boolean;
+      playsInline?: boolean;
+      objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+    };
   align: PhotoAlign;
+  photoObjectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
   backHref?: string;
   photoVideos?: ProjectVideoConfig[];
+  inlinePhotoLinkLabel?: string;
+  showHero?: boolean;
+  photoAnchorName?: string;
 };
 
 const DEFAULT_VIDEO_HEIGHT_RATIO = 0.35;
@@ -83,18 +105,27 @@ const downsampleAsciiArt = (art: string, factor: number) => {
 
 const ProjectPage = ({
   title,
+  displayTitle,
   text,
   asciiArt,
   photo,
   align,
+  photoObjectFit = 'cover',
   backHref = '#/',
-  photoVideos
+  photoVideos,
+  inlinePhotoLinkLabel,
+  showHero = true,
+  photoAnchorName
 }: ProjectPageProps) => {
   const location = useLocation();
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const heroName = 'hero';
+  const inlinePhotoLinkName = 'inline-photo-link';
   const videoAnchorName = `${heroName}-video`;
+  const renderedTitle = displayTitle ?? title;
+  const bodyAnchorName = inlinePhotoLinkLabel ? inlinePhotoLinkName : 'title';
+  const resolvedPhotoAnchorName = photoAnchorName ?? (showHero ? heroName : 'text');
   const photoHref = useMemo(() => {
     const path = location.pathname || '/';
     const params = new URLSearchParams(location.search);
@@ -154,7 +185,7 @@ const ProjectPage = ({
   useEffect(() => {
     setIsLoading(true);
     const textItems: TextContentItem[] = [
-      { name: 'title', text: title, x: 0, y: 10, centered: true, fontName: 'blockAsciiDouble' },
+      { name: 'title', text: renderedTitle, x: 0, y: 10, centered: true, fontName: 'blockAsciiDouble' },
       { name: 'back', text: `[[<<<]](${backHref})`, x: 2, y: 4, fixed: true },
       {
         name: 'photo-link',
@@ -165,6 +196,20 @@ const ProjectPage = ({
         maxWidthPercent: 30,
         alignment: 'right'
       },
+      ...(inlinePhotoLinkLabel
+        ? [{
+          name: inlinePhotoLinkName,
+          text: `[[${inlinePhotoLinkLabel}]](${photoHref})`,
+          x: 0,
+          y: 0,
+          centered: true,
+          anchorTo: 'title' as const,
+          anchorPoint: 'bottomCenter' as const,
+          anchorOffsetY: 2,
+          alignment: 'center' as const,
+          maxWidthPercent: 50
+        }]
+        : []),
       {
         name: 'text',
         text: optimizedText,
@@ -173,21 +218,23 @@ const ProjectPage = ({
         centered: true,
         maxWidthPercent: IS_SAFARI ? 55 : 60,
         alignment: 'left',
-        anchorTo: 'title',
+        anchorTo: bodyAnchorName,
         anchorPoint: 'bottomCenter',
-        anchorOffsetY: 4
+        anchorOffsetY: inlinePhotoLinkLabel ? 3 : 4
       },
-      {
-        name: heroName,
-        text: title,
-        x: 0,
-        y: 0,
-        preRenderedAscii: optimizedAscii,
-        centered: true,
-        anchorTo: 'text',
-        anchorPoint: 'bottomCenter',
-        anchorOffsetY: -13
-      }
+      ...(showHero
+        ? [{
+          name: heroName,
+          text: renderedTitle,
+          x: 0,
+          y: 0,
+          preRenderedAscii: optimizedAscii,
+          centered: true,
+          anchorTo: 'text' as const,
+          anchorPoint: 'bottomCenter' as const,
+          anchorOffsetY: -13
+        }]
+        : [])
     ];
 
     const timeout = window.setTimeout(() => {
@@ -198,24 +245,74 @@ const ProjectPage = ({
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [backHref, heroName, optimizedAscii, optimizedText, photoHref, title]);
+  }, [
+    backHref,
+    bodyAnchorName,
+    heroName,
+    inlinePhotoLinkLabel,
+    optimizedAscii,
+    optimizedText,
+    photoHref,
+    renderedTitle,
+    showHero
+  ]);
 
   const photoItems = useMemo<PhotoLayerItem[]>(() => [
-    {
-      id: `${title}-main`,
-      anchorName: heroName,
-      lowSrc: photo.src,
-      highSrc: photo.src,
-      alt: photo.alt,
-      boundsSource: 'raw',
-      objectFit: 'cover',
-      offsetX: align.offsetX,
-      offsetY: align.offsetY,
-      scaleX: align.scaleX,
-      scaleY: align.scaleY,
-      stretchX: align.stretchX ?? 1,
-      stretchY: align.stretchY ?? 1
-    },
+    ...(
+      photo.kind === 'embed'
+        ? [{
+          id: `${title}-main`,
+          anchorName: resolvedPhotoAnchorName,
+          mediaType: 'video' as const,
+          kind: 'embed' as const,
+          embedSrc: photo.embedSrc,
+          alt: photo.alt,
+          boundsSource: 'raw' as const,
+          offsetX: align.offsetX,
+          offsetY: align.offsetY,
+          scaleX: align.scaleX,
+          scaleY: align.scaleY,
+          stretchX: align.stretchX ?? 1,
+          stretchY: align.stretchY ?? 1
+        }]
+        : photo.kind === 'file'
+          ? [{
+            id: `${title}-main`,
+            anchorName: resolvedPhotoAnchorName,
+            mediaType: 'video' as const,
+            kind: 'file' as const,
+            videoSrc: photo.videoSrc,
+            alt: photo.alt,
+            boundsSource: 'raw' as const,
+            objectFit: photo.objectFit ?? photoObjectFit,
+            autoplay: photo.autoplay,
+            loop: photo.loop,
+            muted: photo.muted,
+            controls: photo.controls,
+            playsInline: photo.playsInline,
+            offsetX: align.offsetX,
+            offsetY: align.offsetY,
+            scaleX: align.scaleX,
+            scaleY: align.scaleY,
+            stretchX: align.stretchX ?? 1,
+            stretchY: align.stretchY ?? 1
+          }]
+          : [{
+            id: `${title}-main`,
+            anchorName: resolvedPhotoAnchorName,
+            lowSrc: photo.src,
+            highSrc: photo.src,
+            alt: photo.alt,
+            boundsSource: 'raw' as const,
+            objectFit: photoObjectFit,
+            offsetX: align.offsetX,
+            offsetY: align.offsetY,
+            scaleX: align.scaleX,
+            scaleY: align.scaleY,
+            stretchX: align.stretchX ?? 1,
+            stretchY: align.stretchY ?? 1
+          }]
+    ),
     ...videoEntries.map(entry => (
       entry.kind === 'embed'
         ? {
@@ -248,9 +345,9 @@ const ProjectPage = ({
     align.scaleY,
     align.stretchX,
     align.stretchY,
-    heroName,
-    photo.alt,
-    photo.src,
+    photoObjectFit,
+    photo,
+    resolvedPhotoAnchorName,
     title,
     videoEntries
   ]);
@@ -261,8 +358,8 @@ const ProjectPage = ({
     }
 
     return (layout: { rawBounds: Record<string, TextBounds>; paddedBounds: Record<string, TextBounds> }) => {
-      const heroBounds = layout.rawBounds[heroName];
-      if (!heroBounds) {
+      const anchorBounds = layout.rawBounds[resolvedPhotoAnchorName];
+      if (!anchorBounds) {
         return layout;
       }
 
@@ -270,10 +367,10 @@ const ProjectPage = ({
       const nextPaddedBounds = { ...layout.paddedBounds };
       const aboveEntries = videoEntries.filter(entry => (entry.position ?? 'above') === 'above');
       const belowEntries = videoEntries.filter(entry => (entry.position ?? 'above') === 'below');
-      const baseFrameWidth = heroBounds.maxX - heroBounds.minX + 1;
-      const frameCenterX = Math.round((heroBounds.minX + heroBounds.maxX) / 2);
-      let aboveEdge = heroBounds.minY;
-      let belowEdge = heroBounds.maxY;
+      const baseFrameWidth = anchorBounds.maxX - anchorBounds.minX + 1;
+      const frameCenterX = Math.round((anchorBounds.minX + anchorBounds.maxX) / 2);
+      let aboveEdge = anchorBounds.minY;
+      let belowEdge = anchorBounds.maxY;
 
       const getFrameWidth = (entry: typeof videoEntries[number]) => {
         const widthScale = entry.widthScale ?? 1;
@@ -294,7 +391,7 @@ const ProjectPage = ({
           maxX,
           minY,
           maxY: minY + frameHeight - 1,
-          fixed: heroBounds.fixed
+          fixed: anchorBounds.fixed
         };
         nextRawBounds[entry.anchorName] = bounds;
         nextPaddedBounds[entry.anchorName] = bounds;
@@ -333,7 +430,7 @@ const ProjectPage = ({
         paddedBounds: nextPaddedBounds
       };
     };
-  }, [heroName, videoEntries]);
+  }, [resolvedPhotoAnchorName, videoEntries]);
 
   return (
     <div
@@ -366,10 +463,10 @@ const ProjectPage = ({
         <PhotoModeScene
           textContent={textContent}
           photoItems={photoItems}
-          asciiClickTargets={[heroName]}
+          asciiClickTargets={showHero ? [heroName] : []}
           autoEnterPhoto={autoEnterPhoto}
           centerOnLoad={autoEnterPhoto}
-          initialScrollTargetId={heroName}
+          initialScrollTargetId={resolvedPhotoAnchorName}
           layoutAugmenter={layoutAugmenter}
         />
       )}
