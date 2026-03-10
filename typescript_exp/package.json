@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "profile:animation": "node scripts/profile-animation.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -23,6 +24,9 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
+    "playwright": "^1.58.2",
+    "puppeteer-core": "^24.38.0",
+    "selenium-webdriver": "^4.41.0",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
     "vite": "^6.0.5"

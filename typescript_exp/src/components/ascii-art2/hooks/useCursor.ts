@@ -63,7 +63,6 @@ export const useCursor = (
         ...cursorRef.current,
         isInWindow: false
       };
-      setCursor(cursorRef.current);
     };
 
     const handleMouseEnter = () => {
@@ -71,7 +70,6 @@ export const useCursor = (
         ...cursorRef.current,
         isInWindow: true
       };
-      setCursor(cursorRef.current);
     };
     
     const handleMouseDown = (e: MouseEvent) => {
@@ -108,8 +106,6 @@ export const useCursor = (
         isActive: true,
         clickRipples: updatedRipples
       };
-      
-      setCursor(cursorRef.current);
     };
     
     const handleMouseUp = (e: MouseEvent) => {
@@ -119,7 +115,6 @@ export const useCursor = (
           ...cursorRef.current,
           isActive: false
         };
-        setCursor(cursorRef.current);
         return;
       }
       
@@ -165,8 +160,6 @@ export const useCursor = (
         clickRipples: updatedRipples
       };
       
-      setCursor(cursorRef.current);
-      
       // Reset mousedown tracking
       mouseDownInfo.current = null;
     };
@@ -205,8 +198,6 @@ export const useCursor = (
           ...cursorRef.current,
           clickRipples: updatedRipples
         };
-        
-        setCursor(cursorRef.current);
       }
     };
     
@@ -283,7 +274,6 @@ export const useCursor = (
       ...cursorRef.current,
       isActive: false
     };
-    setCursor(cursorRef.current);
   };
 
   // Helper function to update cursor position
@@ -312,16 +302,10 @@ export const useCursor = (
       whiteIn: cursorRef.current.whiteIn,
       whiteOverlay: cursorRef.current.whiteOverlay
     };
-    
-    if (performance.now() % 100 < MOUSE_MOVE_THROTTLE) {
-      setCursor(cursorRef.current);
-    }
   };
 
   // Function to activate the white overlay
   const activateWhiteOverlay = () => {
-    console.log('🌟 Activating white overlay');
-    
     // Create white overlay state
     const newOverlay: WhiteOverlayState = {
       active: true,
@@ -391,15 +375,12 @@ export const useCursor = (
             fadeInComplete: true
           }
         };
-        setCursor({...cursorRef.current});
       }
     }, 100);
   };
   
   // Function to deactivate the white overlay
   const deactivateWhiteOverlay = () => {
-    console.log('🌟 Deactivating white overlay');
-    
     // Clear session storage
     try {
       sessionStorage.removeItem('whiteOverlayActive');
@@ -452,8 +433,6 @@ export const useCursor = (
     position: { x: number; y: number },
     options?: { startProgress?: number }
   ) => {
-    console.log('🌟 Starting white-in effect');
-    
     // Before starting the white-in effect, ensure the cursor position is initialized
     // This allows the background animation to properly display with the mouse "in the window"
     // Convert from normalized coordinates to grid coordinates
@@ -470,9 +449,6 @@ export const useCursor = (
         normalized: position,
         isInWindow: true, // Critical for background animation
       };
-      
-      // Update cursor state immediately
-      setCursor({...cursorRef.current});
     }
     
     clearWhiteOverlayArtifacts();
@@ -546,8 +522,6 @@ export const useCursor = (
         }
       };
       
-      setCursor({...cursorRef.current});
-      
       // Check if we need to deactivate the white overlay
       // Deactivate when progress is below 95% (first 5% of animation)
       if (progress < 0.95 && cursorRef.current.whiteOverlay?.active) {
@@ -556,7 +530,6 @@ export const useCursor = (
       
       // If the white-in is complete, clean up
       if (progress <= 0) {
-        console.log('✅ White-in complete');
         if (whiteInTimeoutRef.current) {
           clearTimeout(whiteInTimeoutRef.current);
           whiteInTimeoutRef.current = null;
@@ -580,8 +553,6 @@ export const useCursor = (
 
   // Function to simulate a mouse click at a specific position to trigger ripple effect
   const simulateClick = (position: { x: number; y: number }) => {
-    console.log('🖱️ Simulating click at position:', position);
-    
     if (!size.width || !size.height || !textRef.current) return;
     
     // Convert normalized coordinates to pixel coordinates
@@ -613,8 +584,6 @@ export const useCursor = (
       isInWindow: true, // Ensure this flag is set for the animation
       normalized: position
     };
-    
-    setCursor(cursorRef.current);
   };
 
   // Function to start a whiteout effect
@@ -623,8 +592,6 @@ export const useCursor = (
     targetUrl?: string,
     options?: { onComplete?: () => void; allowWhiteOverlay?: boolean; duration?: number }
   ) => {
-    console.log('🌟 Starting whiteout effect to:', targetUrl);
-    
     // Create a fresh whiteout object without carrying over any previous state
     const newWhiteout = {
       active: true,
@@ -664,7 +631,6 @@ export const useCursor = (
             justStarted: false
           }
         };
-        setCursor({...cursorRef.current});
       }
     }, 100);
   };
@@ -688,8 +654,6 @@ export const useCursor = (
         }
       };
       
-      setCursor({...cursorRef.current});
-      
       // Check if we need to activate the white overlay
       // Activate when progress is above 95% (final 5% of animation)
       if (progress > 0.95 && whiteout.allowWhiteOverlay !== false && !whiteout.onComplete && !cursorRef.current.whiteOverlay?.active) {
@@ -699,7 +663,6 @@ export const useCursor = (
       // If the whiteout is complete, navigate to the target URL
       if (progress >= 1) {
         if (whiteout.onComplete) {
-          console.log('✅ Whiteout complete, running callback');
           cursorRef.current = {
             ...cursorRef.current,
             whiteout: null,
@@ -712,7 +675,6 @@ export const useCursor = (
 
         const targetUrl = whiteout.targetUrl;
         if (!targetUrl) {
-          console.log('⚠️ Whiteout complete with no target URL');
           cursorRef.current = {
             ...cursorRef.current,
             whiteout: null
@@ -720,9 +682,6 @@ export const useCursor = (
           setCursor({ ...cursorRef.current });
           return;
         }
-
-        console.log('✅ Whiteout complete, navigating to:', targetUrl);
-
         // Store a flag in sessionStorage to indicate we need a white-in on the next page
         try {
           sessionStorage.setItem('needsWhiteIn', 'true');
@@ -753,7 +712,6 @@ export const useCursor = (
     try {
       const overlayActive = sessionStorage.getItem('whiteOverlayActive');
       if (overlayActive === 'true') {
-        console.log('😎 Restoring white overlay from previous page');
         // Reactivate the overlay
         createWhiteOverlayElement();
         

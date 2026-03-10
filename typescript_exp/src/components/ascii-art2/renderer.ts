@@ -10,6 +10,7 @@ import {
 import { 
   TextPositionCacheResult, 
   BlobGridCache,
+  BlobCachePlane,
   CursorState
 } from './types';
 
@@ -139,6 +140,35 @@ const encodeCacheKey = (x: number, y: number, scrolledY: number): number => {
   return ((scrolledY & 0xfff) << 24) | ((y & 0xfff) << 12) | (x & 0xfff);
 };
 
+const readBlobCell = (
+  plane: BlobCachePlane,
+  x: number,
+  y: number
+): number => {
+  if (!plane.grid.length || plane.width <= 0 || plane.height <= 0) {
+    return 0;
+  }
+
+  const localX = x - plane.startX;
+  const localY = y - plane.startY;
+
+  if (localX < 0 || localX >= plane.width || localY < 0 || localY >= plane.height) {
+    return 0;
+  }
+
+  const gridX = (localX / BLOB_CACHE_GRID_SIZE) | 0;
+  const gridY = (localY / BLOB_CACHE_GRID_SIZE) | 0;
+  const cellIndex = gridY * plane.cacheGridWidth + gridX;
+  const cellGrid = cellIndex >= 0 && cellIndex < plane.grid.length ? plane.grid[cellIndex] : null;
+  if (!cellGrid) {
+    return 0;
+  }
+
+  const localCellX = localX % BLOB_CACHE_GRID_SIZE;
+  const localCellY = localY % BLOB_CACHE_GRID_SIZE;
+  return cellGrid[localCellY * BLOB_CACHE_GRID_SIZE + localCellX];
+};
+
 export const calculateCharacter = (
   x: number,
   y: number,
@@ -170,8 +200,8 @@ export const calculateCharacter = (
   const textGrid = textPositionCache.grid;
   const textGridCols = textPositionCache.gridCols;
   const textOffsetY = textPositionCache.offsetY;
-  const cache = blobGridCache;
-  const cacheGridWidth = cache.cacheGridWidth;
+  const fixedCache = blobGridCache.fixed;
+  const scrollCache = blobGridCache.scroll;
   const safeCols = cols || 1;
   const safeRows = rows || 1;
   const precomputedData = precomputed && precomputed.cols === cols && precomputed.rows === rows ? precomputed : null;
@@ -341,69 +371,16 @@ export const calculateCharacter = (
     return SPACE;
   }
 
-  // -- BLOB LOOKUP with coordinate caching --
-  const localX = x - cache.startX;
-  const localYFixed = y - cache.startY;
-  const localYScrolled = y + scrolledY - cache.startY;
-  
-  // Cache boundary checks
   let cellValue = 0;
-  
-  // Important: Only check for fixed blobs if we have a fixed character
-  // or for scrolled blobs if we have a scrolled character
-  // This prevents duplicate blobs from appearing during scrolling
-  
-  // If we have a fixed character at this position, check for fixed blobs
+
   if (fixedChar?.fixed) {
-    if (localX >= 0 && localX < cache.width && localYFixed >= 0 && localYFixed < cache.height) {
-      // Use bitwise operations for integer division and modulo
-      const gridX = (localX / BLOB_CACHE_GRID_SIZE) | 0;
-      const gridY = (localYFixed / BLOB_CACHE_GRID_SIZE) | 0;
-      const cellIndex = gridY * cacheGridWidth + gridX;
-      const cellGrid = cellIndex >= 0 && cellIndex < cache.grid.length ? cache.grid[cellIndex] : null;
-      
-      if (cellGrid) {
-        const localCellX = localX % BLOB_CACHE_GRID_SIZE;
-        const localCellY = localYFixed % BLOB_CACHE_GRID_SIZE;
-        const index = localCellY * BLOB_CACHE_GRID_SIZE + localCellX;
-        cellValue = cellGrid[index];
-      }
-    }
-  }
-  // If we have a scrolled character at this position, check for scrolled blobs
-  else if (scrolledChar && !scrolledChar.fixed) {
-    if (localX >= 0 && localX < cache.width && localYScrolled >= 0 && localYScrolled < cache.height) {
-      // Use bitwise operations for integer division and modulo
-      const gridX = (localX / BLOB_CACHE_GRID_SIZE) | 0;
-      const gridY = (localYScrolled / BLOB_CACHE_GRID_SIZE) | 0;
-      const cellIndex = gridY * cacheGridWidth + gridX;
-      const cellGrid = cellIndex >= 0 && cellIndex < cache.grid.length ? cache.grid[cellIndex] : null;
-      
-      if (cellGrid) {
-        const localCellX = localX % BLOB_CACHE_GRID_SIZE;
-        const localCellY = localYScrolled % BLOB_CACHE_GRID_SIZE;
-        const index = localCellY * BLOB_CACHE_GRID_SIZE + localCellX;
-        cellValue = cellGrid[index];
-      }
-    }
-  }
-  // FIX: Only check for background blobs in a single location, not both fixed and scrolled
-  // This prevents the duplicated blob effect during scrolling
-  else {
-    // Only check for blobs in the fixed position
-    // This ensures that blobs without text won't appear to move in counter-direction
-    if (localX >= 0 && localX < cache.width && localYFixed >= 0 && localYFixed < cache.height) {
-      const gridX = (localX / BLOB_CACHE_GRID_SIZE) | 0;
-      const gridY = (localYFixed / BLOB_CACHE_GRID_SIZE) | 0;
-      const cellIndex = gridY * cacheGridWidth + gridX;
-      const cellGrid = cellIndex >= 0 && cellIndex < cache.grid.length ? cache.grid[cellIndex] : null;
-      
-      if (cellGrid) {
-        const localCellX = localX % BLOB_CACHE_GRID_SIZE;
-        const localCellY = localYFixed % BLOB_CACHE_GRID_SIZE;
-        const index = localCellY * BLOB_CACHE_GRID_SIZE + localCellX;
-        cellValue = cellGrid[index];
-      }
+    cellValue = readBlobCell(fixedCache, x, y);
+  } else if (scrolledChar && !scrolledChar.fixed) {
+    cellValue = readBlobCell(scrollCache, x, y + scrolledY);
+  } else {
+    cellValue = readBlobCell(fixedCache, x, y);
+    if (cellValue === 0) {
+      cellValue = readBlobCell(scrollCache, x, y + scrolledY);
     }
   }
   

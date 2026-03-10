@@ -140,6 +140,14 @@ const FALLBACK_EXHIBITIONS: Exhibition[] = [
   },
 ];
 
+const getStableScatterOffset = (key: string) => {
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = (hash * 31 + key.charCodeAt(index)) | 0;
+  }
+  return (Math.abs(hash) % 21) - 10;
+};
+
 const mapExhibition = (record: CsvRecord): Exhibition | null => {
   const title = record.title?.trim();
   const subtitle = record.subtitle?.trim();
@@ -227,6 +235,7 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
   const introRippleTimeoutRef = useRef<number | null>(null);
   const introRippleAttemptsRef = useRef(0);
   const introRippleScheduledRef = useRef(false);
+  const hasBootstrappedContentRef = useRef(false);
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(FALLBACK_EXHIBITIONS);
 
   // Always use the stacked (narrow) layout.
@@ -378,8 +387,12 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
   }, []);
 
   useEffect(() => {
+    let generationTimeout: number | null = null;
+
     const generateTextContent = () => {
-      setIsLoading(true);
+      if (!hasBootstrappedContentRef.current) {
+        setIsLoading(true);
+      }
       try {
         const upcomingText = formatUpcomingText(exhibitions);
 
@@ -444,7 +457,7 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
               name: work.name,
               text: work.title,
               centered: true,
-              x: Math.random() * 20 - 10, // Keep random x position between -10 and 10
+              x: getStableScatterOffset(work.name), // Preserve the scattered layout without re-randomizing on every regeneration
               y: 0,
               anchorTo: anchorTo,
               anchorPoint: isFirstWork ? 'bottomRight' as const : 'center' as const, // Anchor to bottom of upcoming text
@@ -469,10 +482,11 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
         ];
 
         // Small delay to ensure proper content height calculation on Safari
-        setTimeout(() => {
+        generationTimeout = window.setTimeout(() => {
           setTextContent(textItems);
+          hasBootstrappedContentRef.current = true;
           setIsLoading(false);
-        }, 150); // Longer delay to help Safari calculate bounds
+        }, hasBootstrappedContentRef.current ? 0 : 150); // Keep the initial white load but avoid re-entering it during layout corrections
 
       } catch (error) {
         console.error("Error generating text content:", error);
@@ -481,6 +495,11 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
     };
 
     generateTextContent();
+    return () => {
+      if (generationTimeout !== null) {
+        window.clearTimeout(generationTimeout);
+      }
+    };
   // Rerun this effect when window dimensions change or new exhibition data arrives
   }, [windowWidth, windowHeight, preRenderedArt, exhibitions, narrowShiftRows]);
 

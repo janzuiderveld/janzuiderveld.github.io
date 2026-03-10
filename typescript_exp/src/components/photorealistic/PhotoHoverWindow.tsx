@@ -150,6 +150,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
               width,
               height,
               objectFit: item.objectFit ?? 'cover',
+              filter: item.filter,
               transform: `scale(${stretchX}, ${stretchY})`,
               transformOrigin: 'center',
               opacity: 1

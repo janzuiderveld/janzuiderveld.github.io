@@ -31,6 +31,7 @@ type SupplementalMediaConfig = {
 type ProjectImageConfig = SupplementalMediaConfig & {
   src: string;
   alt: string;
+  filter?: string;
   objectFit?: ObjectFitMode;
 };
 
@@ -76,7 +77,7 @@ type ProjectPageProps = {
   text: string;
   asciiArt: string;
   photo:
-    | { kind?: 'image'; src: string; alt: string }
+    | { kind?: 'image'; src: string; alt: string; filter?: string }
     | {
       kind: 'embed';
       embedSrc: string;
@@ -351,6 +352,7 @@ const ProjectPage = ({
             lowSrc: photo.src,
             highSrc: photo.src,
             alt: photo.alt,
+            filter: photo.filter,
             boundsSource: 'raw' as const,
             objectFit: photoObjectFit,
             offsetX: align.offsetX,
@@ -367,6 +369,7 @@ const ProjectPage = ({
       lowSrc: entry.src,
       highSrc: entry.src,
       alt: entry.alt,
+      filter: entry.filter,
       boundsSource: 'raw' as const,
       objectFit: entry.objectFit ?? photoObjectFit
     })),

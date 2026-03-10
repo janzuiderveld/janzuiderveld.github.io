@@ -4,11 +4,6 @@ import { HashRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 
-// Clear debug logging
-console.log("🚀 main.tsx is initializing the application");
-console.log("📍 Initial URL:", window.location.href);
-console.log("📍 Initial pathname:", window.location.pathname);
-
 const SESSION_INIT_KEY = 'sessionInitialized';
 
 const ensureSessionWhiteIn = () => {

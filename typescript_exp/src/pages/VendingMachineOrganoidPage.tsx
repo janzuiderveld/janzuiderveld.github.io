@@ -15,7 +15,7 @@ function VendingMachineOrganoidPage() {
       displayTitle={DISPLAY_TITLE}
       text={vendingText}
       asciiArt={vendingAscii}
-      photo={{ src: vendingPlaceholder, alt: 'Vending Machine Organoid placeholder' }}
+      photo={{ src: vendingPlaceholder, alt: 'Vending Machine Organoid placeholder', filter: 'brightness(0)' }}
       align={VENDING_ALIGN_DEFAULT}
       photoObjectFit='contain'
       photoVideos={[

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { 
   CHAR_WIDTH, 
   CHAR_HEIGHT, 
@@ -20,7 +20,6 @@ export const useLinks = (
   disabled: boolean = false
 ) => {
   const linkPositionsRef = useRef<LinkPosition[]>([]);
-  const [, setOverlayRevision] = useState(0);
   const internalScrollingRef = useRef(false);
   const isScrollingRef = externalScrollingRef ?? internalScrollingRef;
 
@@ -98,8 +97,6 @@ export const useLinks = (
     if (disabled || !size.width || !size.height) {
       return;
     }
-
-    setOverlayRevision(prev => prev + 1);
   }, [disabled, size.height, size.width]);
 
   // Add direct DOM event listeners for more reliable click detection
@@ -115,8 +112,6 @@ export const useLinks = (
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-
-        console.log('Direct DOM proximity match:', proximityMatch.link.url);
         startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
         return;
       }
@@ -188,8 +183,6 @@ export const useLinks = (
         // Get approximate normalized position from window coordinates
         const x = (e.clientX / window.innerWidth) * 2 - 1;
         const y = (e.clientY / window.innerHeight) * 2 - 1;
-        
-        console.log('Direct DOM click handler found link:', url);
         startWhiteout({ x, y }, url);
       }
     };
@@ -205,8 +198,6 @@ export const useLinks = (
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-
-        console.log('Touch proximity match:', proximityMatch.link.url);
         startWhiteout(proximityMatch.normalized, proximityMatch.link.url);
         return;
       }
@@ -249,9 +240,6 @@ export const useLinks = (
         // Get approximate normalized position
         const x = (touch.clientX / window.innerWidth) * 2 - 1;
         const y = (touch.clientY / window.innerHeight) * 2 - 1;
-        
-        console.log('Touch handler found link:', url);
-        
         // Start whiteout immediately on touchstart
         startWhiteout({ x, y }, url);
       }
@@ -278,7 +266,6 @@ export const useLinks = (
     
     // Don't process clicks during active scrolling
     if (isScrollingRef.current) {
-      console.log('Ignoring click during scrolling');
       return;
     }
     
@@ -288,7 +275,6 @@ export const useLinks = (
     
     const proximityMatch = resolveClosestLink(e.clientX, e.clientY);
     if (proximityMatch) {
-      console.log(`Proximity-selected link: ${proximityMatch.link.url}`);
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -298,9 +284,6 @@ export const useLinks = (
     
     // Helper function to trigger the whiteout effect
     const triggerWhiteout = (url: string) => {
-      console.log('🔗 Link clicked, triggering whiteout to:', url);
-      console.log('Current scroll position:', currentScrollY, 'chars:', scrolledY);
-      
       // Completely stop event propagation and prevent default behavior
       e.preventDefault();
       e.stopPropagation();
@@ -323,7 +306,6 @@ export const useLinks = (
     if (target.hasAttribute('data-url')) {
       const url = target.getAttribute('data-url');
       if (url) {
-        console.log('Link clicked via data-url attribute:', url);
         return triggerWhiteout(url);
       }
     }
@@ -332,7 +314,6 @@ export const useLinks = (
     if (target.hasAttribute('data-href')) {
       const url = target.getAttribute('data-href');
       if (url) {
-        console.log('Link clicked via data-href attribute:', url);
         return triggerWhiteout(url);
       }
     }
@@ -341,7 +322,6 @@ export const useLinks = (
     if (target.hasAttribute('data-link-overlay')) {
       const url = target.getAttribute('data-url') || target.getAttribute('data-href');
       if (url) {
-        console.log('Link clicked via link overlay attribute:', url);
         return triggerWhiteout(url);
       }
     }
@@ -350,7 +330,6 @@ export const useLinks = (
     if (target.tagName === 'A' && target.getAttribute('href')) {
       const href = target.getAttribute('href');
       if (href) {
-        console.log('Link clicked via anchor element:', href);
         e.preventDefault();
         return triggerWhiteout(href);
       }
@@ -361,7 +340,6 @@ export const useLinks = (
     if (linkOverlay) {
       const url = linkOverlay.getAttribute('data-url') || linkOverlay.getAttribute('data-href');
       if (url) {
-        console.log('Link clicked via link overlay parent:', url);
         return triggerWhiteout(url);
       }
     }
@@ -371,20 +349,10 @@ export const useLinks = (
     const relativeX = e.clientX - rect.left;
     const relativeY = e.clientY - rect.top;
     
-    console.log("Click coordinates relative to text:", relativeX, relativeY);
-    
     const gridX = Math.floor(relativeX / CHAR_WIDTH);
     // For Safari, compensate the click Y position with the same offset logic
     // This aligns the detection with the visual position of the links
     const gridY = Math.floor(relativeY / CHAR_HEIGHT);
-    
-    // Calculate the actual grid Y position with current scroll
-    const adjustedGridY = gridY + scrolledY;
-    
-    console.log("Grid coordinates:", gridX, gridY, "Adjusted for scroll:", gridX, adjustedGridY);
-    if (IS_SAFARI) {
-      console.log("Safari detected - will apply proportional offset correction");
-    }
     
     // Use an even more generous hit detection area for better reliability
     const hitSlop = 7;
@@ -401,21 +369,13 @@ export const useLinks = (
       // For Safari, we need to adjust the link's Y position to match the click position
       const effectiveLinkY = IS_SAFARI ? (linkY + (safariOffset / CHAR_HEIGHT)) : linkY;
       
-      console.log(`Testing link ${link.url} at pos:`, link.startX, effectiveLinkY, "to", link.endX, effectiveLinkY);
-      if (IS_SAFARI) {
-        console.log(`Safari offset applied: ${safariOffset}px (${safariOffset / CHAR_HEIGHT} chars)`);
-      }
-      
       // Improved hit detection with greater tolerance and Safari adjustment
       if (gridX >= link.startX - hitSlop && 
           gridX <= link.endX + hitSlop && 
           Math.abs(gridY - effectiveLinkY) <= hitSlop) {
-        console.log('Link detected via coordinate check:', link.url);
         return triggerWhiteout(link.url);
       }
     }
-    
-    console.log("No link found at click position with current scroll:", scrolledY);
   }, [calculateSafariOffset, disabled, resolveClosestLink, size.height, size.width, textPositionCache.bounds, scrollOffsetRef, startWhiteout, textRef]);
 
   // Force update link overlays when scroll position changes

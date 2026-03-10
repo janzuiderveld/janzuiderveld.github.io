@@ -1,6 +1,6 @@
 // src/App.tsx
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useCallback, useState } from 'react';
 import './App.css'
 
 // Import page components from pages directory
@@ -27,11 +27,7 @@ import {
   markCompatibilityMessageSeen
 } from './utils/compatibility';
 
-// For debugging - log when App component renders
-console.log("App component rendering...");
-
 function App() {
-  const location = useLocation();
   const [showCompatibilityOverlay, setShowCompatibilityOverlay] = useState(() => {
     if (typeof window === 'undefined') {
       return false;
@@ -46,49 +42,6 @@ function App() {
     setShowCompatibilityOverlay(false);
   }, []);
   
-  // Log route changes to help debug
-  useEffect(() => {
-    console.log(`🧭 App: Route changed to "${location.pathname}"`);
-    console.log(`🧭 App: Full URL is "${window.location.href}"`);
-    
-    // Check which component should render based on path
-    if (location.pathname === '/') {
-      console.log(`🧭 App: Home route detected - should render HomePage component`);
-    } else if (location.pathname === '/camera') {
-      console.log(`🧭 App: Camera route detected - should render CameraPage component`);
-    } else if (location.pathname === '/coffee') {
-      console.log(`🧭 App: Coffee route detected - should render CoffeeMachinePage component`);
-    } else if (location.pathname === '/microwave') {
-      console.log(`🧭 App: Microwave route detected - should render MicrowavePage component`);
-    } else if (location.pathname === '/copy') {
-      console.log(`🧭 App: Copy route detected - should render CopyMachinePage component`);
-    } else if (location.pathname === '/fish') {
-      console.log(`🧭 App: Fish route detected - should render FishPage component`);
-    } else if (location.pathname === '/touching') {
-      console.log(`🧭 App: Touching Distance route detected - should render TouchingDistancePage component`);
-    } else if (location.pathname === '/lasers') {
-      console.log(`🧭 App: Lasers route detected - should render LasersPage component`);
-    } else if (location.pathname === '/shedrick') {
-      console.log(`🧭 App: Shedrick route detected - should render ShedrickPage component`);
-    } else if (location.pathname === '/conversations-beyond-the-ordinary') {
-      console.log(`🧭 App: Conversations route detected - should render ConversationsBeyondTheOrdinaryPage component`);
-    } else if (location.pathname === '/about') {
-      console.log(`🧭 App: About route detected - should render AboutPage component`);
-    } else if (location.pathname === '/presentations') {
-      console.log(`🧭 App: AllPresentations route detected - should render AllPresentationsPage component`);
-    } else if (location.pathname === '/vending' || location.pathname === '/vending-machine-organoid') {
-      console.log(`🧭 App: Vending Machine Organoid route detected - should render VendingMachineOrganoidPage component`);
-    } else if (
-      location.pathname === '/guide'
-      || location.pathname === '/audio-guide'
-      || location.pathname === '/personal-audio-guide'
-    ) {
-      console.log(`🧭 App: Personal Audio Guide route detected - should render PersonalAudioGuidePage component`);
-    } else {
-      console.log(`🧭 App: Unknown route "${location.pathname}" - will redirect to construction`);
-    }
-  }, [location]);
-
   return (
     <>
       <Routes>

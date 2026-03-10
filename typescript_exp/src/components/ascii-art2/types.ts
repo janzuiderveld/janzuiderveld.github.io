@@ -109,13 +109,18 @@ export interface SpatialGrid {
 /**
  * Blob Cache
  */
-export interface BlobGridCache {
+export interface BlobCachePlane {
   grid: (Uint8Array | null)[]; // Flat array of Uint8Array cells: index = gridY * cacheGridWidth + gridX
   startX: number;
   startY: number;
   width: number; // Width in characters
   height: number; // Height in characters
   cacheGridWidth: number; // Width of the grid of Uint8Array cells
+}
+
+export interface BlobGridCache {
+  fixed: BlobCachePlane;
+  scroll: BlobCachePlane;
 }
 
 /**

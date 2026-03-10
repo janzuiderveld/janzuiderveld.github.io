@@ -337,7 +337,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     scrollOffset, 
     setScrollOffset,
     scrollOffsetRef: scrollingOffsetRef,
-    checkScrollChunk, 
     isScrolling, 
     scrollVelocity 
   } = useScrolling(maxScroll, containerRef, () => {
@@ -443,7 +442,10 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     // If we have content and the blob cache is built
     if (
       Object.keys(textPositionCache.cache).length > 0 && 
-      Object.keys(blobGridCache.current.grid).length > 0 && 
+      (
+        blobGridCache.current.fixed.grid.length > 0
+        || blobGridCache.current.scroll.grid.length > 0
+      ) && 
       !contentLoaded
     ) {
       // If we're coming from a navigation (detected by sessionStorage),
@@ -689,7 +691,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   useEffect(() => {
     if (size.width && size.height) {
       needsRebuildRef.current = true;
-      buildBlobCache(scrollOffsetRef.current);
+      buildBlobCache();
     }
   }, [size, buildBlobCache]);
 
@@ -699,41 +701,16 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       needsRebuildRef.current = true;
       setTimeout(() => {
         if (needsRebuildRef.current) {
-          buildBlobCache(scrollOffsetRef.current);
+          buildBlobCache();
         }
       }, 0);
     }
   }, [textPositionCache, buildBlobCache]);
 
-  // Rebuild blob cache during scrolling
-  useEffect(() => {
-    if (pauseAnimation) {
-      return;
-    }
-    checkScrollChunk(() => {
-      needsRebuildRef.current = true;
-
-      if (rebuildCacheTimeoutRef.current) {
-        clearTimeout(rebuildCacheTimeoutRef.current);
-      }
-
-      buildBlobCache(scrollOffset);
-      scheduleOverlayUpdate();
-
-      const timeoutDelay = IS_SAFARI ? 140 : 80;
-      rebuildCacheTimeoutRef.current = window.setTimeout(() => {
-        if (needsRebuildRef.current) {
-          buildBlobCache(scrollOffset);
-          scheduleOverlayUpdate();
-        }
-      }, timeoutDelay);
-    });
-  }, [scrollOffset, buildBlobCache, checkScrollChunk, scheduleOverlayUpdate, pauseAnimation]);
-
   useEffect(() => {
     if (!pauseAnimation) {
       needsRebuildRef.current = true;
-      buildBlobCache(scrollOffsetRef.current);
+      buildBlobCache();
       scheduleOverlayUpdate();
     }
   }, [buildBlobCache, pauseAnimation, scheduleOverlayUpdate]);
@@ -900,13 +877,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     scheduleOverlayUpdate();
   }, [scrollOffset, scheduleOverlayUpdate]);
 
-  // Log the Safari offset parameters when they change
-  useEffect(() => {
-    if (IS_SAFARI) {
-      console.log(`Safari link offset parameters: base=${SAFARI_LINK_OFFSET_BASE}px, factor=${SAFARI_LINK_OFFSET_FACTOR}`);
-    }
-  }, []);
-
   // Create direct click handler on the container
   useEffect(() => {
     if (!containerRef.current || disableLinks) return;
@@ -943,8 +913,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         // Found a link - handle the click
         e.preventDefault();
         e.stopPropagation();
-        
-        console.log('Container click handler found link:', url);
         
         // Calculate normalized click position
         const rect = containerRef.current!.getBoundingClientRect();
@@ -1105,7 +1073,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
               
                 return (
                   <div 
-                    key={`link-${index}-${link.url}-${linkY}`}
+                    key={`link-${index}-${link.url}`}
                     data-href={link.url}
                     data-link-overlay="true"
                     data-url={link.url}
@@ -1172,8 +1140,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
                         }
                       }
                       
-                      console.log(`Proximity click: closest link is ${closestLink.url} (distance: ${closestDistance.toFixed(1)}px)`);
-                      
                       const normalizedX = (clickX / (size.width || 1)) * 2 - 1;
                       const normalizedY = (clickY / (size.height || 1)) * 2 - 1;
                       
@@ -1210,8 +1176,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
                           closestLink = candidateLink;
                         }
                       }
-                      
-                      console.log(`Proximity touch: closest link is ${closestLink.url} (distance: ${closestDistance.toFixed(1)}px)`);
                       
                       const normalizedX = (touchX / (size.width || 1)) * 2 - 1;
                       const normalizedY = (touchY / (size.height || 1)) * 2 - 1;

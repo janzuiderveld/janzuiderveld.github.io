@@ -6,6 +6,7 @@ type PhotoLayerBase = {
   id: string;
   anchorName: string;
   alt: string;
+  filter?: string;
   offsetX?: number;
   offsetY?: number;
   scaleX?: number;
@@ -166,6 +167,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     const isHighResLoaded = loadedHighRes.has(item.id);
     const shouldShowHighRes = showHighRes;
     const showLowRes = !shouldShowHighRes || !isHighResLoaded;
+    const lowFilter = ['blur(6px)', item.filter].filter(Boolean).join(' ');
     const lowStyle: React.CSSProperties = {
       position: 'absolute',
       inset: 0,
@@ -173,7 +175,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       height: '100%',
       objectFit: item.objectFit ?? 'cover',
       imageRendering: 'pixelated',
-      filter: 'blur(6px)',
+      filter: lowFilter,
       transform: `scale(${1.01 * stretchX}, ${1.01 * stretchY})`,
       transformOrigin: 'center',
       opacity: shouldShowHighRes && isHighResLoaded ? 0 : 1,
@@ -187,6 +189,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       width: '100%',
       height: '100%',
       objectFit: item.objectFit ?? 'cover',
+      filter: item.filter,
       transform: `scale(${stretchX}, ${stretchY})`,
       transformOrigin: 'center',
       opacity: shouldShowHighRes && isHighResLoaded ? 1 : 0,

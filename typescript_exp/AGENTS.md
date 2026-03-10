@@ -10,6 +10,7 @@
 - The app is served locally at `http://localhost:3000/`. Do not assume Vite defaults to `5173`; `vite.config.ts` pins the dev server to `3000`.
 - Routing uses `HashRouter`, so test routes as `http://localhost:3000/#/…`.
 - Always verify changes with Chrome DevTools MCP.
+- For repeatable animation/performance work, there is now a local harness at `npm run profile:animation`. It uses `puppeteer-core` against the system Chrome binary and writes screenshots to `tmp/animation-profiles/`.
 - Minimum verification pass:
   - Desktop viewport around `1280x720`.
   - Tall/mobile viewport around `900x1600`.
@@ -100,6 +101,7 @@
 - Keep route-visible changes registered in `src/App.tsx`.
 - Preserve the monochrome, light-background ASCII aesthetic unless the task is explicitly about changing the visual system.
 - Prefer adding new project pages through `ProjectPage` unless the experience truly needs a custom flow like `CameraPage`.
+- Keep homepage scatter offsets deterministic. Re-randomizing the anchored work positions during render/layout recalculation can destabilize tall-viewport layout correction and leave the route stuck on its white loading layer.
 - When you add or change a project page, verify both `#/slug` and `#/slug?photo=1`.
 - ASCII layout is fragile. After edits, check:
   - link overlays still line up with visible text
