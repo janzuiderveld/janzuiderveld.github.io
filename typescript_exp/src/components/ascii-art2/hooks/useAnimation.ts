@@ -36,8 +36,9 @@ export const useAnimation = (
   const lastFrameTimeRef = useRef<number>(0);
   const frameSkipRef = useRef(0);
   const precomputedRef = useRef<CharacterPrecomputation | null>(null);
-  const safariLastFrameRef = useRef(0);
-  const SAFARI_FRAME_INTERVAL = 1000 / 24;
+  const safariLastTickRef = useRef(0);
+  const safariFrameAccumulatorRef = useRef(0);
+  const SAFARI_FRAME_INTERVAL = 1000 / 60;
   const lastActiveRowsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const lastActiveColsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
 
@@ -171,16 +172,29 @@ export const useAnimation = (
 
     const animate = (timestamp: number) => {
       if (IS_SAFARI) {
-        const elapsedSinceSafariFrame = timestamp - safariLastFrameRef.current;
-        if (elapsedSinceSafariFrame < SAFARI_FRAME_INTERVAL) {
+        if (safariLastTickRef.current === 0) {
+          safariLastTickRef.current = timestamp;
+        }
+
+        const elapsedSinceSafariTick = timestamp - safariLastTickRef.current;
+        safariLastTickRef.current = timestamp;
+        safariFrameAccumulatorRef.current = Math.min(
+          safariFrameAccumulatorRef.current + Math.max(0, elapsedSinceSafariTick),
+          SAFARI_FRAME_INTERVAL * 2
+        );
+
+        if (safariFrameAccumulatorRef.current < SAFARI_FRAME_INTERVAL) {
           animationFrameId = requestAnimationFrame(animate);
           return;
         }
-        safariLastFrameRef.current = timestamp;
+
+        safariFrameAccumulatorRef.current -= SAFARI_FRAME_INTERVAL;
       }
 
-      if (timestamp - lastFrameTimeRef.current >= FRAME_DURATION) {
-        if (isScrolling.current) {
+      const frameDue = IS_SAFARI || timestamp - lastFrameTimeRef.current >= FRAME_DURATION;
+
+      if (frameDue) {
+        if (isScrolling.current && !IS_SAFARI) {
           frameSkipRef.current = (frameSkipRef.current + 1) % 3;
           if (frameSkipRef.current === 2) {
             animationFrameId = requestAnimationFrame(animate);
@@ -467,6 +481,8 @@ export const useAnimation = (
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      safariLastTickRef.current = 0;
+      safariFrameAccumulatorRef.current = 0;
       element.removeEventListener('click', handleLinkClick);
       document.head.removeChild(style);
     };

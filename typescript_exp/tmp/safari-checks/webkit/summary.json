@@ -1,0 +1,156 @@
+[
+  {
+    "scenario": "home-desktop-idle",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mode": "idle",
+    "pageFps": 60.2,
+    "avgPageFrameMs": 16.61,
+    "frames": 241,
+    "redrawFps": 60,
+    "avgRedrawMs": 16.66,
+    "redrawCount": 241,
+    "avgRedrawWriteMs": 0.361,
+    "maxRedrawWriteMs": 1,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 9569,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/home-desktop-idle.png"
+  },
+  {
+    "scenario": "home-desktop-scroll",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mode": "scroll",
+    "pageFps": 60.1,
+    "avgPageFrameMs": 16.64,
+    "frames": 241,
+    "redrawFps": 60,
+    "avgRedrawMs": 16.66,
+    "redrawCount": 241,
+    "avgRedrawWriteMs": 0.519,
+    "maxRedrawWriteMs": 1,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 9569,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/home-desktop-scroll.png"
+  },
+  {
+    "scenario": "coffee-desktop-idle",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mode": "idle",
+    "pageFps": 60.1,
+    "avgPageFrameMs": 16.65,
+    "frames": 241,
+    "redrawFps": 60,
+    "avgRedrawMs": 16.67,
+    "redrawCount": 241,
+    "avgRedrawWriteMs": 0.149,
+    "maxRedrawWriteMs": 1,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 9570,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/coffee-desktop-idle.png"
+  },
+  {
+    "scenario": "coffee-desktop-scroll",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mode": "scroll",
+    "pageFps": 60.1,
+    "avgPageFrameMs": 16.65,
+    "frames": 241,
+    "redrawFps": 60,
+    "avgRedrawMs": 16.67,
+    "redrawCount": 241,
+    "avgRedrawWriteMs": 0.166,
+    "maxRedrawWriteMs": 1,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 9570,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/coffee-desktop-scroll.png"
+  },
+  {
+    "scenario": "camera-desktop-idle",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mode": "idle",
+    "pageFps": 60.1,
+    "avgPageFrameMs": 16.65,
+    "frames": 241,
+    "redrawFps": 60,
+    "avgRedrawMs": 16.66,
+    "redrawCount": 241,
+    "avgRedrawWriteMs": 0.124,
+    "maxRedrawWriteMs": 1,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 9569,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/camera-desktop-idle.png"
+  },
+  {
+    "scenario": "camera-desktop-scroll",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "mode": "scroll",
+    "pageFps": 60.1,
+    "avgPageFrameMs": 16.63,
+    "frames": 241,
+    "redrawFps": 59.8,
+    "avgRedrawMs": 16.72,
+    "redrawCount": 240,
+    "avgRedrawWriteMs": 0.133,
+    "maxRedrawWriteMs": 1,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 9569,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/camera-desktop-scroll.png"
+  },
+  {
+    "scenario": "home-tall-idle",
+    "viewport": {
+      "width": 900,
+      "height": 1600
+    },
+    "mode": "idle",
+    "pageFps": 60,
+    "avgPageFrameMs": 16.68,
+    "frames": 240,
+    "redrawFps": 0,
+    "avgRedrawMs": 0,
+    "redrawCount": 0,
+    "avgRedrawWriteMs": 0,
+    "maxRedrawWriteMs": 0,
+    "longTaskCount": 0,
+    "longTaskMs": 0,
+    "preProbeInstalled": true,
+    "preExists": true,
+    "bodyTextLength": 0,
+    "screenshot": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/tmp/safari-checks/webkit/home-tall-idle.png"
+  }
+]

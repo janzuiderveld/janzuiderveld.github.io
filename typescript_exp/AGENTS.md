@@ -11,6 +11,13 @@
 - Routing uses `HashRouter`, so test routes as `http://localhost:3000/#/…`.
 - Always verify changes with Chrome DevTools MCP.
 - For repeatable animation/performance work, there is now a local harness at `npm run profile:animation`. It uses `puppeteer-core` against the system Chrome binary and writes screenshots to `tmp/animation-profiles/`.
+- Safari-family automation helpers now exist:
+  - `npm run safari:webkit` for Playwright WebKit
+  - `npm run safari:real` for real Safari through `safaridriver`
+  - `npm run safari:stp` for Safari Technology Preview through `safaridriver`
+- For Safari/WebKit animation work, trust the `<pre>` redraw metrics from `npm run safari:webkit`, not the raw page `requestAnimationFrame` count. The renderer intentionally self-throttles on Safari, so page `rAF` can still read ~60fps while visible ASCII redraws are lower.
+- Real Safari automation still needs one manual macOS step: `safaridriver --enable` (password prompt) and possibly `Develop > Allow Remote Automation` inside Safari.
+- `xctrace` is present on the machine but not usable until full Xcode is selected; Command Line Tools alone are not enough.
 - Minimum verification pass:
   - Desktop viewport around `1280x720`.
   - Tall/mobile viewport around `900x1600`.
