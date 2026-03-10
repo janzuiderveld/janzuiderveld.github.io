@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { getCurrentCharMetrics } from './ascii-art2/constants';
 import { TextBounds, TextContentItem } from './ascii-art2/types';
-import { IS_SAFARI } from './ascii-art2/constants';
+import type { FontName } from './ascii-art2/ASCII_text_renderer';
 import PhotoModeScene from './photorealistic/PhotoModeScene';
 import { PhotoLayerItem } from './photorealistic/PhotorealisticLayer';
 
@@ -14,24 +15,41 @@ type PhotoAlign = {
   stretchY?: number;
 };
 
-type ProjectVideoConfig = {
-  kind: 'embed' | 'file';
-  embedSrc?: string;
-  videoSrc?: string;
-  alt: string;
+type ObjectFitMode = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+
+type SupplementalMediaConfig = {
   position?: 'above' | 'below';
+  widthReference?: 'anchor' | 'page';
   heightRatio?: number;
   widthScale?: number;
   minHeight?: number;
   maxHeight?: number;
   gap?: number;
   offsetRows?: number;
+};
+
+type ProjectImageConfig = SupplementalMediaConfig & {
+  src: string;
+  alt: string;
+  objectFit?: ObjectFitMode;
+};
+
+type ProjectVideoConfig = SupplementalMediaConfig & {
+  kind: 'embed' | 'file';
+  embedSrc?: string;
+  videoSrc?: string;
+  alt: string;
   autoplay?: boolean;
   loop?: boolean;
   muted?: boolean;
   controls?: boolean;
   playsInline?: boolean;
-  objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+  objectFit?: ObjectFitMode;
+};
+
+type ImageEntry = ProjectImageConfig & {
+  anchorName: string;
+  id: string;
 };
 
 type VideoEntry =
@@ -51,6 +69,10 @@ type VideoEntry =
 type ProjectPageProps = {
   title: string;
   displayTitle?: string;
+  titleFontName?: FontName;
+  titleCalloutText?: string;
+  titleCalloutOffsetY?: number;
+  hashPathOverride?: string;
   text: string;
   asciiArt: string;
   photo:
@@ -69,14 +91,16 @@ type ProjectPageProps = {
       muted?: boolean;
       controls?: boolean;
       playsInline?: boolean;
-      objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+      objectFit?: ObjectFitMode;
     };
   align: PhotoAlign;
-  photoObjectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+  photoObjectFit?: ObjectFitMode;
   backHref?: string;
+  photoImages?: ProjectImageConfig[];
   photoVideos?: ProjectVideoConfig[];
   inlinePhotoLinkLabel?: string;
   showHero?: boolean;
+  heroAnchorOffsetY?: number;
   photoAnchorName?: string;
 };
 
@@ -85,36 +109,24 @@ const DEFAULT_VIDEO_MIN_HEIGHT = 10;
 const DEFAULT_VIDEO_MAX_HEIGHT = 60;
 const DEFAULT_VIDEO_GAP = 4;
 
-const downsampleAsciiArt = (art: string, factor: number) => {
-  if (factor <= 1) return art;
-
-  const lines = art.split('\n');
-  const sampledRows = lines.filter((_, rowIndex) => rowIndex % factor === 0);
-
-  const sampled = sampledRows.map(line => {
-    if (!line) return line;
-    let reduced = '';
-    for (let i = 0; i < line.length; i += factor) {
-      reduced += line[i] ?? ' ';
-    }
-    return reduced;
-  });
-
-  return sampled.join('\n');
-};
-
 const ProjectPage = ({
   title,
   displayTitle,
+  titleFontName = 'blockAsciiDouble',
+  titleCalloutText,
+  titleCalloutOffsetY = 2,
+  hashPathOverride,
   text,
   asciiArt,
   photo,
   align,
   photoObjectFit = 'cover',
   backHref = '#/',
+  photoImages,
   photoVideos,
   inlinePhotoLinkLabel,
   showHero = true,
+  heroAnchorOffsetY = -13,
   photoAnchorName
 }: ProjectPageProps) => {
   const location = useLocation();
@@ -122,32 +134,51 @@ const ProjectPage = ({
   const [isLoading, setIsLoading] = useState(true);
   const heroName = 'hero';
   const inlinePhotoLinkName = 'inline-photo-link';
+  const titleCalloutName = 'title-callout';
   const videoAnchorName = `${heroName}-video`;
   const renderedTitle = displayTitle ?? title;
-  const bodyAnchorName = inlinePhotoLinkLabel ? inlinePhotoLinkName : 'title';
+  const { charWidth, charHeight } = getCurrentCharMetrics();
+  const inlinePhotoLinkAnchorName = titleCalloutText ? titleCalloutName : 'title';
+  const bodyAnchorName = inlinePhotoLinkLabel
+    ? inlinePhotoLinkName
+    : titleCalloutText
+      ? titleCalloutName
+      : 'title';
   const resolvedPhotoAnchorName = photoAnchorName ?? (showHero ? heroName : 'text');
+  const resolvedHashPath = useMemo(() => {
+    if (!hashPathOverride) {
+      return location.pathname || '/';
+    }
+
+    if (hashPathOverride.startsWith('#')) {
+      return hashPathOverride.slice(1);
+    }
+
+    return hashPathOverride;
+  }, [hashPathOverride, location.pathname]);
   const photoHref = useMemo(() => {
-    const path = location.pathname || '/';
     const params = new URLSearchParams(location.search);
     params.set('photo', '1');
     const search = params.toString();
-    return `#${path}${search ? `?${search}` : ''}`;
-  }, [location.pathname, location.search]);
+    return `#${resolvedHashPath}${search ? `?${search}` : ''}`;
+  }, [location.search, resolvedHashPath]);
   const autoEnterPhoto = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const value = (params.get('photo') ?? '').toLowerCase();
     return value === '1' || value === 'true' || value === 'on' || value === 'yes';
   }, [location.search]);
 
-  const optimizedAscii = useMemo(() => {
-    if (!IS_SAFARI) return asciiArt;
-    return downsampleAsciiArt(asciiArt, 2);
-  }, [asciiArt]);
+  const imageEntries = useMemo<ImageEntry[]>(() => {
+    if (!photoImages?.length) {
+      return [];
+    }
 
-  const optimizedText = useMemo(() => {
-    if (!IS_SAFARI) return text;
-    return text.replace(/\n{3,}/g, '\n\n');
-  }, [text]);
+    return photoImages.map((image, index) => ({
+      ...image,
+      anchorName: `${videoAnchorName}-image-${index}`,
+      id: `${title}-image-${index}`
+    }));
+  }, [photoImages, title, videoAnchorName]);
 
   const videoEntries = useMemo<VideoEntry[]>(() => {
     if (!photoVideos?.length) {
@@ -185,7 +216,7 @@ const ProjectPage = ({
   useEffect(() => {
     setIsLoading(true);
     const textItems: TextContentItem[] = [
-      { name: 'title', text: renderedTitle, x: 0, y: 10, centered: true, fontName: 'blockAsciiDouble' },
+      { name: 'title', text: renderedTitle, x: 0, y: 10, centered: true, fontName: titleFontName },
       { name: 'back', text: `[[<<<]](${backHref})`, x: 2, y: 4, fixed: true },
       {
         name: 'photo-link',
@@ -196,6 +227,20 @@ const ProjectPage = ({
         maxWidthPercent: 30,
         alignment: 'right'
       },
+      ...(titleCalloutText
+        ? [{
+          name: titleCalloutName,
+          text: titleCalloutText,
+          x: 0,
+          y: 0,
+          centered: true,
+          anchorTo: 'title' as const,
+          anchorPoint: 'bottomCenter' as const,
+          anchorOffsetY: titleCalloutOffsetY,
+          alignment: 'center' as const,
+          maxWidthPercent: 68
+        }]
+        : []),
       ...(inlinePhotoLinkLabel
         ? [{
           name: inlinePhotoLinkName,
@@ -203,20 +248,20 @@ const ProjectPage = ({
           x: 0,
           y: 0,
           centered: true,
-          anchorTo: 'title' as const,
+          anchorTo: inlinePhotoLinkAnchorName,
           anchorPoint: 'bottomCenter' as const,
-          anchorOffsetY: 2,
+          anchorOffsetY: -12,
           alignment: 'center' as const,
           maxWidthPercent: 50
         }]
         : []),
       {
         name: 'text',
-        text: optimizedText,
+        text,
         x: 0,
         y: 20,
         centered: true,
-        maxWidthPercent: IS_SAFARI ? 55 : 60,
+        maxWidthPercent: 60,
         alignment: 'left',
         anchorTo: bodyAnchorName,
         anchorPoint: 'bottomCenter',
@@ -228,11 +273,11 @@ const ProjectPage = ({
           text: renderedTitle,
           x: 0,
           y: 0,
-          preRenderedAscii: optimizedAscii,
+          preRenderedAscii: asciiArt,
           centered: true,
           anchorTo: 'text' as const,
           anchorPoint: 'bottomCenter' as const,
-          anchorOffsetY: -13
+          anchorOffsetY: heroAnchorOffsetY
         }]
         : [])
     ];
@@ -250,11 +295,14 @@ const ProjectPage = ({
     bodyAnchorName,
     heroName,
     inlinePhotoLinkLabel,
-    optimizedAscii,
-    optimizedText,
+    asciiArt,
     photoHref,
     renderedTitle,
-    showHero
+    showHero,
+    heroAnchorOffsetY,
+    titleCalloutText,
+    titleCalloutOffsetY,
+    titleFontName
   ]);
 
   const photoItems = useMemo<PhotoLayerItem[]>(() => [
@@ -313,6 +361,15 @@ const ProjectPage = ({
             stretchY: align.stretchY ?? 1
           }]
     ),
+    ...imageEntries.map(entry => ({
+      id: entry.id,
+      anchorName: entry.anchorName,
+      lowSrc: entry.src,
+      highSrc: entry.src,
+      alt: entry.alt,
+      boundsSource: 'raw' as const,
+      objectFit: entry.objectFit ?? photoObjectFit
+    })),
     ...videoEntries.map(entry => (
       entry.kind === 'embed'
         ? {
@@ -347,13 +404,16 @@ const ProjectPage = ({
     align.stretchY,
     photoObjectFit,
     photo,
+    imageEntries,
     resolvedPhotoAnchorName,
     title,
     videoEntries
   ]);
 
+  const supplementalEntries = useMemo(() => [...imageEntries, ...videoEntries], [imageEntries, videoEntries]);
+
   const layoutAugmenter = useMemo(() => {
-    if (videoEntries.length === 0) {
+    if (supplementalEntries.length === 0) {
       return undefined;
     }
 
@@ -363,28 +423,48 @@ const ProjectPage = ({
         return layout;
       }
 
+      const layoutBounds = Object.values(layout.rawBounds);
+      const pageMinX = layoutBounds.length > 0
+        ? Math.min(...layoutBounds.map(bounds => bounds.minX))
+        : anchorBounds.minX;
+      const pageMaxX = layoutBounds.length > 0
+        ? Math.max(...layoutBounds.map(bounds => bounds.maxX))
+        : anchorBounds.maxX;
+
       const nextRawBounds = { ...layout.rawBounds };
       const nextPaddedBounds = { ...layout.paddedBounds };
-      const aboveEntries = videoEntries.filter(entry => (entry.position ?? 'above') === 'above');
-      const belowEntries = videoEntries.filter(entry => (entry.position ?? 'above') === 'below');
+      const aboveEntries = supplementalEntries.filter(entry => (entry.position ?? 'above') === 'above');
+      const belowEntries = supplementalEntries.filter(entry => (entry.position ?? 'above') === 'below');
       const baseFrameWidth = anchorBounds.maxX - anchorBounds.minX + 1;
-      const frameCenterX = Math.round((anchorBounds.minX + anchorBounds.maxX) / 2);
+      const anchorCenterX = Math.round((anchorBounds.minX + anchorBounds.maxX) / 2);
+      const pageFrameWidth = pageMaxX - pageMinX + 1;
+      const pageCenterX = Math.round((pageMinX + pageMaxX) / 2);
       let aboveEdge = anchorBounds.minY;
       let belowEdge = anchorBounds.maxY;
 
-      const getFrameWidth = (entry: typeof videoEntries[number]) => {
+      const getFrameMetrics = (entry: typeof supplementalEntries[number]) => {
+        const referenceWidth = entry.widthReference === 'page'
+          ? pageFrameWidth
+          : baseFrameWidth;
+        const centerX = entry.widthReference === 'page'
+          ? pageCenterX
+          : anchorCenterX;
         const widthScale = entry.widthScale ?? 1;
         const safeScale = Number.isFinite(widthScale) && widthScale > 0 ? widthScale : 1;
-        return Math.max(1, Math.round(baseFrameWidth * safeScale));
+        return {
+          frameWidth: Math.max(1, Math.round(referenceWidth * safeScale)),
+          centerX
+        };
       };
 
       const applyBounds = (
-        entry: typeof videoEntries[number],
+        entry: typeof supplementalEntries[number],
         minY: number,
         frameHeight: number,
-        frameWidth: number
+        frameWidth: number,
+        centerX: number
       ) => {
-        const minX = frameCenterX - Math.floor(frameWidth / 2);
+        const minX = centerX - Math.floor(frameWidth / 2);
         const maxX = minX + frameWidth - 1;
         const bounds: TextBounds = {
           minX,
@@ -403,11 +483,11 @@ const ProjectPage = ({
         const maxHeight = entry.maxHeight ?? DEFAULT_VIDEO_MAX_HEIGHT;
         const gap = entry.gap ?? DEFAULT_VIDEO_GAP;
         const offsetRows = entry.offsetRows ?? 0;
-        const frameWidth = getFrameWidth(entry);
-        const targetHeight = Math.round(frameWidth * heightRatio);
+        const { frameWidth, centerX } = getFrameMetrics(entry);
+        const targetHeight = Math.round(frameWidth * heightRatio * (charWidth / charHeight));
         const frameHeight = Math.min(maxHeight, Math.max(minHeight, targetHeight));
         const minY = aboveEdge - gap - frameHeight + offsetRows;
-        applyBounds(entry, minY, frameHeight, frameWidth);
+        applyBounds(entry, minY, frameHeight, frameWidth, centerX);
         aboveEdge = minY;
       });
 
@@ -417,11 +497,11 @@ const ProjectPage = ({
         const maxHeight = entry.maxHeight ?? DEFAULT_VIDEO_MAX_HEIGHT;
         const gap = entry.gap ?? DEFAULT_VIDEO_GAP;
         const offsetRows = entry.offsetRows ?? 0;
-        const frameWidth = getFrameWidth(entry);
-        const targetHeight = Math.round(frameWidth * heightRatio);
+        const { frameWidth, centerX } = getFrameMetrics(entry);
+        const targetHeight = Math.round(frameWidth * heightRatio * (charWidth / charHeight));
         const frameHeight = Math.min(maxHeight, Math.max(minHeight, targetHeight));
         const minY = belowEdge + gap + 1 + offsetRows;
-        applyBounds(entry, minY, frameHeight, frameWidth);
+        applyBounds(entry, minY, frameHeight, frameWidth, centerX);
         belowEdge = minY + frameHeight - 1;
       });
 
@@ -430,7 +510,7 @@ const ProjectPage = ({
         paddedBounds: nextPaddedBounds
       };
     };
-  }, [resolvedPhotoAnchorName, videoEntries]);
+  }, [charHeight, charWidth, resolvedPhotoAnchorName, supplementalEntries]);
 
   return (
     <div

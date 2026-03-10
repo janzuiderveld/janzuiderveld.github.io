@@ -15,6 +15,7 @@
   - Tall/mobile viewport around `900x1600`.
   - Wait about 1-2 seconds after navigation or reload so the renderer and intro effects finish.
 - Prefer screenshots over accessibility text snapshots when validating visuals. The renderer collapses most of the experience into a giant ASCII field, so snapshots are often noisy while screenshots show the real result.
+- Vimeo embeds can show a Chrome security restriction screen in headless verification runs. When that happens, still capture screenshots, but also verify wrapper behavior through DOM state such as `pointer-events`, scroll response, and route state.
 
 ## Chrome DevTools MCP Reset
 1. Kill only the MCP server and the Chrome it launched:
@@ -55,12 +56,15 @@
   - `#/conversations-beyond-the-ordinary`
   - `#/presentations`
   - `#/vending`
+  - `#guide` (the guide page is intentionally using a bare hash instead of `#/guide`)
   - `#/construction`
   - any unknown route redirects to `#/construction`
 - `src/components/ascii-art2/*` is the active renderer, layout engine, link-overlay system, and animation stack. Prefer extending it instead of reviving code from `src/components/.ascii-art` or any `*.bak` file.
 - `src/components/ProjectPage.tsx` is the shared shell for most project pages. It handles the title, back link, `[[VISUALS]]` control, `?photo=1` media mode, and optional media blocks anchored around the hero art.
+- `ProjectPage` can now stack supplemental photo-mode media above or below the main hero anchor through `photoImages` and `photoVideos`. Supplemental media can size itself relative to the hero anchor or to the full page width, so use that instead of hard-coding standalone DOM media for project pages.
 - `src/pages/CameraPage.tsx` is the main custom page. It has its own photorealistic/hover-gallery flow and should not be treated like a normal `ProjectPage`.
 - `src/components/photorealistic/*` powers the media layer used by project photo mode.
+- `src/components/photorealistic/PhotoModeScene.tsx` has an ASCII-side alignment mode for the main hero image: press `A` on the ASCII page, use arrows to move, `=` / `-` to scale, `[` / `]` and `,` / `.` to stretch, `S` to save locally, `Shift+S` to copy the JSON, and `R` / `Esc` to reset or exit.
 
 ## Content And Assets
 - Most project pages are built from a bundle under `src/assets/<project>/`:
@@ -72,6 +76,7 @@
   - `upcoming_exhibitions.csv` for the homepage
   - `selected_presentations.csv`, `selected_awards.csv`, `selected_publications.csv` for `#/about`
   - `all_presentations.csv` for `#/presentations`
+- When page media starts outside the repo, move or copy it into `src/assets/<project>/pictures/` or another project-owned path before embedding it. Do not wire website content directly to `Downloads`, absolute local filesystem paths, or other off-repo locations.
 - If you change CSV schema or columns, update the matching parsers/formatters in `src/utils/*.ts` and keep fallback data in sync.
 - Home and About both have fallback content in TypeScript so the pages still render if CSV fetches fail. Preserve that resilience unless the task explicitly removes it.
 - Interactive controls are usually authored inside ASCII text with markdown-like link syntax. Prefer adding links inside rendered text instead of introducing standalone buttons.

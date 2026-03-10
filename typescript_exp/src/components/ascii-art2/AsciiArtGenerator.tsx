@@ -172,7 +172,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     const normalized = value.toLowerCase();
     return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
   }, []);
-  const handlePhotoLink = useCallback((url: string) => {
+  const handlePhotoLink = useCallback((position: { x: number; y: number }, url: string) => {
     if (typeof window === 'undefined') {
       return false;
     }
@@ -189,18 +189,37 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     if (currentPath !== targetPath) {
       return false;
     }
-    const api = (window as typeof window & { __projectPhotoMode?: { enter?: () => void } }).__projectPhotoMode;
-    if (!api?.enter) {
+    const api = (window as typeof window & {
+      __projectPhotoMode?: {
+        canEnter?: boolean;
+        startEnter?: () => boolean | void;
+        completeEnter?: () => void;
+        enter?: () => boolean | void;
+      };
+    }).__projectPhotoMode;
+    const startEnter = api?.startEnter ?? api?.enter;
+    const completeEnter = api?.completeEnter;
+    if (!startEnter || api?.canEnter === false) {
       return false;
     }
     if (window.location.hash !== url) {
       window.history.replaceState(window.history.state, '', url);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
     }
-    api.enter();
+    const started = startEnter();
+    if (started === false) {
+      return false;
+    }
+    if (completeEnter) {
+      startWhiteout(position, undefined, {
+        allowWhiteOverlay: false,
+        onComplete: () => completeEnter()
+      });
+    }
     return true;
-  }, [isPhotoParam, normalizeHashPath]);
+  }, [isPhotoParam, normalizeHashPath, startWhiteout]);
   const handleLinkClick = useCallback((position: { x: number; y: number }, url: string) => {
-    if (handlePhotoLink(url)) {
+    if (handlePhotoLink(position, url)) {
       return;
     }
     const hasActiveOverlay = Boolean(cursor.whiteOverlay?.active);

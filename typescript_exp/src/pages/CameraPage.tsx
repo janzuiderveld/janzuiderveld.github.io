@@ -9,6 +9,7 @@ import PhotorealisticLayer, {
   PhotorealisticLayout
 } from '../components/photorealistic/PhotorealisticLayer';
 import PhotoHoverWindow, { getPhotoHoverRadiusPx } from '../components/photorealistic/PhotoHoverWindow';
+import InteractiveEmbedFrame from '../components/photorealistic/InteractiveEmbedFrame';
 import cameraAsciiArt from '../assets/camera/camera_ascii.txt?raw';
 import cameraText from '../assets/camera/camera_text.txt?raw';
 import { CAMERA_ALIGN_DEFAULT } from '../assets/camera/align';
@@ -158,48 +159,13 @@ const DEFAULT_PHOTO_TRANSFORM: PhotoTransform = {
 };
 
 const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) => {
-  const frameRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const node = frameRef.current;
-    if (!node) {
-      return;
-    }
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      onForwardWheel(event);
-    };
-    node.addEventListener('wheel', handleWheel, { passive: false });
-    return () => {
-      node.removeEventListener('wheel', handleWheel);
-    };
-  }, [onForwardWheel]);
-
   return (
-    <div ref={frameRef} data-photo-video="true" style={style}>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'black'
-        }}
-      />
-      <iframe
-        src={item.embedSrc}
-        title={item.alt}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          border: 0
-        }}
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
-        loading="eager"
-      />
-    </div>
+    <InteractiveEmbedFrame
+      src={item.embedSrc}
+      label={item.alt}
+      style={style}
+      onForwardWheel={onForwardWheel}
+    />
   );
 };
 

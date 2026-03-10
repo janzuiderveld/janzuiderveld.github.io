@@ -64,24 +64,6 @@ const isMobileDevice = () => {
   return isMobileUA || isTouchMac;
 };
 
-const downsampleAsciiArt = (art: string, factor: number) => {
-  if (factor <= 1) return art;
-
-  const lines = art.split('\n');
-  const sampledRows = lines.filter((_, rowIndex) => rowIndex % factor === 0);
-
-  const sampled = sampledRows.map(line => {
-    if (!line) return line;
-    let reduced = '';
-    for (let i = 0; i < line.length; i += factor) {
-      reduced += line[i] ?? ' ';
-    }
-    return reduced;
-  });
-
-  return sampled.join('\n');
-};
-
 function PhotorealisticProjectPage({
   title,
   bodyText,
@@ -97,16 +79,6 @@ function PhotorealisticProjectPage({
     }
     return !(IS_SAFARI || isMobileDevice());
   }, []);
-
-  const optimizedAscii = useMemo(() => {
-    if (!IS_SAFARI) return asciiArt;
-    return downsampleAsciiArt(asciiArt, 2);
-  }, [asciiArt]);
-
-  const optimizedText = useMemo(() => {
-    if (!IS_SAFARI) return bodyText;
-    return bodyText.replace(/\n{3,}/g, '\n\n');
-  }, [bodyText]);
 
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,11 +108,11 @@ function PhotorealisticProjectPage({
       { name: 'back', text: '[[<<<]](#/)', x: 2, y: 4, fixed: true },
       {
         name: 'text',
-        text: optimizedText,
+        text: bodyText,
         x: 0,
         y: 20,
         centered: true,
-        maxWidthPercent: IS_SAFARI ? 55 : 60,
+        maxWidthPercent: 60,
         alignment: 'left',
         anchorTo: 'title',
         anchorPoint: 'bottomCenter',
@@ -151,7 +123,7 @@ function PhotorealisticProjectPage({
         text: artName,
         x: 0,
         y: 0,
-        preRenderedAscii: optimizedAscii,
+        preRenderedAscii: asciiArt,
         centered: true,
         anchorTo: 'text',
         anchorOffsetX: 0,
@@ -167,7 +139,7 @@ function PhotorealisticProjectPage({
     }, 50);
 
     return () => window.clearTimeout(timeout);
-  }, [artName, asciiAnchorOffsetY, optimizedAscii, optimizedText, title]);
+  }, [artName, asciiAnchorOffsetY, asciiArt, bodyText, title]);
 
   const handleLayoutChange = useCallback((layout: AsciiLayoutInfo) => {
     setPhotoLayout({

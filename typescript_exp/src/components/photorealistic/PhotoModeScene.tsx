@@ -4,6 +4,7 @@ import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
 import { CHAR_HEIGHT, IS_SAFARI, getCurrentCharMetrics } from '../ascii-art2/constants';
 import PhotorealisticLayer, { PhotoLayerItem, PhotorealisticLayout } from './PhotorealisticLayer';
 import PhotoHoverWindow, { getPhotoHoverRadiusPx } from './PhotoHoverWindow';
+import InteractiveEmbedFrame from './InteractiveEmbedFrame';
 
 type PhotoState = 'ascii' | 'entering' | 'photo' | 'exiting';
 type PhotoTransform = {
@@ -114,6 +115,17 @@ const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) 
     };
   }, [onForwardWheel]);
 
+  if (item.kind === 'embed') {
+    return (
+      <InteractiveEmbedFrame
+        src={item.embedSrc}
+        label={item.alt}
+        style={style}
+        onForwardWheel={onForwardWheel}
+      />
+    );
+  }
+
   const background = (
     <div
       style={{
@@ -123,28 +135,6 @@ const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) 
       }}
     />
   );
-
-  if (item.kind === 'embed') {
-    return (
-      <div ref={frameRef} data-photo-video="true" style={style}>
-        {background}
-        <iframe
-          src={item.embedSrc}
-          title={item.alt}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            border: 0
-          }}
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          loading="eager"
-        />
-      </div>
-    );
-  }
 
   const controls = item.controls ?? true;
   const playsInline = item.playsInline ?? true;
@@ -193,8 +183,10 @@ const PhotoModeScene = ({
     if (typeof window === 'undefined') {
       return true;
     }
-    return !(IS_SAFARI || isMobileDevice());
+    return !isMobileDevice();
   }, [disablePhotoMode]);
+  const asciiClickEntryEnabled = photoModeEnabled && !IS_SAFARI;
+  const hoverPreviewEnabled = photoModeEnabled && !IS_SAFARI;
   const [scrollOffset, setScrollOffset] = useState(0);
   const [initialScrollOffset, setInitialScrollOffset] = useState<number | undefined>(undefined);
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
@@ -384,8 +376,15 @@ const PhotoModeScene = ({
   ]);
 
   const hoverPreviewItems = useMemo(
-    () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
-    [alignedPhotoItems]
+    () => {
+      if (!hoverPreviewEnabled || !resolvedAlignmentTargetId) {
+        return [];
+      }
+      return alignedPhotoItems.filter(
+        item => item.mediaType !== 'video' && item.id === resolvedAlignmentTargetId
+      );
+    },
+    [alignedPhotoItems, hoverPreviewEnabled, resolvedAlignmentTargetId]
   );
   const photoImageItems = useMemo(
     () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
@@ -911,7 +910,7 @@ const PhotoModeScene = ({
   }, [photoModeEnabled, photoState, requestPhotoExit]);
 
   useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'ascii' || alignmentMode) {
+    if (!hoverPreviewEnabled || photoState !== 'ascii' || alignmentMode) {
       clearHoverState();
       return;
     }
@@ -944,17 +943,17 @@ const PhotoModeScene = ({
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll);
     };
-  }, [alignmentMode, clearHoverState, photoModeEnabled, photoState, scheduleHoverUpdate]);
+  }, [alignmentMode, clearHoverState, hoverPreviewEnabled, photoState, scheduleHoverUpdate]);
 
   useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'ascii' || alignmentMode) {
+    if (!hoverPreviewEnabled || photoState !== 'ascii' || alignmentMode) {
       return;
     }
     if (!hoverPointerActiveRef.current) {
       return;
     }
     scheduleHoverUpdate();
-  }, [alignmentMode, photoModeEnabled, photoState, scheduleHoverUpdate, scrollOffset]);
+  }, [alignmentMode, hoverPreviewEnabled, photoState, scheduleHoverUpdate, scrollOffset]);
 
   useEffect(() => {
     if (photoState === 'photo' && !photoHistoryPushedRef.current) {
@@ -970,14 +969,31 @@ const PhotoModeScene = ({
       return;
     }
     const api = {
-      enter: beginPhotoEnter,
+      canEnter: photoModeEnabled,
+      startEnter: () => {
+        if (!photoModeEnabled) {
+          return false;
+        }
+        beginPhotoEnter();
+        return true;
+      },
+      completeEnter: () => {
+        completePhotoEnter();
+      },
+      enter: () => {
+        if (!photoModeEnabled) {
+          return false;
+        }
+        beginPhotoEnter();
+        return true;
+      },
       exit: () => exitPhotoMode({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
     };
     (window as typeof window & { __projectPhotoMode?: typeof api }).__projectPhotoMode = api;
     return () => {
       delete (window as typeof window & { __projectPhotoMode?: typeof api }).__projectPhotoMode;
     };
-  }, [beginPhotoEnter, exitPhotoMode]);
+  }, [beginPhotoEnter, completePhotoEnter, exitPhotoMode, photoModeEnabled]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -1170,7 +1186,7 @@ const PhotoModeScene = ({
         />
       )}
       {photoModeEnabled && photoVideoNodes}
-      {photoModeEnabled && (
+      {hoverPreviewEnabled && (
         <PhotoHoverWindow
           item={photoState === 'ascii' && !alignmentMode ? hoveredPhotoItem : null}
           layout={mergedPhotoLayout}
@@ -1196,9 +1212,9 @@ const PhotoModeScene = ({
           scrollToOffset={scrollToOffset}
           onScrollOffsetChange={setScrollOffset}
           onLayoutChange={handleLayoutChange}
-          onAsciiClickStart={photoModeEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickStart : undefined}
-          onAsciiClickComplete={photoModeEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickComplete : undefined}
-          asciiClickTargets={photoModeEnabled && !alignmentMode ? asciiClickTargets : []}
+          onAsciiClickStart={asciiClickEntryEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickStart : undefined}
+          onAsciiClickComplete={asciiClickEntryEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickComplete : undefined}
+          asciiClickTargets={asciiClickEntryEnabled && !alignmentMode ? asciiClickTargets : []}
           pauseAnimation={photoState === 'photo'}
           transparentBackground={true}
           disableLinks={photoState !== 'ascii' || alignmentMode}

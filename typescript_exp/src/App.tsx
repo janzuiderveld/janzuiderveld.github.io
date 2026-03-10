@@ -18,6 +18,7 @@ import ConversationsBeyondTheOrdinaryPage from './pages/ConversationsBeyondTheOr
 import AboutPage from './pages/AboutPage';
 import AllPresentationsPage from './pages/AllPresentationsPage';
 import VendingMachineOrganoidPage from './pages/VendingMachineOrganoidPage';
+import PersonalAudioGuidePage from './pages/PersonalAudioGuidePage';
 import CompatibilityOverlay from './components/CompatibilityOverlay';
 import {
   COMPATIBILITY_MESSAGE,
@@ -77,6 +78,12 @@ function App() {
       console.log(`🧭 App: AllPresentations route detected - should render AllPresentationsPage component`);
     } else if (location.pathname === '/vending' || location.pathname === '/vending-machine-organoid') {
       console.log(`🧭 App: Vending Machine Organoid route detected - should render VendingMachineOrganoidPage component`);
+    } else if (
+      location.pathname === '/guide'
+      || location.pathname === '/audio-guide'
+      || location.pathname === '/personal-audio-guide'
+    ) {
+      console.log(`🧭 App: Personal Audio Guide route detected - should render PersonalAudioGuidePage component`);
     } else {
       console.log(`🧭 App: Unknown route "${location.pathname}" - will redirect to construction`);
     }
@@ -108,6 +115,9 @@ function App() {
         <Route path="/presentations" element={<AllPresentationsPage />} />
         <Route path="/vending" element={<VendingMachineOrganoidPage />} />
         <Route path="/vending-machine-organoid" element={<Navigate to="/vending" replace />} />
+        <Route path="/guide" element={<PersonalAudioGuidePage />} />
+        <Route path="/audio-guide" element={<Navigate to="/guide" replace />} />
+        <Route path="/personal-audio-guide" element={<Navigate to="/guide" replace />} />
 
         {/* Construction page route */}
         <Route path="/construction" element={<ConstructionPage />} />
