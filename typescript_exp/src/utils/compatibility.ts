@@ -1,32 +1,4 @@
-type NavigatorWithUAData = Navigator & {
-  userAgentData?: {
-    brands?: Array<{ brand: string }>;
-  };
-};
-
-export const isDesktopChromium = () => {
-  if (typeof navigator === 'undefined') {
-    return true;
-  }
-
-  const ua = navigator.userAgent || '';
-  const touchMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
-  const isDesktop = !/Mobi|Android|iPhone|iPad/i.test(ua) && !touchMac;
-  const chromiumTokens = ['Chrome', 'Chromium', 'Edg', 'OPR', 'Brave', 'Vivaldi', 'Arc'];
-
-  const uaData = (navigator as NavigatorWithUAData).userAgentData;
-  const hasChromiumBrand = uaData?.brands?.some(entry => /Chrom(e|ium)|Edge|Opera|Brave/i.test(entry.brand)) ?? false;
-
-  if (!isDesktop) {
-    return false;
-  }
-
-  if (hasChromiumBrand) {
-    return true;
-  }
-
-  return chromiumTokens.some(token => ua.includes(token));
-};
+export { supportsPrimaryExperienceBrowser } from './browserCapabilities';
 
 export const hasSeenCompatibilityMessage = () => {
   if (typeof window === 'undefined') {
@@ -52,7 +24,7 @@ export const markCompatibilityMessageSeen = () => {
 };
 
 export const COMPATIBILITY_MESSAGE = [
-  'Please visit on desktop',
-  'w/ a chromium based browser',
+  'Please visit',
+  'w/ a supported browser',
   'for a frictionless experience'
 ].join('\n');

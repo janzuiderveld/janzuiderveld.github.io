@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type CSSProperties } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
 import { AsciiLayoutInfo, TextBounds, TextContentItem } from '../components/ascii-art2/types';
-import { CHAR_HEIGHT, IS_SAFARI, getCurrentCharMetrics } from '../components/ascii-art2/constants';
+import { CHAR_HEIGHT, getCurrentCharMetrics } from '../components/ascii-art2/constants';
 import { getGridDimensions } from '../components/ascii-art2/utils';
 import PhotorealisticLayer, {
   PhotoLayerItem,
@@ -10,6 +10,7 @@ import PhotorealisticLayer, {
 } from '../components/photorealistic/PhotorealisticLayer';
 import PhotoHoverWindow, { getPhotoHoverRadiusPx } from '../components/photorealistic/PhotoHoverWindow';
 import InteractiveEmbedFrame from '../components/photorealistic/InteractiveEmbedFrame';
+import { supportsHoverInteractions } from '../utils/browserCapabilities';
 import cameraAsciiArt from '../assets/camera/camera_ascii.txt?raw';
 import cameraText from '../assets/camera/camera_text.txt?raw';
 import { CAMERA_ALIGN_DEFAULT } from '../assets/camera/align';
@@ -28,20 +29,6 @@ const PHOTO_FRAME_MIN_WIDTH = 32;
 const PHOTO_FRAME_MIN_HEIGHT = 10;
 const PHOTO_FRAME_MAX_HEIGHT = 60;
 const PHOTO_FRAME_HEIGHT_RATIO = 0.35;
-
-type NavigatorWithTouch = Navigator & { maxTouchPoints?: number };
-
-const isMobileDevice = () => {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-
-  const ua = navigator.userAgent || '';
-  const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-  const isTouchMac = /Macintosh/.test(ua) && (navigator as NavigatorWithTouch).maxTouchPoints > 1;
-
-  return isMobileUA || isTouchMac;
-};
 
 const PHOTO_IMPORTS = import.meta.glob('../assets/pictures/*.{png,jpg,jpeg,webp,gif}', {
   eager: true,
@@ -171,12 +158,8 @@ const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) 
 
 function CameraPage() {
   // console.log("CameraPage component rendering - should only show on /camera route");
-  const photoModeEnabled = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-    return !(IS_SAFARI || isMobileDevice());
-  }, []);
+  const photoModeEnabled = useMemo(() => true, []);
+  const hoverPreviewEnabled = useMemo(() => supportsHoverInteractions(), []);
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -250,38 +233,6 @@ function CameraPage() {
       }
     }
   }, [alignmentMode]);
-
-  const downsampleAsciiArt = useCallback((art: string, factor: number) => {
-    if (factor <= 1) return art;
-
-    const lines = art.split('\n');
-    const sampledRows = lines.filter((_, rowIndex) => rowIndex % factor === 0);
-
-    const sampled = sampledRows.map(line => {
-      if (!line) return line;
-      let reduced = '';
-      for (let i = 0; i < line.length; i += factor) {
-        reduced += line[i] ?? ' ';
-      }
-      return reduced;
-    });
-
-    return sampled.join('\n');
-  }, []);
-
-  const optimizedAscii = useMemo(() => {
-    if (!IS_SAFARI) return cameraAsciiArt;
-    return downsampleAsciiArt(cameraAsciiArt, 2);
-  }, [downsampleAsciiArt]);
-
-  const optimizedText = useMemo(() => {
-    if (!IS_SAFARI) return cameraText;
-    return cameraText.replace(/\n{3,}/g, '\n\n');
-  }, []);
-
-  const preRenderedArt = useMemo(() => ({
-    camera: optimizedAscii,
-  }), [optimizedAscii]);
 
   const photoFrame = useMemo(() => {
     if (!layoutSize.width || !layoutSize.height) {
@@ -454,8 +405,8 @@ function CameraPage() {
   }, [photoLayerLayout.rawBounds, photoModeEnabled]);
 
   useEffect(() => {
-    hoverItemsRef.current = hoverPreviewItems;
-  }, [hoverPreviewItems]);
+    hoverItemsRef.current = hoverPreviewEnabled ? hoverPreviewItems : [];
+  }, [hoverPreviewEnabled, hoverPreviewItems]);
 
   useEffect(() => {
     hoverLayoutRef.current = photoLayerLayout;
@@ -688,13 +639,6 @@ function CameraPage() {
     }
   }, [exitPhotoMode]);
 
-  const isPhotoVideoTarget = useCallback((target: EventTarget | null) => {
-    if (!(target instanceof Element)) {
-      return false;
-    }
-    return Boolean(target.closest('[data-photo-video="true"]'));
-  }, []);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const api = photoModeEnabled
@@ -778,48 +722,6 @@ function CameraPage() {
   }, []);
 
   useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'photo') {
-      return;
-    }
-
-    const handleClick = (event: MouseEvent) => {
-      if (alignmentModeRef.current) {
-        return;
-      }
-      if (isPhotoVideoTarget(event.target)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      requestPhotoExit({ x: event.clientX, y: event.clientY });
-    };
-
-    const handleTouch = (event: TouchEvent) => {
-      if (alignmentModeRef.current) {
-        return;
-      }
-      if (isPhotoVideoTarget(event.target)) {
-        return;
-      }
-      if (event.touches.length !== 1) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      const touch = event.touches[0];
-      requestPhotoExit({ x: touch.clientX, y: touch.clientY });
-    };
-
-    document.addEventListener('click', handleClick, { capture: true });
-    document.addEventListener('touchstart', handleTouch, { capture: true, passive: false });
-
-    return () => {
-      document.removeEventListener('click', handleClick, { capture: true });
-      document.removeEventListener('touchstart', handleTouch, { capture: true });
-    };
-  }, [isPhotoVideoTarget, photoModeEnabled, photoState, requestPhotoExit]);
-
-  useEffect(() => {
     if (!photoModeEnabled || photoState === 'ascii') {
       return;
     }
@@ -844,7 +746,7 @@ function CameraPage() {
   }, [forwardVideoWheel, photoModeEnabled, photoState]);
 
   useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'ascii' || alignmentMode) {
+    if (!hoverPreviewEnabled || !photoModeEnabled || photoState !== 'ascii' || alignmentMode) {
       clearHoverState();
       return;
     }
@@ -877,17 +779,17 @@ function CameraPage() {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll);
     };
-  }, [alignmentMode, clearHoverState, photoModeEnabled, photoState, scheduleHoverUpdate]);
+  }, [alignmentMode, clearHoverState, hoverPreviewEnabled, photoModeEnabled, photoState, scheduleHoverUpdate]);
 
   useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'ascii' || alignmentMode) {
+    if (!hoverPreviewEnabled || !photoModeEnabled || photoState !== 'ascii' || alignmentMode) {
       return;
     }
     if (!hoverPointerActiveRef.current) {
       return;
     }
     scheduleHoverUpdate();
-  }, [alignmentMode, photoModeEnabled, photoState, scheduleHoverUpdate, scrollOffset]);
+  }, [alignmentMode, hoverPreviewEnabled, photoModeEnabled, photoState, scheduleHoverUpdate, scrollOffset]);
 
   useEffect(() => {
     if (!photoModeEnabled) {
@@ -1078,8 +980,8 @@ function CameraPage() {
         const textItems: TextContentItem[] = [
           { name: 'Life on _', text: 'Life on _', x: 0, y: 10, centered: true, fontName: 'ascii' },
           { name: 'back', text: '[[<<<]](#/)', x: 2, y: 4, fixed: true },
-          { name: 'text', text: optimizedText, x: 0, y: 20, centered: true, maxWidthPercent: IS_SAFARI ? 55 : 60, alignment: 'left' },
-          { name: 'Camera', text: 'Camera', x: 0, y: 0, preRenderedAscii: preRenderedArt.camera, centered: true, anchorTo: 'text', anchorOffsetX: 0, anchorOffsetY: -13, anchorPoint: 'bottomCenter' },
+          { name: 'text', text: cameraText, x: 0, y: 20, centered: true, maxWidthPercent: 60, alignment: 'left' },
+          { name: 'Camera', text: 'Camera', x: 0, y: 0, preRenderedAscii: cameraAsciiArt, centered: true, anchorTo: 'text', anchorOffsetX: 0, anchorOffsetY: -13, anchorPoint: 'bottomCenter' },
         ];
 
         setTimeout(() => {
@@ -1093,7 +995,7 @@ function CameraPage() {
     };
 
     fetchTextContent();
-  }, [preRenderedArt, optimizedText]);
+  }, []);
 
   const alignmentPhotoActive = photoModeEnabled && photoState === 'ascii' && alignmentMode;
   const showPhotorealisticLayer = photoModeEnabled && (photoState !== 'ascii' || alignmentPhotoActive);
@@ -1109,6 +1011,7 @@ function CameraPage() {
   const photoLayerItems = alignmentPhotoActive
     ? photoImageItems.filter(item => item.id === 'camera-main')
     : photoImageItems;
+  const photoLayerInteractive = photoState === 'entering' || photoState === 'photo';
   const showPhotoVideos = showPhotorealisticLayer && !alignmentPhotoActive;
   const photoVideoNodes = useMemo(() => {
     if (!showPhotoVideos || photoVideoItems.length === 0) {
@@ -1205,13 +1108,16 @@ function CameraPage() {
               scrollOffset={scrollOffset}
               isVisible={showPhotorealisticLayer}
               showHighRes={photoLayerHighRes}
-              isInteractive={false}
+              isInteractive={photoLayerInteractive}
               opacity={photoLayerOpacity}
               opacityTransition={photoLayerTransition}
+              onLayerClick={requestPhotoExit}
+              onLayerTouchEnd={requestPhotoExit}
+              onForwardWheel={forwardVideoWheel}
             />
           )}
           {photoModeEnabled && photoVideoNodes}
-          {photoModeEnabled && (
+          {photoModeEnabled && hoverPreviewEnabled && (
             <PhotoHoverWindow
               item={photoState === 'ascii' && !alignmentMode ? hoveredPhotoItem : null}
               layout={photoLayerLayout}

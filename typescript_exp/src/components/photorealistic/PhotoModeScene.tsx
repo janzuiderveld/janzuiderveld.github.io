@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import AsciiArtGenerator from '../ascii-art2/AsciiArtGenerator';
 import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
-import { CHAR_HEIGHT, IS_SAFARI, getCurrentCharMetrics } from '../ascii-art2/constants';
+import { CHAR_HEIGHT, getCurrentCharMetrics } from '../ascii-art2/constants';
 import PhotorealisticLayer, { PhotoLayerItem, PhotorealisticLayout } from './PhotorealisticLayer';
 import PhotoHoverWindow, { getPhotoHoverRadiusPx } from './PhotoHoverWindow';
 import InteractiveEmbedFrame from './InteractiveEmbedFrame';
+import { supportsHoverInteractions } from '../../utils/browserCapabilities';
 
 type PhotoState = 'ascii' | 'entering' | 'photo' | 'exiting';
 type PhotoTransform = {
@@ -49,20 +50,6 @@ const PHOTO_EXIT_FADE_DURATION = 1000;
 const PHOTO_EXIT_WHITEIN_START = 0.45;
 const PHOTO_ENTER_FADE_DURATION = PHOTO_EXIT_FADE_DURATION;
 const ALIGNMENT_PHOTO_OPACITY = 0.5;
-
-type NavigatorWithTouch = Navigator & { maxTouchPoints?: number };
-
-const isMobileDevice = () => {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-
-  const ua = navigator.userAgent || '';
-  const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-  const isTouchMac = /Macintosh/.test(ua) && (navigator as NavigatorWithTouch).maxTouchPoints > 1;
-
-  return isMobileUA || isTouchMac;
-};
 
 const normalizeAlignmentKey = (value: string) =>
   value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -180,13 +167,10 @@ const PhotoModeScene = ({
     if (disablePhotoMode) {
       return false;
     }
-    if (typeof window === 'undefined') {
-      return true;
-    }
-    return !isMobileDevice();
+    return true;
   }, [disablePhotoMode]);
-  const asciiClickEntryEnabled = photoModeEnabled && !IS_SAFARI;
-  const hoverPreviewEnabled = photoModeEnabled && !IS_SAFARI;
+  const asciiClickEntryEnabled = photoModeEnabled;
+  const hoverPreviewEnabled = photoModeEnabled && supportsHoverInteractions();
   const [scrollOffset, setScrollOffset] = useState(0);
   const [initialScrollOffset, setInitialScrollOffset] = useState<number | undefined>(undefined);
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
@@ -871,45 +855,6 @@ const PhotoModeScene = ({
   }, [exitPhotoMode, stripPhotoHashParam]);
 
   useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'photo') {
-      return;
-    }
-
-    const isPhotoVideoTarget = (target: EventTarget | null) =>
-      target instanceof HTMLElement && Boolean(target.closest('[data-photo-video="true"]'));
-
-    const handleClick = (event: MouseEvent) => {
-      if (isPhotoVideoTarget(event.target)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      requestPhotoExit({ x: event.clientX, y: event.clientY });
-    };
-
-    const handleTouch = (event: TouchEvent) => {
-      if (event.touches.length !== 1) {
-        return;
-      }
-      if (isPhotoVideoTarget(event.target)) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      const touch = event.touches[0];
-      requestPhotoExit({ x: touch.clientX, y: touch.clientY });
-    };
-
-    document.addEventListener('click', handleClick, { capture: true });
-    document.addEventListener('touchstart', handleTouch, { capture: true, passive: false });
-
-    return () => {
-      document.removeEventListener('click', handleClick, { capture: true });
-      document.removeEventListener('touchstart', handleTouch, { capture: true });
-    };
-  }, [photoModeEnabled, photoState, requestPhotoExit]);
-
-  useEffect(() => {
     if (!hoverPreviewEnabled || photoState !== 'ascii' || alignmentMode) {
       clearHoverState();
       return;
@@ -1061,6 +1006,7 @@ const PhotoModeScene = ({
   const photoLayerTransition = alignmentPhotoActive ? 'opacity 0.2s ease' : photoOpacityTransition;
   const photoLayerHighRes = showHighRes || alignmentPhotoActive;
   const photoLayerItems = photoModeEnabled ? photoImageItems : [];
+  const photoLayerInteractive = photoState === 'entering' || photoState === 'photo';
   const showPhotoVideos = showPhotorealisticLayer && !alignmentPhotoActive;
   const photoVideoNodes = useMemo(() => {
     if (!showPhotoVideos || photoVideoItems.length === 0) {
@@ -1180,9 +1126,12 @@ const PhotoModeScene = ({
           scrollOffset={scrollOffset}
           isVisible={showPhotorealisticLayer}
           showHighRes={photoLayerHighRes}
-          isInteractive={false}
+          isInteractive={photoLayerInteractive}
           opacity={photoLayerOpacity}
           opacityTransition={photoLayerTransition}
+          onLayerClick={requestPhotoExit}
+          onLayerTouchEnd={requestPhotoExit}
+          onForwardWheel={forwardVideoWheel}
         />
       )}
       {photoModeEnabled && photoVideoNodes}

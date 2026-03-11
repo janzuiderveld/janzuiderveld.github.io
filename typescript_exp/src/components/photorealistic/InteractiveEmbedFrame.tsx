@@ -115,6 +115,37 @@ const InteractiveEmbedFrame = ({
           backgroundColor: 'black'
         }}
       />
+      {!isInteractive && (
+        <button
+          type="button"
+          aria-label={`Interact with ${label}`}
+          onClick={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIsInteractive(true);
+          }}
+          onWheel={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            onForwardWheel(event.nativeEvent);
+          }}
+          onTouchStart={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIsInteractive(true);
+          }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            border: 0,
+            padding: 0,
+            margin: 0,
+            background: 'transparent',
+            cursor: 'pointer'
+          }}
+        />
+      )}
       <div style={hintStyle}>
         {isInteractive ? 'Move away to scroll' : 'Click to interact'}
       </div>

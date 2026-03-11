@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getCurrentCharMetrics } from '../ascii-art2/constants';
 import { TextBounds } from '../ascii-art2/types';
 
@@ -55,6 +55,9 @@ type PhotorealisticLayerProps = {
   isInteractive: boolean;
   opacity?: number;
   opacityTransition?: string;
+  onLayerClick?: (origin: { x: number; y: number }) => void;
+  onLayerTouchEnd?: (origin: { x: number; y: number }) => void;
+  onForwardWheel?: (event: WheelEvent) => void;
 };
 
 const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
@@ -65,10 +68,21 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
   showHighRes,
   isInteractive,
   opacity,
-  opacityTransition
+  opacityTransition,
+  onLayerClick,
+  onLayerTouchEnd,
+  onForwardWheel
 }) => {
   const { charWidth, charHeight } = getCurrentCharMetrics();
   const [loadedHighRes, setLoadedHighRes] = useState<Set<string>>(() => new Set());
+  const inputShieldRef = useRef<HTMLDivElement | null>(null);
+  const suppressClickUntilRef = useRef(0);
+  const touchGestureRef = useRef({
+    active: false,
+    identifier: -1,
+    lastY: 0,
+    moved: false
+  });
 
   const markHighResLoaded = useCallback((id: string) => {
     setLoadedHighRes(prev => {
@@ -104,7 +118,9 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       top,
       width,
       height,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      zIndex: item.mediaType === 'video' ? 2 : 0,
+      pointerEvents: item.mediaType === 'video' && isInteractive ? 'auto' : 'none'
     };
 
     if (item.mediaType === 'video') {
@@ -221,8 +237,128 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
   const effectiveOpacity = typeof opacity === 'number' ? opacity : (isVisible ? 1 : 0);
   const transition = opacityTransition ?? (isVisible ? 'opacity 0.2s ease' : 'opacity 0s');
 
+  useEffect(() => {
+    const node = inputShieldRef.current;
+    if (!node || !isInteractive) {
+      touchGestureRef.current = {
+        active: false,
+        identifier: -1,
+        lastY: 0,
+        moved: false
+      };
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (performance.now() < suppressClickUntilRef.current || !onLayerClick) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      onLayerClick({ x: event.clientX, y: event.clientY });
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!onForwardWheel) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      onForwardWheel(event);
+    };
+
+    const resetTouchGesture = () => {
+      touchGestureRef.current = {
+        active: false,
+        identifier: -1,
+        lastY: 0,
+        moved: false
+      };
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        resetTouchGesture();
+        return;
+      }
+      const touch = event.touches[0];
+      touchGestureRef.current = {
+        active: true,
+        identifier: touch.identifier,
+        lastY: touch.clientY,
+        moved: false
+      };
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const gesture = touchGestureRef.current;
+      if (!gesture.active || event.touches.length !== 1) {
+        return;
+      }
+      const touch = event.touches[0];
+      if (touch.identifier !== gesture.identifier) {
+        return;
+      }
+      const deltaY = gesture.lastY - touch.clientY;
+      if (Math.abs(deltaY) > 0.5) {
+        gesture.moved = true;
+      }
+      gesture.lastY = touch.clientY;
+      if (!onForwardWheel || Math.abs(deltaY) <= 0.5) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      onForwardWheel(new WheelEvent('wheel', {
+        deltaY,
+        bubbles: true,
+        cancelable: true
+      }));
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const gesture = touchGestureRef.current;
+      if (!gesture.active) {
+        return;
+      }
+      const touch = Array.from(event.changedTouches).find(candidate => candidate.identifier === gesture.identifier);
+      const shouldExit = !gesture.moved && Boolean(onLayerTouchEnd) && Boolean(touch);
+      resetTouchGesture();
+      if (!shouldExit || !touch || !onLayerTouchEnd) {
+        return;
+      }
+      suppressClickUntilRef.current = performance.now() + 400;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      onLayerTouchEnd({ x: touch.clientX, y: touch.clientY });
+    };
+
+    node.addEventListener('click', handleClick, { capture: true });
+    node.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    node.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
+    node.addEventListener('touchmove', handleTouchMove, { capture: true, passive: false });
+    node.addEventListener('touchend', handleTouchEnd, { capture: true, passive: false });
+    node.addEventListener('touchcancel', resetTouchGesture, { capture: true });
+
+    return () => {
+      node.removeEventListener('click', handleClick, { capture: true });
+      node.removeEventListener('wheel', handleWheel, { capture: true });
+      node.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      node.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      node.removeEventListener('touchend', handleTouchEnd, { capture: true });
+      node.removeEventListener('touchcancel', resetTouchGesture, { capture: true });
+    };
+  }, [isInteractive, onForwardWheel, onLayerClick, onLayerTouchEnd]);
+
   return (
     <div
+      data-photorealistic-layer="true"
+      data-photorealistic-visible={effectiveOpacity > 0.01 ? 'true' : 'false'}
+      data-photorealistic-interactive={isInteractive ? 'true' : 'false'}
       style={{
         position: 'fixed',
         inset: 0,
@@ -246,10 +382,22 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
         {scrolledItems.map(renderItem)}
       </div>
       {fixedItems.length > 0 && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
           {fixedItems.map(renderItem)}
         </div>
       )}
+      <div
+        ref={inputShieldRef}
+        data-photo-input-shield="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: isInteractive ? 'auto' : 'none',
+          background: 'transparent',
+          touchAction: 'none'
+        }}
+      />
     </div>
   );
 };

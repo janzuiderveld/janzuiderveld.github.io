@@ -79,7 +79,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   const [linkPositions, setLinkPositions] = useState<LinkPosition[]>([]);
   const linkPositionsRef = useRef<LinkPosition[]>([]);
   const [hoveredLinkIndex, setHoveredLinkIndex] = useState<number | null>(null);
-  const [isAsciiClickHovered, setIsAsciiClickHovered] = useState(false);
 
   // Text positioning - Calculate this *before* content height
   const textPositionCache = useTextPositioning(
@@ -242,53 +241,25 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     startWhiteout(position, url);
   }, [cursor.whiteOverlay?.active, handlePhotoLink, startWhiteout]);
   const hasAsciiClickHandlers = Boolean(onAsciiClickStart || onAsciiClickComplete);
-  const isAsciiClickTarget = useCallback((
-    clientX: number,
-    clientY: number,
-    target: EventTarget | null
-  ) => {
-    if (!hasAsciiClickHandlers) {
-      return false;
-    }
-
-    if (isWhiteoutActive || isWhiteInActive) {
-      return false;
-    }
-
-    const element = target instanceof HTMLElement ? target : null;
-    if (element?.closest?.('[data-link-overlay="true"]')) {
-      return false;
-    }
-
-    if (!asciiClickTargets || asciiClickTargets.length === 0) {
-      return true;
-    }
-
+  const resolveNormalizedPosition = useCallback((clientX: number, clientY: number) => {
     const rect = textRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return false;
-    }
+    const width = rect?.width || window.innerWidth;
+    const height = rect?.height || window.innerHeight;
+    const left = rect?.left ?? 0;
+    const top = rect?.top ?? 0;
+    const normalizedX = width ? ((clientX - left) / width) * 2 - 1 : 0;
+    const normalizedY = height ? ((clientY - top) / height) * 2 - 1 : 0;
+    return { x: normalizedX, y: normalizedY };
+  }, []);
 
-    const { charWidth, charHeight } = getCurrentCharMetrics();
-    if (!charWidth || !charHeight) {
-      return false;
-    }
-
-    const relativeX = clientX - rect.left;
-    const relativeY = clientY - rect.top;
-    const col = Math.floor(relativeX / charWidth);
-    const row = Math.floor(relativeY / charHeight);
-    const scrolledY = Math.floor(scrollOffsetRef.current / charHeight);
-
-    return asciiClickTargets.some(name => {
-      const bounds = namedRawBounds[name];
-      if (!bounds) {
-        return false;
-      }
-      const adjustedRow = bounds.fixed ? row : row + scrolledY;
-      return col >= bounds.minX && col <= bounds.maxX && adjustedRow >= bounds.minY && adjustedRow <= bounds.maxY;
+  const triggerAsciiClick = useCallback((clientX: number, clientY: number) => {
+    const normalized = resolveNormalizedPosition(clientX, clientY);
+    onAsciiClickStart?.(normalized);
+    startWhiteout(normalized, undefined, {
+      allowWhiteOverlay: false,
+      onComplete: () => onAsciiClickComplete?.(normalized)
     });
-  }, [asciiClickTargets, hasAsciiClickHandlers, isWhiteInActive, isWhiteoutActive, namedRawBounds]);
+  }, [onAsciiClickComplete, onAsciiClickStart, resolveNormalizedPosition, startWhiteout]);
 
   // Track URL changes and trigger white-in effect when needed
   useEffect(() => {
@@ -417,6 +388,72 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       onScrollOffsetChange(scrollOffset);
     }
   }, [scrollOffset, scheduleOverlayUpdate, onScrollOffsetChange, pauseAnimation, disableLinks]);
+
+  const asciiClickHitAreas = useMemo(() => {
+    if (!hasAsciiClickHandlers || isWhiteoutActive || isWhiteInActive || !asciiClickTargets?.length) {
+      return [];
+    }
+
+    const { charWidth: fallbackCharWidth, charHeight } = getCurrentCharMetrics();
+    const measuredCharWidth = textPositionCache.gridCols > 0 && size.width
+      ? size.width / textPositionCache.gridCols
+      : fallbackCharWidth;
+
+    if (!measuredCharWidth || !charHeight) {
+      return [];
+    }
+
+    const coarsePointer = typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(pointer: coarse)').matches;
+    const viewportHeight = size.height || (typeof window !== 'undefined' ? window.innerHeight : 0);
+    const hitPaddingX = Math.ceil(measuredCharWidth * (coarsePointer ? 2.2 : 1.35));
+    const hitPaddingY = Math.ceil(charHeight * (coarsePointer ? 2.1 : 1.2));
+    const actualScrollY = Math.floor(scrollOffset / charHeight);
+    const viewportRows = viewportHeight / charHeight;
+    const visibilityBufferRows = coarsePointer ? 8 : 5;
+
+    return asciiClickTargets.flatMap(name => {
+      const bounds = namedRawBounds[name];
+      if (!bounds) {
+        return [];
+      }
+
+      const minRow = bounds.fixed ? bounds.minY : bounds.minY - actualScrollY;
+      const maxRow = bounds.fixed ? bounds.maxY : bounds.maxY - actualScrollY;
+
+      if (maxRow < -visibilityBufferRows || minRow > viewportRows + visibilityBufferRows) {
+        return [];
+      }
+
+      const left = Math.max(0, Math.floor(bounds.minX * measuredCharWidth) - hitPaddingX);
+      const top = Math.floor(minRow * charHeight) - hitPaddingY;
+      const width = Math.ceil((bounds.maxX - bounds.minX + 1) * measuredCharWidth) + hitPaddingX * 2;
+      const height = Math.ceil((maxRow - minRow + 1) * charHeight) + hitPaddingY * 2;
+
+      if (width <= 0 || height <= 0) {
+        return [];
+      }
+
+      return [{
+        name,
+        left,
+        top,
+        width,
+        height
+      }];
+    });
+  }, [
+    asciiClickTargets,
+    hasAsciiClickHandlers,
+    isWhiteInActive,
+    isWhiteoutActive,
+    namedRawBounds,
+    scrollOffset,
+    size.height,
+    size.width,
+    textPositionCache.gridCols
+  ]);
 
   // Links management
   const { 
@@ -749,91 +786,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     };
   }, [handleClick, maxScroll, size, textRef, maxScrollHeight, disableLinks]);
 
-  useEffect(() => {
-    if (!containerRef.current || !hasAsciiClickHandlers) {
-      return;
-    }
-
-    const resolveNormalizedPosition = (clientX: number, clientY: number) => {
-      const rect = textRef.current?.getBoundingClientRect();
-      const width = rect?.width || window.innerWidth;
-      const height = rect?.height || window.innerHeight;
-      const left = rect?.left ?? 0;
-      const top = rect?.top ?? 0;
-      const normalizedX = width ? ((clientX - left) / width) * 2 - 1 : 0;
-      const normalizedY = height ? ((clientY - top) / height) * 2 - 1 : 0;
-      return { x: normalizedX, y: normalizedY };
-    };
-
-    const triggerAsciiClick = (clientX: number, clientY: number) => {
-      const normalized = resolveNormalizedPosition(clientX, clientY);
-      onAsciiClickStart?.(normalized);
-      startWhiteout(normalized, undefined, {
-        allowWhiteOverlay: false,
-        onComplete: () => onAsciiClickComplete?.(normalized)
-      });
-    };
-
-    const handleAsciiClick = (e: MouseEvent) => {
-      if (!isAsciiClickTarget(e.clientX, e.clientY, e.target)) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      triggerAsciiClick(e.clientX, e.clientY);
-    };
-
-    const handleAsciiTouch = (e: TouchEvent) => {
-      if (e.touches.length !== 1) {
-        return;
-      }
-      if (!isAsciiClickTarget(e.touches[0].clientX, e.touches[0].clientY, e.target)) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      const touch = e.touches[0];
-      triggerAsciiClick(touch.clientX, touch.clientY);
-    };
-
-    const element = containerRef.current;
-    element.addEventListener('click', handleAsciiClick, { capture: true });
-    element.addEventListener('touchstart', handleAsciiTouch, { capture: true, passive: false });
-
-    return () => {
-      element.removeEventListener('click', handleAsciiClick, { capture: true });
-      element.removeEventListener('touchstart', handleAsciiTouch, { capture: true });
-    };
-  }, [hasAsciiClickHandlers, isAsciiClickTarget, onAsciiClickComplete, onAsciiClickStart, startWhiteout]);
-
-  useEffect(() => {
-    if (!containerRef.current || !hasAsciiClickHandlers) {
-      setIsAsciiClickHovered(false);
-      return;
-    }
-
-    const element = containerRef.current;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const nextHover = isAsciiClickTarget(e.clientX, e.clientY, e.target);
-      setIsAsciiClickHovered(prev => (prev === nextHover ? prev : nextHover));
-    };
-
-    const handleMouseLeave = () => {
-      setIsAsciiClickHovered(false);
-    };
-
-    element.addEventListener('mousemove', handleMouseMove);
-    element.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      element.removeEventListener('mousemove', handleMouseMove);
-      element.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, [hasAsciiClickHandlers, isAsciiClickTarget]);
-
   // Update link overlays
   useEffect(() => {
     scheduleOverlayUpdate();
@@ -938,7 +890,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     const baseHeight = size.height ?? viewport;
     return Math.max(baseHeight, viewport) + CHAR_HEIGHT * 2; // add buffer to avoid bottom gap
   })();
-  const asciiClickCursor = hasAsciiClickHandlers && isAsciiClickHovered ? 'pointer' : 'default';
+  const asciiClickCursor = 'default';
 
   return (
     <div
@@ -1024,6 +976,45 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         }}
         dangerouslySetInnerHTML={{ __html: '' }}
       />
+
+      {asciiClickHitAreas.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 1800
+          }}
+        >
+          {asciiClickHitAreas.map(area => (
+            <div
+              key={`ascii-click-${area.name}`}
+              data-ascii-click-overlay="true"
+              data-ascii-click-target={area.name}
+              style={{
+                position: 'absolute',
+                left: `${area.left}px`,
+                top: `${area.top}px`,
+                width: `${area.width}px`,
+                height: `${area.height}px`,
+                pointerEvents: 'auto',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                userSelect: 'none',
+                touchAction: 'pan-x pan-y',
+                WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+                WebkitTouchCallout: 'none'
+              }}
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                (e.nativeEvent as MouseEvent).stopImmediatePropagation?.();
+                triggerAsciiClick(e.clientX, e.clientY);
+              }}
+            />
+          ))}
+        </div>
+      )}
       
       {/* Invisible clickable link overlays */}
       {!disableLinks && (

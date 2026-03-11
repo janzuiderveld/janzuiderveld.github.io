@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import AsciiArtGenerator from '../ascii-art2/AsciiArtGenerator';
 import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
-import { CHAR_HEIGHT, IS_SAFARI } from '../ascii-art2/constants';
+import { CHAR_HEIGHT } from '../ascii-art2/constants';
 import PhotorealisticLayer, {
   PhotoLayerItem,
   PhotorealisticLayout
@@ -35,8 +35,6 @@ type PhotorealisticProjectPageProps = {
   asciiAnchorOffsetY?: number;
 };
 
-type NavigatorWithTouch = Navigator & { maxTouchPoints?: number };
-
 type WhiteInRequest = {
   position: { x: number; y: number };
   token: number;
@@ -52,18 +50,6 @@ const DEFAULT_PHOTO_TRANSFORM: PhotoTransform = {
   stretchY: 1
 };
 
-const isMobileDevice = () => {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-
-  const ua = navigator.userAgent || '';
-  const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-  const isTouchMac = /Macintosh/.test(ua) && (navigator as NavigatorWithTouch).maxTouchPoints > 1;
-
-  return isMobileUA || isTouchMac;
-};
-
 function PhotorealisticProjectPage({
   title,
   bodyText,
@@ -74,10 +60,7 @@ function PhotorealisticProjectPage({
   asciiAnchorOffsetY = -13
 }: PhotorealisticProjectPageProps) {
   const photoModeEnabled = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-    return !(IS_SAFARI || isMobileDevice());
+    return true;
   }, []);
 
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
@@ -97,6 +80,7 @@ function PhotorealisticProjectPage({
   const exitTimeoutRef = useRef<number | null>(null);
   const photoHistoryPushedRef = useRef(false);
   const exitRequestedRef = useRef(false);
+  const asciiContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     photoStateRef.current = photoState;
@@ -201,6 +185,20 @@ function PhotorealisticProjectPage({
 
     return (maxY + 1) * CHAR_HEIGHT;
   }, [photoLayout.rawBounds, photoModeEnabled]);
+
+  const forwardPhotoWheel = useCallback((event: WheelEvent) => {
+    const container = asciiContainerRef.current;
+    if (!container) {
+      return;
+    }
+    container.dispatchEvent(new WheelEvent('wheel', {
+      deltaX: event.deltaX,
+      deltaY: event.deltaY,
+      deltaMode: event.deltaMode,
+      bubbles: true,
+      cancelable: true
+    }));
+  }, []);
 
   const completePhotoEnter = useCallback(() => {
     if (!photoModeEnabled || photoStateRef.current !== 'entering') return;
@@ -334,37 +332,8 @@ function PhotorealisticProjectPage({
     };
   }, []);
 
-  useEffect(() => {
-    if (!photoModeEnabled || photoState !== 'photo') {
-      return;
-    }
-
-    const handleClick = (event: MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      requestPhotoExit({ x: event.clientX, y: event.clientY });
-    };
-
-    const handleTouch = (event: TouchEvent) => {
-      if (event.touches.length !== 1) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      const touch = event.touches[0];
-      requestPhotoExit({ x: touch.clientX, y: touch.clientY });
-    };
-
-    document.addEventListener('click', handleClick, { capture: true });
-    document.addEventListener('touchstart', handleTouch, { capture: true, passive: false });
-
-    return () => {
-      document.removeEventListener('click', handleClick, { capture: true });
-      document.removeEventListener('touchstart', handleTouch, { capture: true });
-    };
-  }, [photoModeEnabled, photoState, requestPhotoExit]);
-
   const showPhotorealisticLayer = photoModeEnabled && photoState !== 'ascii';
+  const photoLayerInteractive = photoState === 'entering' || photoState === 'photo';
   const pauseAsciiAnimation = photoState === 'photo';
   const asciiOverlayOpacity = photoState === 'ascii' || photoState === 'exiting' ? 1 : 0;
   const asciiOverlayTransition = photoModeEnabled
@@ -404,9 +373,12 @@ function PhotorealisticProjectPage({
               scrollOffset={scrollOffset}
               isVisible={showPhotorealisticLayer}
               showHighRes={showHighRes}
-              isInteractive={false}
+              isInteractive={photoLayerInteractive}
               opacity={photoOpacity}
               opacityTransition={photoOpacityTransition}
+              onLayerClick={requestPhotoExit}
+              onLayerTouchEnd={requestPhotoExit}
+              onForwardWheel={forwardPhotoWheel}
             />
           )}
           <div style={{
@@ -429,6 +401,7 @@ function PhotorealisticProjectPage({
               transparentBackground={true}
               disableLinks={photoState !== 'ascii'}
               whiteInRequest={whiteInRequest}
+              externalContainerRef={asciiContainerRef}
             />
           </div>
         </>

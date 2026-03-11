@@ -23,7 +23,7 @@ import CompatibilityOverlay from './components/CompatibilityOverlay';
 import {
   COMPATIBILITY_MESSAGE,
   hasSeenCompatibilityMessage,
-  isDesktopChromium,
+  supportsPrimaryExperienceBrowser,
   markCompatibilityMessageSeen
 } from './utils/compatibility';
 
@@ -32,7 +32,7 @@ function App() {
     if (typeof window === 'undefined') {
       return false;
     }
-    if (isDesktopChromium()) {
+    if (supportsPrimaryExperienceBrowser()) {
       return false;
     }
     return !hasSeenCompatibilityMessage();

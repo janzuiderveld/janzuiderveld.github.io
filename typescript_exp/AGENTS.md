@@ -3,7 +3,8 @@
 ## Core Experience
 - This site is ASCII-first. Keep the primary UI on a monospaced character grid: titles, navigation, tables, illustrations, frames, and overlays should read as text art, not standard web widgets.
 - Photorealistic media is a secondary layer. Current project pages expose it through `[[VISUALS]]` and `#/slug?photo=1`. Do not replace ASCII navigation or layout with conventional DOM UI unless explicitly asked.
-- The main experience is intentionally optimized for desktop Chromium. On mobile or non-desktop-Chromium browsers the app currently shows a full-screen compatibility overlay instead of pretending to fully support the experience. Treat that as expected unless the task is specifically to change compatibility policy.
+- Safari now follows the same supported path as Chromium across desktop and mobile, including project click/tap-to-photo entry and `?photo=1` routes. Unsupported browsers can still show the compatibility overlay.
+- Photo mode now depends on a transparent input shield inside `src/components/photorealistic/PhotorealisticLayer.tsx` to forward wheel/touch scrolling and click/tap exit while leaving video wrappers above it interactive. Keep that layering intact when changing photo mode.
 - Transitions matter. The app uses white-in / white-out effects and route-entry animations; let the page settle before judging layout or capturing screenshots.
 
 ## Local Serving And Verification
@@ -16,6 +17,7 @@
   - `npm run safari:real` for real Safari through `safaridriver`
   - `npm run safari:stp` for Safari Technology Preview through `safaridriver`
 - For Safari/WebKit animation work, trust the `<pre>` redraw metrics from `npm run safari:webkit`, not the raw page `requestAnimationFrame` count. The renderer intentionally self-throttles on Safari, so page `rAF` can still read ~60fps while visible ASCII redraws are lower.
+- Hover reveal checks should only be expected on hover-capable devices. Touch devices should enter photo mode through links or taps instead of hover.
 - Real Safari automation still needs one manual macOS step: `safaridriver --enable` (password prompt) and possibly `Develop > Allow Remote Automation` inside Safari.
 - `xctrace` is present on the machine but not usable until full Xcode is selected; Command Line Tools alone are not enough.
 - Minimum verification pass:
@@ -113,7 +115,7 @@
 - ASCII layout is fragile. After edits, check:
   - link overlays still line up with visible text
   - anchored text blobs do not collide on desktop
-  - mobile/tall view either behaves intentionally or shows the compatibility overlay intentionally
+  - mobile/tall view either behaves intentionally or shows the compatibility overlay intentionally on unsupported browsers
   - photorealistic mode enters and exits cleanly
 
 ALWAYS UPDATE THIS FILE WHEN PROJECT GUIDELINES CHANGE, OR YOU LEARN NEW THINGS THAT SHOULD BE DOCUMENTED FOR FUTURE CONTRIBUTORS.
