@@ -215,6 +215,7 @@ const PhotoModeScene = ({
   const hoverFrameRef = useRef<number | null>(null);
   const hoverPointerActiveRef = useRef(false);
   const hoverItemsRef = useRef<PhotoLayerItem[]>([]);
+  const photoEntryItemsRef = useRef<PhotoLayerItem[]>([]);
   const hoverLayoutRef = useRef(photoLayout);
   const hoverScrollOffsetRef = useRef(scrollOffset);
   const initialScrollLockRef = useRef(false);
@@ -370,6 +371,15 @@ const PhotoModeScene = ({
     },
     [alignedPhotoItems, hoverPreviewEnabled, resolvedAlignmentTargetId]
   );
+  const photoEntryItems = useMemo(
+    () => {
+      if (!resolvedAlignmentTargetId) {
+        return [];
+      }
+      return alignedPhotoItems.filter(item => item.id === resolvedAlignmentTargetId);
+    },
+    [alignedPhotoItems, resolvedAlignmentTargetId]
+  );
   const photoImageItems = useMemo(
     () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
     [alignedPhotoItems]
@@ -382,6 +392,10 @@ const PhotoModeScene = ({
   useEffect(() => {
     hoverItemsRef.current = hoverPreviewItems;
   }, [hoverPreviewItems]);
+
+  useEffect(() => {
+    photoEntryItemsRef.current = photoEntryItems;
+  }, [photoEntryItems]);
 
   const mergedPhotoLayout = useMemo(() => {
     if (!layoutAugmenter) {
@@ -506,16 +520,19 @@ const PhotoModeScene = ({
     setHoverPreviewActive(false);
   }, []);
 
-  const resolveHoverItem = useCallback((clientX: number, clientY: number) => {
-    const items = hoverItemsRef.current;
+  const resolvePhotoItemAtPoint = useCallback((
+    items: PhotoLayerItem[],
+    clientX: number,
+    clientY: number,
+    radiusPx: number
+  ) => {
     if (!items.length) return null;
 
     const layout = hoverLayoutRef.current;
     const { charWidth, charHeight } = getCurrentCharMetrics();
     if (!charWidth || !charHeight) return null;
 
-    const radius = getPhotoHoverRadiusPx();
-    const radiusSquared = radius * radius;
+    const radiusSquared = radiusPx * radiusPx;
     const scrollOffsetPx = hoverScrollOffsetRef.current;
 
     for (const item of items) {
@@ -543,6 +560,29 @@ const PhotoModeScene = ({
 
     return null;
   }, []);
+
+  const resolveHoverItem = useCallback(
+    (clientX: number, clientY: number) => resolvePhotoItemAtPoint(
+      hoverItemsRef.current,
+      clientX,
+      clientY,
+      getPhotoHoverRadiusPx()
+    ),
+    [resolvePhotoItemAtPoint]
+  );
+
+  const isAsciiPhotoEntryHit = useCallback((clientX: number, clientY: number) => {
+    if (!photoModeEnabled || photoStateRef.current !== 'ascii' || alignmentModeRef.current) {
+      return false;
+    }
+
+    return Boolean(resolvePhotoItemAtPoint(
+      photoEntryItemsRef.current,
+      clientX,
+      clientY,
+      getPhotoHoverRadiusPx()
+    ));
+  }, [photoModeEnabled, resolvePhotoItemAtPoint]);
 
   const updateHoverTarget = useCallback(() => {
     hoverFrameRef.current = null;
@@ -1164,6 +1204,7 @@ const PhotoModeScene = ({
           onAsciiClickStart={asciiClickEntryEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickStart : undefined}
           onAsciiClickComplete={asciiClickEntryEnabled && photoState === 'ascii' && !alignmentMode ? handleAsciiClickComplete : undefined}
           asciiClickTargets={asciiClickEntryEnabled && !alignmentMode ? asciiClickTargets : []}
+          asciiClickHitTest={asciiClickEntryEnabled && !alignmentMode ? isAsciiPhotoEntryHit : undefined}
           pauseAnimation={photoState === 'photo'}
           transparentBackground={true}
           disableLinks={photoState !== 'ascii' || alignmentMode}

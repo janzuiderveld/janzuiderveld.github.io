@@ -23,6 +23,42 @@ import {
   useAnimation
 } from './hooks';
 import { calculateCharacter, CharacterPrecomputation } from './renderer';
+import {
+  hasHandledAutoWhiteInPage,
+  markHandledAutoWhiteInPage,
+  resolveAutoWhiteInState
+} from './autoWhiteIn';
+
+const getCurrentPageUrl = () => {
+  return typeof window !== 'undefined' ? window.location.href : '';
+};
+
+const hasPendingSessionWhiteIn = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return sessionStorage.getItem('needsWhiteIn') === 'true';
+  } catch (error) {
+    console.warn('Error accessing sessionStorage', error);
+    return false;
+  }
+};
+
+const getAutoWhiteInStateForPage = (pageUrl: string) => {
+  if (typeof window === 'undefined') {
+    return {
+      needsWhiteIn: true,
+      whiteInStarted: false
+    };
+  }
+
+  return resolveAutoWhiteInState({
+    pendingSessionWhiteIn: hasPendingSessionWhiteIn(),
+    pageAlreadyHandled: hasHandledAutoWhiteInPage(window, pageUrl)
+  });
+};
 
 const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ 
   textContent, 
@@ -32,6 +68,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   onAsciiClickStart,
   onAsciiClickComplete,
   asciiClickTargets,
+  asciiClickHitTest,
   pauseAnimation = false,
   transparentBackground = false,
   disableLinks = false,
@@ -50,6 +87,8 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   const appliedInitialScrollRef = useRef<number | null>(null);
   const appliedScrollToRef = useRef<number | null>(null);
   const [contentLoaded, setContentLoaded] = useState(false);
+  const initialPageUrl = getCurrentPageUrl();
+  const initialAutoWhiteInState = getAutoWhiteInStateForPage(initialPageUrl);
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     containerRef.current = node;
     if (externalContainerRef) {
@@ -59,9 +98,9 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   
   // Use ref to track content state
   const contentStateRef = useRef({
-    whiteInStarted: false,
-    pageUrl: typeof window !== 'undefined' ? window.location.href : '',
-    needsWhiteIn: true
+    whiteInStarted: initialAutoWhiteInState.whiteInStarted,
+    pageUrl: initialPageUrl,
+    needsWhiteIn: initialAutoWhiteInState.needsWhiteIn
   });
 
   // Initialize trig tables once to avoid redundant allocations during rerenders
@@ -264,17 +303,18 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   // Track URL changes and trigger white-in effect when needed
   useEffect(() => {
     // Check if URL has changed since last render
-    const currentUrl = window.location.href;
+    const currentUrl = getCurrentPageUrl();
     if (currentUrl !== contentStateRef.current.pageUrl) {
+      const nextAutoWhiteInState = getAutoWhiteInStateForPage(currentUrl);
       // URL changed, we need a new white-in effect
       contentStateRef.current = {
-        whiteInStarted: false,
+        whiteInStarted: nextAutoWhiteInState.whiteInStarted,
         pageUrl: currentUrl,
-        needsWhiteIn: true
+        needsWhiteIn: nextAutoWhiteInState.needsWhiteIn
       };
       
       // Reset content loaded state
-      if (contentLoaded) {
+      if (contentLoaded && !nextAutoWhiteInState.whiteInStarted) {
         setContentLoaded(false);
       }
     }
@@ -468,14 +508,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
 
   // Track content loading state
   useEffect(() => {
-    // Check if there's a pending white-in from sessionStorage
-    let needsWhiteInFromSession = false;
-    try {
-      needsWhiteInFromSession = sessionStorage.getItem('needsWhiteIn') === 'true';
-    } catch (e) {
-      console.warn('Error accessing sessionStorage', e);
-    }
-
     // If we have content and the blob cache is built
     if (
       Object.keys(textPositionCache.cache).length > 0 && 
@@ -485,15 +517,9 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       ) && 
       !contentLoaded
     ) {
-      // If we're coming from a navigation (detected by sessionStorage),
-      // let the useCursor hook handle it
-      if (!needsWhiteInFromSession) {
-        // Not from navigation, handle it here
-        contentStateRef.current.needsWhiteIn = true;
-        contentStateRef.current.whiteInStarted = false;
-      } else {
-        contentStateRef.current.needsWhiteIn = false;
-      }
+      const nextAutoWhiteInState = getAutoWhiteInStateForPage(contentStateRef.current.pageUrl);
+      contentStateRef.current.needsWhiteIn = nextAutoWhiteInState.needsWhiteIn;
+      contentStateRef.current.whiteInStarted = nextAutoWhiteInState.whiteInStarted;
       
       setContentLoaded(true);
     }
@@ -504,10 +530,10 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     const handlePageLoad = () => {
       // Only trigger if we're not already handling a navigation white-in
       try {
-        const needsWhiteInFromSession = sessionStorage.getItem('needsWhiteIn') === 'true';
-        if (!needsWhiteInFromSession) {
-          contentStateRef.current.needsWhiteIn = true;
-          contentStateRef.current.whiteInStarted = false;
+        const nextAutoWhiteInState = getAutoWhiteInStateForPage(contentStateRef.current.pageUrl);
+        contentStateRef.current.needsWhiteIn = nextAutoWhiteInState.needsWhiteIn;
+        contentStateRef.current.whiteInStarted = nextAutoWhiteInState.whiteInStarted;
+        if (nextAutoWhiteInState.needsWhiteIn) {
           setContentLoaded(false);
         }
       } catch {
@@ -529,7 +555,15 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
 
   // Mark white-in as handled when it's already running (e.g., after navigation)
   useEffect(() => {
-    if (cursor.whiteIn?.active && !contentStateRef.current.whiteInStarted) {
+    if (!cursor.whiteIn?.active) {
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      markHandledAutoWhiteInPage(window, contentStateRef.current.pageUrl);
+    }
+
+    if (!contentStateRef.current.whiteInStarted) {
       contentStateRef.current.whiteInStarted = true;
       contentStateRef.current.needsWhiteIn = false;
     }
@@ -561,6 +595,9 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         // Mark as started to prevent duplicate effects
         contentStateRef.current.whiteInStarted = true;
         contentStateRef.current.needsWhiteIn = false;
+        if (typeof window !== 'undefined') {
+          markHandledAutoWhiteInPage(window, contentStateRef.current.pageUrl);
+        }
         
         // Small delay to ensure everything is ready
         setTimeout(() => {
@@ -831,7 +868,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
 
   // Create direct click handler on the container
   useEffect(() => {
-    if (!containerRef.current || disableLinks) return;
+    if (!containerRef.current || (disableLinks && !asciiClickHitTest)) return;
     
     const handleContainerClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -860,7 +897,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         return null;
       };
       
-      const url = findLinkUrl(target);
+      const url = disableLinks ? null : findLinkUrl(target);
       if (url) {
         // Found a link - handle the click
         e.preventDefault();
@@ -872,6 +909,14 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         const normalizedY = ((e.clientY - rect.top) / rect.height) * 2 - 1;
         
         handleLinkClick({ x: normalizedX, y: normalizedY }, url);
+        return;
+      }
+
+      if (asciiClickHitTest?.(e.clientX, e.clientY)) {
+        e.preventDefault();
+        e.stopPropagation();
+        (e as MouseEvent).stopImmediatePropagation?.();
+        triggerAsciiClick(e.clientX, e.clientY);
       }
     };
     
@@ -882,7 +927,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         containerRef.current.removeEventListener('click', handleContainerClick);
       }
     };
-  }, [disableLinks, handleLinkClick]);
+  }, [asciiClickHitTest, disableLinks, handleLinkClick, triggerAsciiClick]);
 
   // Ensure the pre element always covers the viewport (Safari can shrink visualViewport)
   const preHeightPx = (() => {

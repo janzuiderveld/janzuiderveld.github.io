@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { CHAR_WIDTH, CHAR_HEIGHT, SAFARI_CURSOR_Y_OFFSET, MOUSE_MOVE_THROTTLE } from '../constants';
 import { CursorState, Size, ClickRipple, WhiteoutState, WhiteInState, WhiteOverlayState } from '../types';
 import { getGridDimensions } from '../utils';
+import { markHandledAutoWhiteInPage } from '../autoWhiteIn';
 
 export const useCursor = (
   textRef: React.RefObject<HTMLPreElement>,
@@ -433,6 +434,10 @@ export const useCursor = (
     position: { x: number; y: number },
     options?: { startProgress?: number }
   ) => {
+    if (typeof window !== 'undefined') {
+      markHandledAutoWhiteInPage(window, window.location.href);
+    }
+
     // Before starting the white-in effect, ensure the cursor position is initialized
     // This allows the background animation to properly display with the mouse "in the window"
     // Convert from normalized coordinates to grid coordinates
@@ -769,6 +774,7 @@ export const useCursor = (
           // Clear the flag to prevent duplicate white-ins
           sessionStorage.removeItem('needsWhiteIn');
           sessionStorage.setItem('lastWhiteInTimestamp', String(Date.now()));
+          markHandledAutoWhiteInPage(window, window.location.href);
 
           // Initialize cursor state with the white-in position before starting the effect
           const gridDimensions = getGridDimensions(gridWidth, gridHeight);

@@ -12,6 +12,7 @@ export interface AsciiArtGeneratorProps {
   onAsciiClickStart?: (position: { x: number; y: number }) => void;
   onAsciiClickComplete?: (position: { x: number; y: number }) => void;
   asciiClickTargets?: string[];
+  asciiClickHitTest?: (clientX: number, clientY: number) => boolean;
   pauseAnimation?: boolean;
   transparentBackground?: boolean;
   disableLinks?: boolean;

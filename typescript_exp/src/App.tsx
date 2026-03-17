@@ -19,6 +19,7 @@ import AboutPage from './pages/AboutPage';
 import AllPresentationsPage from './pages/AllPresentationsPage';
 import VendingMachineOrganoidPage from './pages/VendingMachineOrganoidPage';
 import PersonalAudioGuidePage from './pages/PersonalAudioGuidePage';
+import VendingDemoPage from './pages/VendingDemoPage';
 import CompatibilityOverlay from './components/CompatibilityOverlay';
 import {
   COMPATIBILITY_MESSAGE,
@@ -67,6 +68,7 @@ function App() {
 
         <Route path="/presentations" element={<AllPresentationsPage />} />
         <Route path="/vending" element={<VendingMachineOrganoidPage />} />
+        <Route path="/vending-demo" element={<VendingDemoPage />} />
         <Route path="/vending-machine-organoid" element={<Navigate to="/vending" replace />} />
         <Route path="/guide" element={<PersonalAudioGuidePage />} />
         <Route path="/audio-guide" element={<Navigate to="/guide" replace />} />
