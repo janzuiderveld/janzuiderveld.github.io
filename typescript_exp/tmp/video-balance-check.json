@@ -1,0 +1,74 @@
+[
+  {
+    "case": "fish-1280x720",
+    "data": {
+      "iframeRect": {
+        "x": 280.796875,
+        "y": 26,
+        "width": 717.59375,
+        "height": 403
+      },
+      "imageRect": {
+        "x": -35.09375,
+        "y": 627.1195678710938,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=1&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1"
+    }
+  },
+  {
+    "case": "fish-900x1600",
+    "data": {
+      "iframeRect": {
+        "x": 202.796875,
+        "y": 26,
+        "width": 499.1875,
+        "height": 286
+      },
+      "imageRect": {
+        "x": -230.09375,
+        "y": 731.1195678710938,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=1&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1"
+    }
+  },
+  {
+    "case": "camera-1280x720",
+    "data": {
+      "iframeRect": {
+        "x": 257.390625,
+        "y": 139,
+        "width": 764.390625,
+        "height": 286
+      },
+      "imageRect": {
+        "x": 180.42999267578125,
+        "y": 613.5,
+        "width": 919.8900756835938,
+        "height": 1385.796875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1070684213?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1"
+    }
+  },
+  {
+    "case": "camera-900x1600",
+    "data": {
+      "iframeRect": {
+        "x": 46.796875,
+        "y": 286,
+        "width": 803.390625,
+        "height": 299
+      },
+      "imageRect": {
+        "x": -14.57000732421875,
+        "y": 864.5,
+        "width": 919.8900146484375,
+        "height": 1385.796875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1070684213?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1"
+    }
+  }
+]

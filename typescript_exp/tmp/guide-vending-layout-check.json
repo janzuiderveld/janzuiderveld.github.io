@@ -1,0 +1,88 @@
+[
+  {
+    "name": "guide-page-desktop",
+    "metrics": null
+  },
+  {
+    "name": "guide-photo-desktop",
+    "metrics": {
+      "top": 65,
+      "bottom": 494,
+      "left": 265,
+      "right": 1037,
+      "width": 772,
+      "height": 429,
+      "viewportWidth": 1280,
+      "viewportHeight": 720
+    }
+  },
+  {
+    "name": "guide-photo-short",
+    "metrics": {
+      "top": 65,
+      "bottom": 494,
+      "left": 265,
+      "right": 1037,
+      "width": 772,
+      "height": 429,
+      "viewportWidth": 1280,
+      "viewportHeight": 600
+    }
+  },
+  {
+    "name": "guide-photo-mobile",
+    "metrics": {
+      "top": 65,
+      "bottom": 364,
+      "left": 187,
+      "right": 725,
+      "width": 538,
+      "height": 299,
+      "viewportWidth": 900,
+      "viewportHeight": 1600
+    }
+  },
+  {
+    "name": "vending-page-desktop",
+    "metrics": null
+  },
+  {
+    "name": "vending-photo-desktop",
+    "metrics": {
+      "top": 65,
+      "bottom": 494,
+      "left": 265,
+      "right": 1037,
+      "width": 772,
+      "height": 429,
+      "viewportWidth": 1280,
+      "viewportHeight": 720
+    }
+  },
+  {
+    "name": "vending-photo-short",
+    "metrics": {
+      "top": 65,
+      "bottom": 494,
+      "left": 265,
+      "right": 1037,
+      "width": 772,
+      "height": 429,
+      "viewportWidth": 1280,
+      "viewportHeight": 600
+    }
+  },
+  {
+    "name": "vending-photo-mobile",
+    "metrics": {
+      "top": 65,
+      "bottom": 364,
+      "left": 187,
+      "right": 725,
+      "width": 538,
+      "height": 299,
+      "viewportWidth": 900,
+      "viewportHeight": 1600
+    }
+  }
+]

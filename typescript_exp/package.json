@@ -10,6 +10,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "profile:animation": "node scripts/profile-animation.mjs",
+    "render:project-pdf": "node scripts/render-project-pdf.mjs",
+    "render:project-pdf-collection": "node scripts/render-project-pdf-collection.mjs",
     "safari:webkit": "node scripts/safari-webkit-check.mjs",
     "safari:real": "node scripts/safari-real-check.mjs",
     "safari:stp": "node scripts/safari-real-check.mjs --technology-preview"

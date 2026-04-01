@@ -184,7 +184,8 @@ export const calculateCharacter = (
   fastCos: (angle: number) => number,
   precomputed?: CharacterPrecomputation | null,
   frameSeed?: number,
-  frameNow?: number
+  frameNow?: number,
+  suppressTextCharacters: boolean = false
 ): string => {
   const scrolledY = Math.floor(scrollY / CHAR_HEIGHT);
 
@@ -346,7 +347,7 @@ export const calculateCharacter = (
   const fixedChar = textGrid[fixedIndex];
   
   // If we found a fixed character, return it immediately (common case)
-  if (fixedChar?.fixed) {
+  if (!suppressTextCharacters && fixedChar?.fixed) {
     resultCache.set(cacheKey, fixedChar.char);
     return fixedChar.char;
   }
@@ -358,7 +359,7 @@ export const calculateCharacter = (
   const scrolledChar = (x >= 0 && x < textGridCols && scrolledGridY >= 0 && scrolledIndex >= 0 && scrolledIndex < textGrid.length) ? textGrid[scrolledIndex] : null;
   
   // Return non-fixed character if found (also common case)
-  if (scrolledChar && !scrolledChar.fixed) {
+  if (!suppressTextCharacters && scrolledChar && !scrolledChar.fixed) {
     resultCache.set(cacheKey, scrolledChar.char);
     return scrolledChar.char;
   }

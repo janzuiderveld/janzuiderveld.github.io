@@ -1,8 +1,8 @@
 export const CAMERA_ALIGN_DEFAULT = {
-  "offsetX": -9.5,
-  "offsetY": -16.5,
-  "scaleX": 1.3000000000000003,
-  "scaleY": 1.3000000000000003,
-  "stretchX": 1.08,
-  "stretchY": 1
+  "offsetX": 0.5,
+  "offsetY": -3,
+  "scaleX": 1.1,
+  "scaleY": 1.1,
+  "stretchX": 0.98,
+  "stretchY": 0.9199999999999999
 } as const;

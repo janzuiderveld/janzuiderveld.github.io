@@ -1,0 +1,217 @@
+{
+  "exportUrl": "http://localhost:3000/#/fish?pdf=1",
+  "captureViewport": {
+    "width": 1233,
+    "height": 1744,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.6828872668288727,
+    "y": 0.6829128440366973
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 132.6,
+      "top": 169,
+      "width": 967.1999999999999,
+      "height": 65
+    },
+    "paddedTitleRect": {
+      "left": 15.6,
+      "top": -26,
+      "width": 1201.2,
+      "height": 455
+    },
+    "titleOccupiedRects": [],
+    "textRect": {
+      "left": 249.6,
+      "top": 468,
+      "width": 733.1999999999999,
+      "height": 351
+    },
+    "paddedTextRect": {
+      "left": 132.6,
+      "top": 273,
+      "width": 967.1999999999999,
+      "height": 741
+    },
+    "contentBottom": 1014
+  },
+  "scaledContentBottom": 631.3056192660551,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#/fish",
+  "titleLinkLayout": {
+    "centerX": 421,
+    "top": 172,
+    "width": 738,
+    "fontSize": 17,
+    "lineHeight": 20
+  },
+  "photoFrame": {
+    "x": 208,
+    "y": 634,
+    "width": 426,
+    "height": 537
+  },
+  "photoAspectRatio": 0.7936772046589018,
+  "captureSelectionScore": 122797,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 954,
+    "height": 1202,
+    "naturalWidth": 5504,
+    "naturalHeight": 3072,
+    "processingScale": 0.436046511627907,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 834,
+      "maxX": 1707,
+      "minY": 178,
+      "maxY": 1332
+    },
+    "blobBounds": {
+      "minX": 794,
+      "maxX": 1747,
+      "minY": 138,
+      "maxY": 1339
+    },
+    "paddingRadius": 40
+  },
+  "primaryPhotoItem": {
+    "id": "This is not a fish-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/fish/pictures/fish_placeholder.png",
+    "highSrc": "/src/assets/fish/pictures/fish_placeholder.png",
+    "alt": "This is not a fish placeholder",
+    "contentInsets": {
+      "top": 0.133,
+      "right": 0,
+      "bottom": 0.005,
+      "left": 0
+    },
+    "boundsSource": "raw",
+    "objectFit": "cover",
+    "offsetX": -18,
+    "offsetY": -4.5,
+    "scaleX": 1.12,
+    "scaleY": 1.12,
+    "stretchX": 1,
+    "stretchY": 0.8999999999999999
+  },
+  "metadata": {
+    "key": "This is not a fish",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 17,
+          "maxX": 140,
+          "minY": 13,
+          "maxY": 17,
+          "fixed": false
+        },
+        "text": {
+          "minX": 32,
+          "maxX": 125,
+          "minY": 36,
+          "maxY": 62,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 2,
+          "maxX": 155,
+          "minY": -2,
+          "maxY": 32,
+          "fixed": false
+        },
+        "text": {
+          "minX": 17,
+          "maxX": 140,
+          "minY": 21,
+          "maxY": 77,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "This is not a fish-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/fish/pictures/fish_placeholder.png",
+        "highSrc": "/src/assets/fish/pictures/fish_placeholder.png",
+        "alt": "This is not a fish placeholder",
+        "contentInsets": {
+          "top": 0.133,
+          "right": 0,
+          "bottom": 0.005,
+          "left": 0
+        },
+        "boundsSource": "raw",
+        "objectFit": "cover",
+        "offsetX": -18,
+        "offsetY": -4.5,
+        "scaleX": 1.12,
+        "scaleY": 1.12,
+        "stretchX": 1,
+        "stretchY": 0.8999999999999999
+      }
+    ],
+    "primaryPhotoItemId": "This is not a fish-main",
+    "primaryPhotoItem": {
+      "id": "This is not a fish-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/fish/pictures/fish_placeholder.png",
+      "highSrc": "/src/assets/fish/pictures/fish_placeholder.png",
+      "alt": "This is not a fish placeholder",
+      "contentInsets": {
+        "top": 0.133,
+        "right": 0,
+        "bottom": 0.005,
+        "left": 0
+      },
+      "boundsSource": "raw",
+      "objectFit": "cover",
+      "offsetX": -18,
+      "offsetY": -4.5,
+      "scaleX": 1.12,
+      "scaleY": 1.12,
+      "stretchX": 1,
+      "stretchY": 0.8999999999999999
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1233,
+      "height": 1744
+    }
+  }
+}

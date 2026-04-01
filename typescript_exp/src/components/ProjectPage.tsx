@@ -4,7 +4,11 @@ import { getCurrentCharMetrics } from './ascii-art2/constants';
 import { TextBounds, TextContentItem } from './ascii-art2/types';
 import type { FontName } from './ascii-art2/ASCII_text_renderer';
 import PhotoModeScene from './photorealistic/PhotoModeScene';
-import { PhotoLayerItem } from './photorealistic/PhotorealisticLayer';
+import {
+  PhotoContentInsets,
+  PhotoLayerItem,
+  PhotorealisticLayout
+} from './photorealistic/PhotorealisticLayer';
 
 type PhotoAlign = {
   offsetX: number;
@@ -33,6 +37,7 @@ type ProjectImageConfig = SupplementalMediaConfig & {
   alt: string;
   filter?: string;
   objectFit?: ObjectFitMode;
+  contentInsets?: PhotoContentInsets;
 };
 
 type ProjectVideoConfig = SupplementalMediaConfig & {
@@ -77,7 +82,13 @@ type ProjectPageProps = {
   text: string;
   asciiArt: string;
   photo:
-    | { kind?: 'image'; src: string; alt: string; filter?: string }
+    | {
+      kind?: 'image';
+      src: string;
+      alt: string;
+      filter?: string;
+      contentInsets?: PhotoContentInsets;
+    }
     | {
       kind: 'embed';
       embedSrc: string;
@@ -103,6 +114,14 @@ type ProjectPageProps = {
   showHero?: boolean;
   heroAnchorOffsetY?: number;
   photoAnchorName?: string;
+  extraPhotoItems?: PhotoLayerItem[];
+  photoLayoutAugmenter?: (layout: PhotorealisticLayout) => PhotorealisticLayout;
+  photoAlignmentKey?: string;
+  photoAlignmentTargetId?: string;
+  photoInitialScrollTargetId?: string;
+  photoInitialScrollAlignment?: 'center' | 'start';
+  photoInitialScrollPaddingRows?: number;
+  photoCenterOnEnter?: boolean;
 };
 
 const DEFAULT_VIDEO_HEIGHT_RATIO = 0.35;
@@ -128,7 +147,15 @@ const ProjectPage = ({
   inlinePhotoLinkLabel,
   showHero = true,
   heroAnchorOffsetY = -13,
-  photoAnchorName
+  photoAnchorName,
+  extraPhotoItems,
+  photoLayoutAugmenter,
+  photoAlignmentKey,
+  photoAlignmentTargetId,
+  photoInitialScrollTargetId,
+  photoInitialScrollAlignment = 'center',
+  photoInitialScrollPaddingRows = 0,
+  photoCenterOnEnter = false
 }: ProjectPageProps) => {
   const location = useLocation();
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
@@ -139,13 +166,9 @@ const ProjectPage = ({
   const videoAnchorName = `${heroName}-video`;
   const renderedTitle = displayTitle ?? title;
   const { charWidth, charHeight } = getCurrentCharMetrics();
-  const inlinePhotoLinkAnchorName = titleCalloutText ? titleCalloutName : 'title';
-  const bodyAnchorName = inlinePhotoLinkLabel
-    ? inlinePhotoLinkName
-    : titleCalloutText
-      ? titleCalloutName
-      : 'title';
   const resolvedPhotoAnchorName = photoAnchorName ?? (showHero ? heroName : 'text');
+  const mainPhotoItemId = `${title}-main`;
+  const resolvedInitialScrollTargetId = photoInitialScrollTargetId ?? resolvedPhotoAnchorName;
   const resolvedHashPath = useMemo(() => {
     if (!hashPathOverride) {
       return location.pathname || '/';
@@ -168,6 +191,26 @@ const ProjectPage = ({
     const value = (params.get('photo') ?? '').toLowerCase();
     return value === '1' || value === 'true' || value === 'on' || value === 'yes';
   }, [location.search]);
+  const pdfExportMode = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const value = (params.get('pdf') ?? '').toLowerCase();
+    return value === '1' || value === 'true' || value === 'on' || value === 'yes';
+  }, [location.search]);
+  const pdfBackgroundOnly = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const value = (params.get('pdfbg') ?? '').toLowerCase();
+    return value === '1' || value === 'true' || value === 'on' || value === 'yes';
+  }, [location.search]);
+  const inlinePhotoLinkAnchorName = titleCalloutText ? titleCalloutName : 'title';
+  const showInlinePhotoLink = Boolean(inlinePhotoLinkLabel) && !pdfExportMode;
+  const bodyAnchorName = inlinePhotoLinkLabel
+    ? (showInlinePhotoLink ? inlinePhotoLinkName : (titleCalloutText ? titleCalloutName : 'title'))
+    : titleCalloutText
+      ? titleCalloutName
+      : 'title';
+  const exportPrimaryPhotoItemId = pdfExportMode && photo.kind !== 'embed' && photo.kind !== 'file'
+    ? mainPhotoItemId
+    : undefined;
 
   const imageEntries = useMemo<ImageEntry[]>(() => {
     if (!photoImages?.length) {
@@ -218,16 +261,22 @@ const ProjectPage = ({
     setIsLoading(true);
     const textItems: TextContentItem[] = [
       { name: 'title', text: renderedTitle, x: 0, y: 10, centered: true, fontName: titleFontName },
-      { name: 'back', text: `[[<<<]](${backHref})`, x: 2, y: 4, fixed: true },
-      {
-        name: 'photo-link',
-        text: `[[VISUALS]](${photoHref})`,
-        x: 70,
-        y: 4,
-        fixed: true,
-        maxWidthPercent: 30,
-        alignment: 'right'
-      },
+      ...(
+        pdfExportMode
+          ? []
+          : [
+            { name: 'back', text: `[[<<<]](${backHref})`, x: 2, y: 4, fixed: true },
+            {
+              name: 'photo-link',
+              text: `[[VISUALS]](${photoHref})`,
+              x: 70,
+              y: 4,
+              fixed: true,
+              maxWidthPercent: 30,
+              alignment: 'right' as const
+            }
+          ]
+      ),
       ...(titleCalloutText
         ? [{
           name: titleCalloutName,
@@ -242,7 +291,7 @@ const ProjectPage = ({
           maxWidthPercent: 68
         }]
         : []),
-      ...(inlinePhotoLinkLabel
+      ...(showInlinePhotoLink
         ? [{
           name: inlinePhotoLinkName,
           text: `[[${inlinePhotoLinkLabel}]](${photoHref})`,
@@ -266,9 +315,9 @@ const ProjectPage = ({
         alignment: 'left',
         anchorTo: bodyAnchorName,
         anchorPoint: 'bottomCenter',
-        anchorOffsetY: inlinePhotoLinkLabel ? 3 : 4
+        anchorOffsetY: showInlinePhotoLink ? 3 : 4
       },
-      ...(showHero
+      ...(showHero && !pdfExportMode
         ? [{
           name: heroName,
           text: renderedTitle,
@@ -296,8 +345,10 @@ const ProjectPage = ({
     bodyAnchorName,
     heroName,
     inlinePhotoLinkLabel,
+    showInlinePhotoLink,
     asciiArt,
     photoHref,
+    pdfExportMode,
     renderedTitle,
     showHero,
     heroAnchorOffsetY,
@@ -310,7 +361,7 @@ const ProjectPage = ({
     ...(
       photo.kind === 'embed'
         ? [{
-          id: `${title}-main`,
+          id: mainPhotoItemId,
           anchorName: resolvedPhotoAnchorName,
           mediaType: 'video' as const,
           kind: 'embed' as const,
@@ -323,10 +374,10 @@ const ProjectPage = ({
           scaleY: align.scaleY,
           stretchX: align.stretchX ?? 1,
           stretchY: align.stretchY ?? 1
-        }]
+          }]
         : photo.kind === 'file'
           ? [{
-            id: `${title}-main`,
+            id: mainPhotoItemId,
             anchorName: resolvedPhotoAnchorName,
             mediaType: 'video' as const,
             kind: 'file' as const,
@@ -345,14 +396,15 @@ const ProjectPage = ({
             scaleY: align.scaleY,
             stretchX: align.stretchX ?? 1,
             stretchY: align.stretchY ?? 1
-          }]
+            }]
           : [{
-            id: `${title}-main`,
+            id: mainPhotoItemId,
             anchorName: resolvedPhotoAnchorName,
             lowSrc: photo.src,
             highSrc: photo.src,
             alt: photo.alt,
             filter: photo.filter,
+            contentInsets: photo.contentInsets,
             boundsSource: 'raw' as const,
             objectFit: photoObjectFit,
             offsetX: align.offsetX,
@@ -363,6 +415,7 @@ const ProjectPage = ({
             stretchY: align.stretchY ?? 1
           }]
     ),
+    ...(extraPhotoItems ?? []),
     ...imageEntries.map(entry => ({
       id: entry.id,
       anchorName: entry.anchorName,
@@ -370,6 +423,7 @@ const ProjectPage = ({
       highSrc: entry.src,
       alt: entry.alt,
       filter: entry.filter,
+      contentInsets: entry.contentInsets,
       boundsSource: 'raw' as const,
       objectFit: entry.objectFit ?? photoObjectFit
     })),
@@ -407,15 +461,16 @@ const ProjectPage = ({
     align.stretchY,
     photoObjectFit,
     photo,
+    extraPhotoItems,
     imageEntries,
+    mainPhotoItemId,
     resolvedPhotoAnchorName,
-    title,
     videoEntries
   ]);
 
   const supplementalEntries = useMemo(() => [...imageEntries, ...videoEntries], [imageEntries, videoEntries]);
 
-  const layoutAugmenter = useMemo(() => {
+  const defaultLayoutAugmenter = useMemo(() => {
     if (supplementalEntries.length === 0) {
       return undefined;
     }
@@ -515,6 +570,21 @@ const ProjectPage = ({
     };
   }, [charHeight, charWidth, resolvedPhotoAnchorName, supplementalEntries]);
 
+  const combinedLayoutAugmenter = useMemo(() => {
+    if (!defaultLayoutAugmenter && !photoLayoutAugmenter) {
+      return undefined;
+    }
+
+    return (layout: PhotorealisticLayout) => {
+      const layoutWithDefault = defaultLayoutAugmenter
+        ? defaultLayoutAugmenter(layout)
+        : layout;
+      return photoLayoutAugmenter
+        ? photoLayoutAugmenter(layoutWithDefault)
+        : layoutWithDefault;
+    };
+  }, [defaultLayoutAugmenter, photoLayoutAugmenter]);
+
   return (
     <div
       style={{
@@ -546,11 +616,21 @@ const ProjectPage = ({
         <PhotoModeScene
           textContent={textContent}
           photoItems={photoItems}
-          asciiClickTargets={showHero ? [heroName] : []}
+          asciiClickTargets={showHero && !pdfExportMode ? [heroName] : []}
           autoEnterPhoto={autoEnterPhoto}
           centerOnLoad={autoEnterPhoto}
-          initialScrollTargetId={resolvedPhotoAnchorName}
-          layoutAugmenter={layoutAugmenter}
+          centerOnEnter={photoCenterOnEnter}
+          initialScrollTargetId={resolvedInitialScrollTargetId}
+          initialScrollAlignment={photoInitialScrollAlignment}
+          initialScrollPaddingRows={photoInitialScrollPaddingRows}
+          alignmentKey={photoAlignmentKey}
+          alignmentTargetId={photoAlignmentTargetId}
+          layoutAugmenter={combinedLayoutAugmenter}
+          disableLinks={pdfExportMode}
+          alwaysVisiblePhotoItemIds={[]}
+          exportMetadataKey={pdfExportMode ? title : undefined}
+          exportPrimaryPhotoItemId={exportPrimaryPhotoItemId}
+          exportBackgroundOnly={pdfBackgroundOnly}
         />
       )}
     </div>

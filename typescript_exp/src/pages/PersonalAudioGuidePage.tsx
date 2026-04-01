@@ -17,7 +17,7 @@ const AUDIO_GUIDE_ALIGN_DEFAULT = {
 
 const DISPLAY_TITLE = 'PERSONAL AUDIO GUIDE';
 const SALES_GUIDE_CALLOUT = 'Call +31 97010223622 to speak to our Sales Guide';
-const VIMEO_AUDIO_GUIDE_SRC = 'https://player.vimeo.com/video/1171945928?app_id=122963';
+const VIMEO_AUDIO_GUIDE_SRC = 'https://player.vimeo.com/video/1171945928?app_id=122963&autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1';
 
 function PersonalAudioGuidePage() {
   const location = useLocation();
@@ -64,10 +64,10 @@ function PersonalAudioGuidePage() {
           alt: 'Personal Audio Guide video',
           position: 'above',
           widthReference: 'page',
-          widthScale: 0.8,
+          widthScale: 0.62,
           heightRatio: 0.5625,
-          maxHeight: 90,
-          gap: 10
+          maxHeight: 54,
+          gap: 6
         }
       ]}
       photoImages={[
@@ -76,10 +76,10 @@ function PersonalAudioGuidePage() {
           alt: 'Visitors standing by the Personal Audio Guide installation',
           position: 'below',
           widthReference: 'page',
-          widthScale: 0.7,
+          widthScale: 0.68,
           heightRatio: 0.7467,
           maxHeight: 200,
-          gap: 10,
+          gap: 8,
           objectFit: 'contain'
         }
       ]}
@@ -87,6 +87,10 @@ function PersonalAudioGuidePage() {
       photoObjectFit='contain'
       inlinePhotoLinkLabel='Video & Photos'
       heroAnchorOffsetY={4}
+      photoInitialScrollTargetId='hero-video-0'
+      photoInitialScrollAlignment='start'
+      photoInitialScrollPaddingRows={5}
+      photoCenterOnEnter={true}
     />
   );
 }

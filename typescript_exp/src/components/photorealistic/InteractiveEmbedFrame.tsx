@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { normalizePhotoVideoEmbedSrc, primePhotoVideoEmbedPlayback } from './videoPlayback';
 
 type InteractiveEmbedFrameProps = {
   src: string;
   label: string;
   style: CSSProperties;
+  isVisible: boolean;
   onForwardWheel: (event: WheelEvent) => void;
 };
 
@@ -39,10 +41,13 @@ const InteractiveEmbedFrame = ({
   src,
   label,
   style,
+  isVisible,
   onForwardWheel
 }: InteractiveEmbedFrameProps) => {
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [isInteractive, setIsInteractive] = useState(false);
+  const playbackSrc = useMemo(() => normalizePhotoVideoEmbedSrc(src), [src]);
 
   useEffect(() => {
     const node = frameRef.current;
@@ -61,6 +66,33 @@ const InteractiveEmbedFrame = ({
       node.removeEventListener('wheel', handleWheel);
     };
   }, [onForwardWheel]);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setIsInteractive(false);
+    }
+  }, [isVisible]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !isVisible) {
+      return;
+    }
+
+    let cancelPlaybackPrime = () => {};
+    const requestPlayback = () => {
+      cancelPlaybackPrime();
+      cancelPlaybackPrime = primePhotoVideoEmbedPlayback(iframe);
+    };
+
+    requestPlayback();
+    iframe.addEventListener('load', requestPlayback);
+
+    return () => {
+      iframe.removeEventListener('load', requestPlayback);
+      cancelPlaybackPrime();
+    };
+  }, [isVisible, playbackSrc]);
 
   useEffect(() => {
     if (!isInteractive) {
@@ -150,7 +182,8 @@ const InteractiveEmbedFrame = ({
         {isInteractive ? 'Move away to scroll' : 'Click to interact'}
       </div>
       <iframe
-        src={src}
+        ref={iframeRef}
+        src={playbackSrc}
         title={label}
         style={{
           position: 'absolute',

@@ -1,0 +1,82 @@
+[
+  {
+    "case": "desktop",
+    "stage": "initial",
+    "data": {
+      "innerWidth": 1280,
+      "innerHeight": 720,
+      "iframeRect": {
+        "x": 280.796875,
+        "y": -75.5,
+        "width": 717.59375,
+        "height": 403
+      },
+      "wrapperRect": {
+        "x": 280.796875,
+        "y": -75.5,
+        "width": 717.59375,
+        "height": 403
+      },
+      "imageRect": {
+        "x": -35.09375,
+        "y": 460.61956787109375,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "docScrollTop": 0,
+      "bodyScrollTop": 0,
+      "hash": "#/fish?photo=1",
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1"
+    }
+  },
+  {
+    "case": "desktop",
+    "stage": "resized",
+    "data": {
+      "innerWidth": 1000,
+      "innerHeight": 720,
+      "iframeRect": {
+        "x": 218.390625,
+        "y": -30,
+        "width": 561.59375,
+        "height": 312
+      },
+      "wrapperRect": {
+        "x": 218.390625,
+        "y": -30,
+        "width": 561.59375,
+        "height": 312
+      },
+      "imageRect": {
+        "x": -175.5,
+        "y": 415.11956787109375,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "docScrollTop": 0,
+      "bodyScrollTop": 0,
+      "hash": "#/fish?photo=1",
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1"
+    }
+  },
+  {
+    "case": "mobile",
+    "stage": "initial",
+    "data": {
+      "innerWidth": 900,
+      "innerHeight": 1600,
+      "iframeRect": null,
+      "wrapperRect": null,
+      "imageRect": {
+        "x": -236.8367919921875,
+        "y": 1035.81884765625,
+        "width": 1362.095458984375,
+        "height": 1474.7529296875
+      },
+      "docScrollTop": 0,
+      "bodyScrollTop": 0,
+      "hash": "#/fish?photo=1",
+      "iframeSrc": null
+    }
+  }
+]

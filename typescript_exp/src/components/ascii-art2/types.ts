@@ -16,6 +16,7 @@ export interface AsciiArtGeneratorProps {
   pauseAnimation?: boolean;
   transparentBackground?: boolean;
   disableLinks?: boolean;
+  suppressTextCharacters?: boolean;
   initialScrollOffset?: number;
   scrollToOffset?: number | null;
   whiteInRequest?: { position: { x: number; y: number }; token: number; startProgress?: number };

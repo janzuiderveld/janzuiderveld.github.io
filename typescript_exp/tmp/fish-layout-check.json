@@ -1,0 +1,108 @@
+[
+  {
+    "name": "desktop-1280x720",
+    "data": {
+      "innerWidth": 1280,
+      "innerHeight": 720,
+      "iframeRect": {
+        "x": 280.796875,
+        "y": 26,
+        "width": 717.59375,
+        "height": 403
+      },
+      "wrapperRect": {
+        "x": 280.796875,
+        "y": 26,
+        "width": 717.59375,
+        "height": 403
+      },
+      "imageRect": {
+        "x": -35.09375,
+        "y": 562.1195678710938,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=1&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1",
+      "hash": "#/fish?photo=1",
+      "docScrollTop": 0,
+      "bodyScrollTop": 0
+    }
+  },
+  {
+    "name": "desktop-1000x720-resized",
+    "data": {
+      "innerWidth": 1000,
+      "innerHeight": 720,
+      "iframeRect": {
+        "x": 218.390625,
+        "y": 26,
+        "width": 561.59375,
+        "height": 312
+      },
+      "wrapperRect": {
+        "x": 218.390625,
+        "y": 26,
+        "width": 561.59375,
+        "height": 312
+      },
+      "imageRect": {
+        "x": -175.5,
+        "y": 471.11956787109375,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=1&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1",
+      "hash": "#/fish?photo=1",
+      "docScrollTop": 0,
+      "bodyScrollTop": 0
+    }
+  },
+  {
+    "name": "desktop-1280x600",
+    "data": {
+      "innerWidth": 1280,
+      "innerHeight": 600,
+      "iframeRect": null,
+      "wrapperRect": null,
+      "imageRect": {
+        "x": -41.8367919921875,
+        "y": 346.81878662109375,
+        "width": 1362.095458984375,
+        "height": 1474.7529296875
+      },
+      "iframeSrc": null,
+      "hash": "#/fish?photo=1",
+      "docScrollTop": 0,
+      "bodyScrollTop": 0
+    }
+  },
+  {
+    "name": "mobile-900x1600",
+    "data": {
+      "innerWidth": 900,
+      "innerHeight": 1600,
+      "iframeRect": {
+        "x": 202.796875,
+        "y": 26,
+        "width": 499.1875,
+        "height": 286
+      },
+      "wrapperRect": {
+        "x": 202.796875,
+        "y": 26,
+        "width": 499.1875,
+        "height": 286
+      },
+      "imageRect": {
+        "x": -230.09375,
+        "y": 445.11956787109375,
+        "width": 1348.609375,
+        "height": 1460.1513671875
+      },
+      "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=1&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1",
+      "hash": "#/fish?photo=1",
+      "docScrollTop": 0,
+      "bodyScrollTop": 0
+    }
+  }
+]

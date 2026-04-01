@@ -1,0 +1,199 @@
+{
+  "exportUrl": "http://localhost:3000/#/copy?pdf=1",
+  "captureViewport": {
+    "width": 1356,
+    "height": 1918,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.6209439528023599,
+    "y": 0.6209593326381647
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 335.4,
+      "top": 182,
+      "width": 678.6,
+      "height": 65
+    },
+    "paddedTitleRect": {
+      "left": 218.4,
+      "top": -13,
+      "width": 912.6,
+      "height": 455
+    },
+    "titleOccupiedRects": [],
+    "textRect": {
+      "left": 273,
+      "top": 481,
+      "width": 803.4,
+      "height": 533
+    },
+    "paddedTextRect": {
+      "left": 156,
+      "top": 286,
+      "width": 1037.3999999999999,
+      "height": 923
+    },
+    "contentBottom": 1209
+  },
+  "scaledContentBottom": 701.652763295099,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#/copy",
+  "titleLinkLayout": {
+    "centerX": 419,
+    "top": 165,
+    "width": 510,
+    "fontSize": 15,
+    "lineHeight": 18
+  },
+  "photoFrame": {
+    "x": 259,
+    "y": 705,
+    "width": 324,
+    "height": 466
+  },
+  "photoAspectRatio": 0.6945833333333333,
+  "captureSelectionScore": 77268,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 1667,
+    "height": 2400,
+    "naturalWidth": 3072,
+    "naturalHeight": 3959,
+    "processingScale": 0.6062136903258398,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 185,
+      "maxX": 1693,
+      "minY": 67,
+      "maxY": 2336
+    },
+    "blobBounds": {
+      "minX": 106,
+      "maxX": 1772,
+      "minY": 0,
+      "maxY": 2399
+    },
+    "paddingRadius": 79
+  },
+  "primaryPhotoItem": {
+    "id": "Copy Machine-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/copy/pictures/copy_placeholder.png",
+    "highSrc": "/src/assets/copy/pictures/copy_placeholder.png",
+    "alt": "Copy Machine placeholder",
+    "boundsSource": "raw",
+    "objectFit": "cover",
+    "offsetX": -3.5,
+    "offsetY": -2,
+    "scaleX": 1.08,
+    "scaleY": 1.08,
+    "stretchX": 1.08,
+    "stretchY": 0.98
+  },
+  "metadata": {
+    "key": "Copy Machine",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 43,
+          "maxX": 129,
+          "minY": 14,
+          "maxY": 18,
+          "fixed": false
+        },
+        "text": {
+          "minX": 35,
+          "maxX": 137,
+          "minY": 37,
+          "maxY": 77,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 28,
+          "maxX": 144,
+          "minY": -1,
+          "maxY": 33,
+          "fixed": false
+        },
+        "text": {
+          "minX": 20,
+          "maxX": 152,
+          "minY": 22,
+          "maxY": 92,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "Copy Machine-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/copy/pictures/copy_placeholder.png",
+        "highSrc": "/src/assets/copy/pictures/copy_placeholder.png",
+        "alt": "Copy Machine placeholder",
+        "boundsSource": "raw",
+        "objectFit": "cover",
+        "offsetX": -3.5,
+        "offsetY": -2,
+        "scaleX": 1.08,
+        "scaleY": 1.08,
+        "stretchX": 1.08,
+        "stretchY": 0.98
+      }
+    ],
+    "primaryPhotoItemId": "Copy Machine-main",
+    "primaryPhotoItem": {
+      "id": "Copy Machine-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/copy/pictures/copy_placeholder.png",
+      "highSrc": "/src/assets/copy/pictures/copy_placeholder.png",
+      "alt": "Copy Machine placeholder",
+      "boundsSource": "raw",
+      "objectFit": "cover",
+      "offsetX": -3.5,
+      "offsetY": -2,
+      "scaleX": 1.08,
+      "scaleY": 1.08,
+      "stretchX": 1.08,
+      "stretchY": 0.98
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1356,
+      "height": 1918
+    }
+  }
+}

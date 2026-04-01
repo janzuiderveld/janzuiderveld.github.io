@@ -1,0 +1,233 @@
+{
+  "exportUrl": "http://localhost:3000/#/camera?pdf=1",
+  "captureViewport": {
+    "width": 1233,
+    "height": 1744,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.6828872668288727,
+    "y": 0.6829128440366973
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 413.4,
+      "top": 169,
+      "width": 397.8,
+      "height": 65
+    },
+    "paddedTitleRect": {
+      "left": 296.4,
+      "top": -26,
+      "width": 631.8,
+      "height": 455
+    },
+    "titleOccupiedRects": [],
+    "textRect": {
+      "left": 249.6,
+      "top": 468,
+      "width": 733.1999999999999,
+      "height": 299
+    },
+    "paddedTextRect": {
+      "left": 132.6,
+      "top": 273,
+      "width": 967.1999999999999,
+      "height": 689
+    },
+    "contentBottom": 962
+  },
+  "scaledContentBottom": 595.7941513761468,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#/camera",
+  "titleLinkLayout": {
+    "centerX": 418,
+    "top": 172,
+    "width": 388,
+    "fontSize": 17,
+    "lineHeight": 20
+  },
+  "photoFrame": {
+    "x": 247,
+    "y": 599,
+    "width": 348,
+    "height": 572
+  },
+  "photoAspectRatio": 0.6088474970896391,
+  "captureSelectionScore": 111427,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 523,
+    "height": 859,
+    "naturalWidth": 1024,
+    "naturalHeight": 1024,
+    "processingScale": 1,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 260,
+      "maxX": 726,
+      "minY": 156,
+      "maxY": 958
+    },
+    "blobBounds": {
+      "minX": 232,
+      "maxX": 754,
+      "minY": 128,
+      "maxY": 986
+    },
+    "paddingRadius": 28
+  },
+  "primaryPhotoItem": {
+    "id": "Life on _-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/pictures/Camera_void%20(1).png",
+    "highSrc": "/src/assets/pictures/Camera_void%20(1).png",
+    "alt": "Camera installation",
+    "contentInsets": {
+      "top": 0.151,
+      "right": 0,
+      "bottom": 0.063,
+      "left": 0
+    },
+    "boundsSource": "raw",
+    "objectFit": "cover",
+    "offsetX": 0.5,
+    "offsetY": -3,
+    "scaleX": 1.1,
+    "scaleY": 1.1,
+    "stretchX": 0.98,
+    "stretchY": 0.9199999999999999
+  },
+  "metadata": {
+    "key": "Life on _",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 53,
+          "maxX": 103,
+          "minY": 13,
+          "maxY": 17,
+          "fixed": false
+        },
+        "text": {
+          "minX": 32,
+          "maxX": 125,
+          "minY": 36,
+          "maxY": 58,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 38,
+          "maxX": 118,
+          "minY": -2,
+          "maxY": 32,
+          "fixed": false
+        },
+        "text": {
+          "minX": 17,
+          "maxX": 140,
+          "minY": 21,
+          "maxY": 73,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "Life on _-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/pictures/Camera_void%20(1).png",
+        "highSrc": "/src/assets/pictures/Camera_void%20(1).png",
+        "alt": "Camera installation",
+        "contentInsets": {
+          "top": 0.151,
+          "right": 0,
+          "bottom": 0.063,
+          "left": 0
+        },
+        "boundsSource": "raw",
+        "objectFit": "cover",
+        "offsetX": 0.5,
+        "offsetY": -3,
+        "scaleX": 1.1,
+        "scaleY": 1.1,
+        "stretchX": 0.98,
+        "stretchY": 0.9199999999999999
+      },
+      {
+        "id": "photo-0",
+        "anchorName": "photo-column-1",
+        "lowSrc": "/src/assets/pictures/Symposium_Zuiderveld.jpg",
+        "highSrc": "/src/assets/pictures/Symposium_Zuiderveld.jpg",
+        "alt": "Symposium Zuiderveld",
+        "objectFit": "contain"
+      },
+      {
+        "id": "photo-1",
+        "anchorName": "photo-column-2",
+        "lowSrc": "/src/assets/pictures/Zuiderveld_vanLoon-e1763546379515.jpg",
+        "highSrc": "/src/assets/pictures/Zuiderveld_vanLoon-e1763546379515.jpg",
+        "alt": "Zuiderveld vanLoon e1763546379515",
+        "objectFit": "contain"
+      }
+    ],
+    "primaryPhotoItemId": "Life on _-main",
+    "primaryPhotoItem": {
+      "id": "Life on _-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/pictures/Camera_void%20(1).png",
+      "highSrc": "/src/assets/pictures/Camera_void%20(1).png",
+      "alt": "Camera installation",
+      "contentInsets": {
+        "top": 0.151,
+        "right": 0,
+        "bottom": 0.063,
+        "left": 0
+      },
+      "boundsSource": "raw",
+      "objectFit": "cover",
+      "offsetX": 0.5,
+      "offsetY": -3,
+      "scaleX": 1.1,
+      "scaleY": 1.1,
+      "stretchX": 0.98,
+      "stretchY": 0.9199999999999999
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1233,
+      "height": 1744
+    }
+  }
+}

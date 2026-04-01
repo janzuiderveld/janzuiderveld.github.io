@@ -2,6 +2,13 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getCurrentCharMetrics } from '../ascii-art2/constants';
 import { TextBounds } from '../ascii-art2/types';
 
+export type PhotoContentInsets = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
 type PhotoLayerBase = {
   id: string;
   anchorName: string;
@@ -15,6 +22,7 @@ type PhotoLayerBase = {
   stretchY?: number;
   boundsSource?: 'raw' | 'padded';
   objectFit?: React.CSSProperties['objectFit'];
+  contentInsets?: PhotoContentInsets;
   fixed?: boolean;
 };
 
@@ -46,6 +54,13 @@ export type PhotorealisticLayout = {
   paddedBounds: Record<string, TextBounds>;
 };
 
+export type PhotoPixelRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 type PhotorealisticLayerProps = {
   items: PhotoLayerItem[];
   layout: PhotorealisticLayout;
@@ -58,6 +73,93 @@ type PhotorealisticLayerProps = {
   onLayerClick?: (origin: { x: number; y: number }) => void;
   onLayerTouchEnd?: (origin: { x: number; y: number }) => void;
   onForwardWheel?: (event: WheelEvent) => void;
+  zIndex?: number;
+};
+
+const clampInset = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(0.95, Math.max(0, value));
+};
+
+export const normalizePhotoContentInsets = (insets?: PhotoContentInsets) => {
+  if (!insets) {
+    return undefined;
+  }
+
+  let left = clampInset(insets.left);
+  let right = clampInset(insets.right);
+  let top = clampInset(insets.top);
+  let bottom = clampInset(insets.bottom);
+
+  const horizontalTotal = left + right;
+  if (horizontalTotal >= 0.95) {
+    const scale = 0.95 / horizontalTotal;
+    left *= scale;
+    right *= scale;
+  }
+
+  const verticalTotal = top + bottom;
+  if (verticalTotal >= 0.95) {
+    const scale = 0.95 / verticalTotal;
+    top *= scale;
+    bottom *= scale;
+  }
+
+  if (left === 0 && right === 0 && top === 0 && bottom === 0) {
+    return undefined;
+  }
+
+  return { top, right, bottom, left };
+};
+
+export const resolvePhotoCropFrameStyle = (
+  insets?: PhotoContentInsets
+): React.CSSProperties | undefined => {
+  const normalizedInsets = normalizePhotoContentInsets(insets);
+  if (!normalizedInsets) {
+    return undefined;
+  }
+
+  const visibleWidth = 1 - normalizedInsets.left - normalizedInsets.right;
+  const visibleHeight = 1 - normalizedInsets.top - normalizedInsets.bottom;
+  const cropScale = Math.max(1 / visibleWidth, 1 / visibleHeight);
+  const centerX = normalizedInsets.left + visibleWidth / 2;
+  const centerY = normalizedInsets.top + visibleHeight / 2;
+
+  return {
+    position: 'absolute',
+    width: `${cropScale * 100}%`,
+    height: `${cropScale * 100}%`,
+    left: `${(0.5 - centerX * cropScale) * 100}%`,
+    top: `${(0.5 - centerY * cropScale) * 100}%`
+  };
+};
+
+export const resolvePhotoItemPixelRect = (
+  item: PhotoLayerItem,
+  layout: PhotorealisticLayout,
+  metrics = getCurrentCharMetrics()
+): PhotoPixelRect | null => {
+  const boundsMap = item.boundsSource === 'padded' ? layout.paddedBounds : layout.rawBounds;
+  const bounds = boundsMap[item.anchorName];
+  if (!bounds) {
+    return null;
+  }
+
+  const widthChars = bounds.maxX - bounds.minX + 1;
+  const heightChars = bounds.maxY - bounds.minY + 1;
+  const scaleX = item.scaleX ?? 1;
+  const scaleY = item.scaleY ?? 1;
+
+  return {
+    left: (bounds.minX + (item.offsetX ?? 0)) * metrics.charWidth,
+    top: (bounds.minY + (item.offsetY ?? 0)) * metrics.charHeight,
+    width: widthChars * metrics.charWidth * scaleX,
+    height: heightChars * metrics.charHeight * scaleY
+  };
 };
 
 const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
@@ -71,7 +173,8 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
   opacityTransition,
   onLayerClick,
   onLayerTouchEnd,
-  onForwardWheel
+  onForwardWheel,
+  zIndex = 2
 }) => {
   const { charWidth, charHeight } = getCurrentCharMetrics();
   const [loadedHighRes, setLoadedHighRes] = useState<Set<string>>(() => new Set());
@@ -183,6 +286,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     const isHighResLoaded = loadedHighRes.has(item.id);
     const shouldShowHighRes = showHighRes;
     const showLowRes = !shouldShowHighRes || !isHighResLoaded;
+    const cropFrameStyle = resolvePhotoCropFrameStyle(item.contentInsets);
     const lowFilter = ['blur(6px)', item.filter].filter(Boolean).join(' ');
     const lowStyle: React.CSSProperties = {
       position: 'absolute',
@@ -213,21 +317,37 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       willChange: 'opacity'
     };
 
+    const renderImage = (
+      src: string,
+      style: React.CSSProperties,
+      onLoad?: () => void
+    ) => {
+      const image = (
+        <img
+          src={src}
+          alt={item.alt}
+          style={style}
+          loading="eager"
+          decoding="async"
+          onLoad={onLoad}
+        />
+      );
+
+      if (!cropFrameStyle) {
+        return image;
+      }
+
+      return (
+        <div data-photo-crop-frame="true" style={cropFrameStyle}>
+          {image}
+        </div>
+      );
+    };
+
     return (
-      <div key={item.id} style={baseStyle}>
-        {showLowRes && (
-          <img src={item.lowSrc} alt={item.alt} style={lowStyle} loading="eager" decoding="async" />
-        )}
-        {shouldShowHighRes && (
-          <img
-            src={item.highSrc}
-            alt={item.alt}
-            style={highStyle}
-            loading="eager"
-            decoding="async"
-            onLoad={() => markHighResLoaded(item.id)}
-          />
-        )}
+      <div key={item.id} data-photo-image="true" style={baseStyle}>
+        {showLowRes && renderImage(item.lowSrc, lowStyle)}
+        {shouldShowHighRes && renderImage(item.highSrc, highStyle, () => markHighResLoaded(item.id))}
       </div>
     );
   };
@@ -367,7 +487,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
         pointerEvents: isInteractive ? 'auto' : 'none',
         transition,
         overflow: 'hidden',
-        zIndex: 2,
+        zIndex,
         willChange: 'opacity'
       }}
     >

@@ -72,6 +72,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
   pauseAnimation = false,
   transparentBackground = false,
   disableLinks = false,
+  suppressTextCharacters = false,
   initialScrollOffset,
   scrollToOffset,
   whiteInRequest,
@@ -705,9 +706,9 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     precomputed: CharacterPrecomputation | null,
     frameSeed: number,
     frameNow: number
-  ) => {
-    return calculateCharacter(
-      x,
+    ) => {
+      return calculateCharacter(
+        x,
       y,
       cols,
       rows,
@@ -718,12 +719,13 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       cursorRef,
       scrollOffsetRef.current,
       fastSin,
-      fastCos,
-      precomputed,
-      frameSeed,
-      frameNow
-    );
-  }, [textPositionCache, cursorRef, fastSin, fastCos, blobGridCache]);
+        fastCos,
+        precomputed,
+        frameSeed,
+        frameNow,
+        suppressTextCharacters
+      );
+  }, [blobGridCache, cursorRef, fastCos, fastSin, suppressTextCharacters, textPositionCache]);
 
   // Animation
   useAnimation(

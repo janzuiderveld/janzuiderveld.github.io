@@ -2,9 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import AsciiArtGenerator from '../ascii-art2/AsciiArtGenerator';
 import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
 import { CHAR_HEIGHT, getCurrentCharMetrics } from '../ascii-art2/constants';
-import PhotorealisticLayer, { PhotoLayerItem, PhotorealisticLayout } from './PhotorealisticLayer';
+import PhotorealisticLayer, {
+  PhotoLayerItem,
+  PhotoPixelRect,
+  PhotorealisticLayout,
+  resolvePhotoItemPixelRect
+} from './PhotorealisticLayer';
 import PhotoHoverWindow, { getPhotoHoverRadiusPx } from './PhotoHoverWindow';
 import InteractiveEmbedFrame from './InteractiveEmbedFrame';
+import { resolvePhotoItemAtPoint as resolvePhotoItemAtPointer } from './photoHitTest';
 import { supportsHoverInteractions } from '../../utils/browserCapabilities';
 
 type PhotoState = 'ascii' | 'entering' | 'photo' | 'exiting';
@@ -28,6 +34,7 @@ type PhotoVideoItem = Extract<PhotoLayerItem, { mediaType: 'video' }>;
 type PhotoVideoFrameProps = {
   item: PhotoVideoItem;
   style: CSSProperties;
+  isVisible: boolean;
   onForwardWheel: (event: WheelEvent) => void;
 };
 
@@ -41,9 +48,16 @@ type PhotoModeSceneProps = {
   centerOnLoad?: boolean;
   centerOnEnter?: boolean;
   initialScrollTargetId?: string;
+  initialScrollAlignment?: 'center' | 'start';
+  initialScrollPaddingRows?: number;
   alignmentKey?: string;
   alignmentTargetId?: string;
   layoutAugmenter?: (layout: PhotorealisticLayout) => PhotorealisticLayout;
+  disableLinks?: boolean;
+  alwaysVisiblePhotoItemIds?: string[];
+  exportMetadataKey?: string;
+  exportPrimaryPhotoItemId?: string;
+  exportBackgroundOnly?: boolean;
 };
 
 const PHOTO_EXIT_FADE_DURATION = 1000;
@@ -53,6 +67,10 @@ const ALIGNMENT_PHOTO_OPACITY = 0.5;
 
 const normalizeAlignmentKey = (value: string) =>
   value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+const isImagePhotoItem = (
+  item: PhotoLayerItem
+): item is Extract<PhotoLayerItem, { mediaType?: 'image' }> => item.mediaType !== 'video';
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -83,8 +101,30 @@ const parseStoredTransform = (raw: string | null): PhotoTransform | null => {
   }
 };
 
-const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) => {
+const PhotoVideoFrame = ({ item, style, isVisible, onForwardWheel }: PhotoVideoFrameProps) => {
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const applyPlaybackPreferences = useCallback((node: HTMLVideoElement) => {
+    if (item.kind !== 'file') {
+      return;
+    }
+    const shouldMute = Boolean(item.muted);
+    node.autoplay = Boolean(item.autoplay);
+    node.defaultMuted = shouldMute;
+    node.muted = shouldMute;
+    node.volume = shouldMute ? 0 : 1;
+    if (shouldMute) {
+      node.setAttribute('muted', '');
+    } else {
+      node.removeAttribute('muted');
+    }
+  }, [item]);
+  const handleVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node) {
+      applyPlaybackPreferences(node);
+    }
+  }, [applyPlaybackPreferences]);
 
   useEffect(() => {
     const node = frameRef.current;
@@ -102,12 +142,62 @@ const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) 
     };
   }, [onForwardWheel]);
 
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node || item.kind !== 'file') {
+      return;
+    }
+
+    const syncPlaybackPreferences = () => {
+      applyPlaybackPreferences(node);
+    };
+
+    syncPlaybackPreferences();
+    node.addEventListener('loadedmetadata', syncPlaybackPreferences);
+    node.addEventListener('canplay', syncPlaybackPreferences);
+    const syncFrame = window.requestAnimationFrame(syncPlaybackPreferences);
+    const syncTimeout = window.setTimeout(syncPlaybackPreferences, 120);
+
+    if (!isVisible) {
+      node.pause();
+      try {
+        node.currentTime = 0;
+      } catch {
+        // Ignore currentTime resets before metadata is ready.
+      }
+      return () => {
+        node.removeEventListener('loadedmetadata', syncPlaybackPreferences);
+        node.removeEventListener('canplay', syncPlaybackPreferences);
+        window.cancelAnimationFrame(syncFrame);
+        window.clearTimeout(syncTimeout);
+      };
+    }
+
+    try {
+      node.currentTime = 0;
+    } catch {
+      // Ignore currentTime resets before metadata is ready.
+    }
+
+    const playResult = node.play();
+    if (playResult && typeof playResult.catch === 'function') {
+      playResult.catch(() => {});
+    }
+    return () => {
+      node.removeEventListener('loadedmetadata', syncPlaybackPreferences);
+      node.removeEventListener('canplay', syncPlaybackPreferences);
+      window.cancelAnimationFrame(syncFrame);
+      window.clearTimeout(syncTimeout);
+    };
+  }, [applyPlaybackPreferences, isVisible, item.kind]);
+
   if (item.kind === 'embed') {
     return (
       <InteractiveEmbedFrame
         src={item.embedSrc}
         label={item.alt}
         style={style}
+        isVisible={isVisible}
         onForwardWheel={onForwardWheel}
       />
     );
@@ -129,6 +219,7 @@ const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) 
     <div ref={frameRef} data-photo-video="true" style={style}>
       {background}
       <video
+        ref={handleVideoRef}
         src={item.videoSrc}
         style={{
           position: 'absolute',
@@ -140,6 +231,16 @@ const PhotoVideoFrame = ({ item, style, onForwardWheel }: PhotoVideoFrameProps) 
         autoPlay={Boolean(item.autoplay)}
         loop={Boolean(item.loop)}
         muted={Boolean(item.muted)}
+        onLoadedMetadata={() => {
+          if (videoRef.current) {
+            applyPlaybackPreferences(videoRef.current);
+          }
+        }}
+        onCanPlay={() => {
+          if (videoRef.current) {
+            applyPlaybackPreferences(videoRef.current);
+          }
+        }}
         controls={controls}
         playsInline={playsInline}
         preload="metadata"
@@ -159,9 +260,16 @@ const PhotoModeScene = ({
   centerOnLoad = false,
   centerOnEnter = false,
   initialScrollTargetId,
+  initialScrollAlignment = 'center',
+  initialScrollPaddingRows = 0,
   alignmentKey,
   alignmentTargetId,
-  layoutAugmenter
+  layoutAugmenter,
+  disableLinks = false,
+  alwaysVisiblePhotoItemIds = [],
+  exportMetadataKey,
+  exportPrimaryPhotoItemId,
+  exportBackgroundOnly = false
 }: PhotoModeSceneProps) => {
   const photoModeEnabled = useMemo(() => {
     if (disablePhotoMode) {
@@ -169,12 +277,18 @@ const PhotoModeScene = ({
     }
     return true;
   }, [disablePhotoMode]);
-  const asciiClickEntryEnabled = photoModeEnabled;
-  const hoverPreviewEnabled = photoModeEnabled && supportsHoverInteractions();
+  const asciiClickEntryEnabled = photoModeEnabled
+    && !disableLinks
+    && alwaysVisiblePhotoItemIds.length === 0;
+  const hoverPreviewEnabled = photoModeEnabled
+    && !disableLinks
+    && alwaysVisiblePhotoItemIds.length === 0
+    && supportsHoverInteractions();
   const [scrollOffset, setScrollOffset] = useState(0);
   const [initialScrollOffset, setInitialScrollOffset] = useState<number | undefined>(undefined);
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
   const [initialScrollReady, setInitialScrollReady] = useState(!centerOnLoad);
+  const [viewportRevision, setViewportRevision] = useState(0);
   const [photoState, setPhotoState] = useState<PhotoState>('ascii');
   const [photoLayout, setPhotoLayout] = useState<PhotorealisticLayout>({
     rawBounds: {},
@@ -381,8 +495,30 @@ const PhotoModeScene = ({
     [alignedPhotoItems, resolvedAlignmentTargetId]
   );
   const photoImageItems = useMemo(
-    () => alignedPhotoItems.filter(item => item.mediaType !== 'video'),
+    () => alignedPhotoItems.filter(isImagePhotoItem),
     [alignedPhotoItems]
+  );
+  const primaryExportPhotoItem = useMemo(
+    () => {
+      if (photoImageItems.length === 0) {
+        return null;
+      }
+      if (!exportPrimaryPhotoItemId) {
+        return photoImageItems[0];
+      }
+      return photoImageItems.find(item => item.id === exportPrimaryPhotoItemId) ?? null;
+    },
+    [exportPrimaryPhotoItemId, photoImageItems]
+  );
+  const alwaysVisiblePhotoItems = useMemo(
+    () => {
+      if (exportBackgroundOnly || alwaysVisiblePhotoItemIds.length === 0) {
+        return [];
+      }
+      const itemIds = new Set(alwaysVisiblePhotoItemIds);
+      return photoImageItems.filter(item => itemIds.has(item.id));
+    },
+    [alwaysVisiblePhotoItemIds, exportBackgroundOnly, photoImageItems]
   );
   const photoVideoItems = useMemo(
     () => alignedPhotoItems.filter(item => item.mediaType === 'video') as PhotoVideoItem[],
@@ -404,7 +540,7 @@ const PhotoModeScene = ({
     return layoutAugmenter(photoLayout);
   }, [layoutAugmenter, photoLayout]);
 
-  const computeCenteredScrollOffset = useCallback(() => {
+  const computeTargetScrollOffset = useCallback(() => {
     if (!initialScrollTargetId) {
       return null;
     }
@@ -413,11 +549,12 @@ const PhotoModeScene = ({
     if (!bounds || !charHeight || !window.innerHeight) {
       return null;
     }
-    const targetCenterRow = (bounds.minY + bounds.maxY) / 2;
-    const viewportRows = window.innerHeight / charHeight;
-    const desiredScrollRows = Math.max(0, targetCenterRow - viewportRows / 2);
+    const safePaddingRows = Number.isFinite(initialScrollPaddingRows) ? Math.max(0, initialScrollPaddingRows) : 0;
+    const desiredScrollRows = initialScrollAlignment === 'start'
+      ? Math.max(0, bounds.minY - safePaddingRows)
+      : Math.max(0, ((bounds.minY + bounds.maxY) / 2) - (window.innerHeight / charHeight) / 2);
     return desiredScrollRows * charHeight;
-  }, [initialScrollTargetId, mergedPhotoLayout.rawBounds]);
+  }, [initialScrollAlignment, initialScrollPaddingRows, initialScrollTargetId, mergedPhotoLayout.rawBounds]);
 
   const maybeCenterScroll = useCallback((force: boolean) => {
     if (!initialScrollTargetId) {
@@ -428,19 +565,29 @@ const PhotoModeScene = ({
     if (!bounds || !charHeight || !window.innerHeight) {
       return;
     }
-    const centeredOffset = computeCenteredScrollOffset();
-    if (centeredOffset == null) {
+    const targetOffset = computeTargetScrollOffset();
+    if (targetOffset == null) {
       return;
     }
     if (!force) {
       const topPx = bounds.minY * charHeight - scrollOffset;
       const bottomPx = (bounds.maxY + 1) * charHeight - scrollOffset;
-      if (topPx >= 0 && bottomPx <= window.innerHeight) {
+      const paddingPx = initialScrollAlignment === 'start'
+        ? Math.max(0, initialScrollPaddingRows) * charHeight
+        : 0;
+      if (topPx >= paddingPx && bottomPx <= window.innerHeight) {
         return;
       }
     }
-    setScrollToOffset(centeredOffset);
-  }, [computeCenteredScrollOffset, initialScrollTargetId, mergedPhotoLayout.rawBounds, scrollOffset]);
+    setScrollToOffset(targetOffset);
+  }, [
+    computeTargetScrollOffset,
+    initialScrollAlignment,
+    initialScrollPaddingRows,
+    initialScrollTargetId,
+    mergedPhotoLayout.rawBounds,
+    scrollOffset
+  ]);
 
   useEffect(() => {
     if (!centerOnLoad) {
@@ -452,7 +599,7 @@ const PhotoModeScene = ({
     if (initialScrollLockRef.current || !initialScrollTargetId) {
       return;
     }
-    const nextOffset = computeCenteredScrollOffset();
+    const nextOffset = computeTargetScrollOffset();
     if (nextOffset == null) {
       return;
     }
@@ -460,7 +607,40 @@ const PhotoModeScene = ({
     setScrollToOffset(nextOffset);
     setInitialScrollReady(true);
     initialScrollLockRef.current = true;
-  }, [centerOnLoad, computeCenteredScrollOffset, initialScrollTargetId]);
+  }, [centerOnLoad, computeTargetScrollOffset, initialScrollTargetId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleViewportResize = () => {
+      setViewportRevision(previous => previous + 1);
+    };
+
+    window.addEventListener('resize', handleViewportResize);
+    const visualViewport = window.visualViewport;
+    visualViewport?.addEventListener('resize', handleViewportResize);
+
+    return () => {
+      window.removeEventListener('resize', handleViewportResize);
+      visualViewport?.removeEventListener('resize', handleViewportResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (viewportRevision === 0) {
+      return;
+    }
+    if (!initialScrollTargetId) {
+      return;
+    }
+    if (photoState !== 'photo' && photoState !== 'entering') {
+      return;
+    }
+
+    maybeCenterScroll(true);
+  }, [initialScrollTargetId, maybeCenterScroll, photoState, viewportRevision]);
 
   const maxPhotoScrollHeight = useMemo(() => {
     const bounds = mergedPhotoLayout.rawBounds;
@@ -526,39 +706,17 @@ const PhotoModeScene = ({
     clientY: number,
     radiusPx: number
   ) => {
-    if (!items.length) return null;
-
-    const layout = hoverLayoutRef.current;
     const { charWidth, charHeight } = getCurrentCharMetrics();
-    if (!charWidth || !charHeight) return null;
-
-    const radiusSquared = radiusPx * radiusPx;
-    const scrollOffsetPx = hoverScrollOffsetRef.current;
-
-    for (const item of items) {
-      const boundsMap = item.boundsSource === 'padded' ? layout.paddedBounds : layout.rawBounds;
-      const bounds = boundsMap[item.anchorName];
-      if (!bounds) continue;
-
-      const scaleX = item.scaleX ?? 1;
-      const scaleY = item.scaleY ?? 1;
-      const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
-      const top = (bounds.minY + (item.offsetY ?? 0)) * charHeight;
-      const width = (bounds.maxX - bounds.minX + 1) * charWidth * scaleX;
-      const height = (bounds.maxY - bounds.minY + 1) * charHeight * scaleY;
-      const isFixed = item.fixed ?? bounds.fixed;
-      const rectLeft = left;
-      const rectTop = isFixed ? top : top - scrollOffsetPx;
-      const rectRight = rectLeft + width;
-      const rectBottom = rectTop + height;
-      const dx = Math.max(rectLeft - clientX, 0, clientX - rectRight);
-      const dy = Math.max(rectTop - clientY, 0, clientY - rectBottom);
-      if (dx * dx + dy * dy <= radiusSquared) {
-        return item;
-      }
-    }
-
-    return null;
+    return resolvePhotoItemAtPointer({
+      items,
+      layout: hoverLayoutRef.current,
+      clientX,
+      clientY,
+      radiusPx,
+      charWidth,
+      charHeight,
+      scrollOffsetPx: hoverScrollOffsetRef.current
+    });
   }, []);
 
   const resolveHoverItem = useCallback(
@@ -1036,18 +1194,103 @@ const PhotoModeScene = ({
   }, []);
 
   const alignmentPhotoActive = photoModeEnabled && photoState === 'ascii' && alignmentMode;
-  const showPhotorealisticLayer = photoModeEnabled && (photoState !== 'ascii' || alignmentPhotoActive);
+  const exportPhotoLayerVisible = photoModeEnabled
+    && photoState === 'ascii'
+    && alwaysVisiblePhotoItems.length > 0;
+  const showPhotorealisticLayer = photoModeEnabled
+    && (photoState !== 'ascii' || alignmentPhotoActive || exportPhotoLayerVisible);
   const asciiOverlayOpacity = photoState === 'ascii' || photoState === 'exiting' ? 1 : 0;
   const asciiOverlayTransition = photoModeEnabled
     ? `opacity ${PHOTO_ENTER_FADE_DURATION}ms linear`
     : 'opacity 0.2s ease';
   const effectiveMaxScrollHeight = maxScrollHeight ?? maxPhotoScrollHeight;
-  const photoLayerOpacity = alignmentPhotoActive ? ALIGNMENT_PHOTO_OPACITY : (photoModeEnabled ? photoOpacity : 0);
-  const photoLayerTransition = alignmentPhotoActive ? 'opacity 0.2s ease' : photoOpacityTransition;
-  const photoLayerHighRes = showHighRes || alignmentPhotoActive;
-  const photoLayerItems = photoModeEnabled ? photoImageItems : [];
-  const photoLayerInteractive = photoState === 'entering' || photoState === 'photo';
-  const showPhotoVideos = showPhotorealisticLayer && !alignmentPhotoActive;
+  const photoLayerOpacity = alignmentPhotoActive
+    ? ALIGNMENT_PHOTO_OPACITY
+    : exportPhotoLayerVisible
+      ? 1
+      : (photoModeEnabled ? photoOpacity : 0);
+  const photoLayerTransition = alignmentPhotoActive
+    ? 'opacity 0.2s ease'
+    : exportPhotoLayerVisible
+      ? 'opacity 0s'
+      : photoOpacityTransition;
+  const photoLayerHighRes = showHighRes || alignmentPhotoActive || exportPhotoLayerVisible;
+  const photoLayerItems = photoModeEnabled
+    ? exportBackgroundOnly
+      ? []
+      : (exportPhotoLayerVisible ? alwaysVisiblePhotoItems : photoImageItems)
+    : [];
+  const photoLayerInteractive = !exportPhotoLayerVisible
+    && (photoState === 'entering' || photoState === 'photo');
+  const showPhotoVideos = showPhotorealisticLayer && !alignmentPhotoActive && !exportPhotoLayerVisible;
+  useEffect(() => {
+    if (!exportMetadataKey || typeof window === 'undefined') {
+      return;
+    }
+
+    const charMetrics = getCurrentCharMetrics();
+    const photoRects = photoImageItems.reduce<Record<string, PhotoPixelRect>>((result, item) => {
+      const rect = resolvePhotoItemPixelRect(item, mergedPhotoLayout, charMetrics);
+      if (rect) {
+        result[item.id] = rect;
+      }
+      return result;
+    }, {});
+
+    (
+      window as typeof window & {
+        __projectPdfExport?: {
+          key: string;
+          charMetrics: ReturnType<typeof getCurrentCharMetrics>;
+          bounds: {
+            raw: PhotorealisticLayout['rawBounds'];
+            padded: PhotorealisticLayout['paddedBounds'];
+          };
+          photoRects: Record<string, PhotoPixelRect>;
+          photoItems: typeof photoImageItems;
+          primaryPhotoItemId: string | null;
+          primaryPhotoItem: typeof primaryExportPhotoItem;
+          alwaysVisiblePhotoItemIds: string[];
+          scrollOffset: number;
+          viewport: { width: number; height: number };
+        };
+      }
+    ).__projectPdfExport = {
+      key: exportMetadataKey,
+      charMetrics,
+      bounds: {
+        raw: mergedPhotoLayout.rawBounds,
+        padded: mergedPhotoLayout.paddedBounds
+      },
+      photoRects,
+      photoItems: photoImageItems,
+      primaryPhotoItemId: primaryExportPhotoItem?.id ?? exportPrimaryPhotoItemId ?? null,
+      primaryPhotoItem: primaryExportPhotoItem,
+      alwaysVisiblePhotoItemIds,
+      scrollOffset,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      }
+    };
+
+    return () => {
+      delete (
+        window as typeof window & {
+          __projectPdfExport?: unknown;
+        }
+      ).__projectPdfExport;
+    };
+  }, [
+    alwaysVisiblePhotoItemIds,
+    exportMetadataKey,
+    exportPrimaryPhotoItemId,
+    mergedPhotoLayout.paddedBounds,
+    mergedPhotoLayout.rawBounds,
+    primaryExportPhotoItem,
+    photoImageItems,
+    scrollOffset
+  ]);
   const photoVideoNodes = useMemo(() => {
     if (!showPhotoVideos || photoVideoItems.length === 0) {
       return null;
@@ -1082,6 +1325,7 @@ const PhotoModeScene = ({
         <PhotoVideoFrame
           key={item.id}
           item={item}
+          isVisible={showPhotoVideos}
           onForwardWheel={forwardVideoWheel}
           style={{
             position: 'fixed',
@@ -1172,6 +1416,7 @@ const PhotoModeScene = ({
           onLayerClick={requestPhotoExit}
           onLayerTouchEnd={requestPhotoExit}
           onForwardWheel={forwardVideoWheel}
+          zIndex={exportPhotoLayerVisible ? 0 : 2}
         />
       )}
       {photoModeEnabled && photoVideoNodes}
@@ -1207,7 +1452,8 @@ const PhotoModeScene = ({
           asciiClickHitTest={asciiClickEntryEnabled && !alignmentMode ? isAsciiPhotoEntryHit : undefined}
           pauseAnimation={photoState === 'photo'}
           transparentBackground={true}
-          disableLinks={photoState !== 'ascii' || alignmentMode}
+          disableLinks={disableLinks || photoState !== 'ascii' || alignmentMode}
+          suppressTextCharacters={exportBackgroundOnly}
           whiteInRequest={whiteInRequest}
           externalContainerRef={asciiContainerRef}
         />

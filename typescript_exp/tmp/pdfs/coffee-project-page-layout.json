@@ -1,0 +1,199 @@
+{
+  "exportUrl": "http://localhost:3000/#/coffee?pdf=1",
+  "captureViewport": {
+    "width": 1641,
+    "height": 2321,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.5131017672151127,
+    "y": 0.5131408875484705
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 421.2,
+      "top": 221,
+      "width": 803.4,
+      "height": 65
+    },
+    "paddedTitleRect": {
+      "left": 304.2,
+      "top": 26,
+      "width": 1037.3999999999999,
+      "height": 455
+    },
+    "titleOccupiedRects": [],
+    "textRect": {
+      "left": 327.59999999999997,
+      "top": 520,
+      "width": 982.8,
+      "height": 585
+    },
+    "paddedTextRect": {
+      "left": 210.6,
+      "top": 325,
+      "width": 1216.8,
+      "height": 975
+    },
+    "contentBottom": 1300
+  },
+  "scaledContentBottom": 639.02068074106,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#/coffee",
+  "titleLinkLayout": {
+    "centerX": 422,
+    "top": 159,
+    "width": 479,
+    "fontSize": 14,
+    "lineHeight": 17
+  },
+  "photoFrame": {
+    "x": 321,
+    "y": 642,
+    "width": 200,
+    "height": 529
+  },
+  "photoAspectRatio": 0.3779166666666667,
+  "captureSelectionScore": 64719,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 907,
+    "height": 2400,
+    "naturalWidth": 3072,
+    "naturalHeight": 5504,
+    "processingScale": 0.436046511627907,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 326,
+      "maxX": 1072,
+      "minY": 76,
+      "maxY": 2347
+    },
+    "blobBounds": {
+      "minX": 246,
+      "maxX": 1152,
+      "minY": 0,
+      "maxY": 2399
+    },
+    "paddingRadius": 80
+  },
+  "primaryPhotoItem": {
+    "id": "Coffee Machine-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/coffee/pictures/coffee_placeholder.png",
+    "highSrc": "/src/assets/coffee/pictures/coffee_placeholder.png",
+    "alt": "Coffee Machine placeholder",
+    "boundsSource": "raw",
+    "objectFit": "cover",
+    "offsetX": -3,
+    "offsetY": -3,
+    "scaleX": 1.08,
+    "scaleY": 1.08,
+    "stretchX": 1.1,
+    "stretchY": 1
+  },
+  "metadata": {
+    "key": "Coffee Machine",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 54,
+          "maxX": 156,
+          "minY": 17,
+          "maxY": 21,
+          "fixed": false
+        },
+        "text": {
+          "minX": 42,
+          "maxX": 167,
+          "minY": 40,
+          "maxY": 84,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 39,
+          "maxX": 171,
+          "minY": 2,
+          "maxY": 36,
+          "fixed": false
+        },
+        "text": {
+          "minX": 27,
+          "maxX": 182,
+          "minY": 25,
+          "maxY": 99,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "Coffee Machine-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/coffee/pictures/coffee_placeholder.png",
+        "highSrc": "/src/assets/coffee/pictures/coffee_placeholder.png",
+        "alt": "Coffee Machine placeholder",
+        "boundsSource": "raw",
+        "objectFit": "cover",
+        "offsetX": -3,
+        "offsetY": -3,
+        "scaleX": 1.08,
+        "scaleY": 1.08,
+        "stretchX": 1.1,
+        "stretchY": 1
+      }
+    ],
+    "primaryPhotoItemId": "Coffee Machine-main",
+    "primaryPhotoItem": {
+      "id": "Coffee Machine-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/coffee/pictures/coffee_placeholder.png",
+      "highSrc": "/src/assets/coffee/pictures/coffee_placeholder.png",
+      "alt": "Coffee Machine placeholder",
+      "boundsSource": "raw",
+      "objectFit": "cover",
+      "offsetX": -3,
+      "offsetY": -3,
+      "scaleX": 1.08,
+      "scaleY": 1.08,
+      "stretchX": 1.1,
+      "stretchY": 1
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1641,
+      "height": 2321
+    }
+  }
+}

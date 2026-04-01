@@ -1,0 +1,229 @@
+{
+  "exportUrl": "http://localhost:3000/#guide?pdf=1",
+  "captureViewport": {
+    "width": 1641,
+    "height": 2321,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.5131017672151127,
+    "y": 0.5131408875484705
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 296.4,
+      "top": 221,
+      "width": 1045.2,
+      "height": 65
+    },
+    "paddedTitleRect": {
+      "left": 179.4,
+      "top": 26,
+      "width": 1279.2,
+      "height": 455
+    },
+    "titleOccupiedRects": [
+      {
+        "left": 631.8,
+        "top": 312,
+        "width": 374.4,
+        "height": 13
+      }
+    ],
+    "textRect": {
+      "left": 327.59999999999997,
+      "top": 559,
+      "width": 982.8,
+      "height": 611
+    },
+    "paddedTextRect": {
+      "left": 210.6,
+      "top": 364,
+      "width": 1216.8,
+      "height": 1001
+    },
+    "contentBottom": 1365
+  },
+  "scaledContentBottom": 672.3748384317105,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#guide",
+  "titleLinkLayout": {
+    "centerX": 420,
+    "top": 179,
+    "width": 591,
+    "fontSize": 14,
+    "lineHeight": 17
+  },
+  "photoFrame": {
+    "x": 327,
+    "y": 675,
+    "width": 188,
+    "height": 496
+  },
+  "photoAspectRatio": 0.3790285973672265,
+  "captureSelectionScore": 54861,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 835,
+    "height": 2203,
+    "naturalWidth": 1536,
+    "naturalHeight": 2752,
+    "processingScale": 0.872093023255814,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 328,
+      "maxX": 1018,
+      "minY": 246,
+      "maxY": 2304
+    },
+    "blobBounds": {
+      "minX": 256,
+      "maxX": 1090,
+      "minY": 174,
+      "maxY": 2376
+    },
+    "paddingRadius": 72
+  },
+  "primaryPhotoItem": {
+    "id": "Personal Audio Guide-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/audio-guide/sign.png",
+    "highSrc": "/src/assets/audio-guide/sign.png",
+    "alt": "Personal Audio Guide sign",
+    "boundsSource": "raw",
+    "objectFit": "contain",
+    "offsetX": -20,
+    "offsetY": -36,
+    "scaleX": 1.8200000000000007,
+    "scaleY": 1.8200000000000007,
+    "stretchX": 1,
+    "stretchY": 1
+  },
+  "metadata": {
+    "key": "Personal Audio Guide",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 38,
+          "maxX": 171,
+          "minY": 17,
+          "maxY": 21,
+          "fixed": false
+        },
+        "title-callout": {
+          "minX": 81,
+          "maxX": 128,
+          "minY": 24,
+          "maxY": 24,
+          "fixed": false
+        },
+        "text": {
+          "minX": 42,
+          "maxX": 167,
+          "minY": 43,
+          "maxY": 89,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 23,
+          "maxX": 186,
+          "minY": 2,
+          "maxY": 36,
+          "fixed": false
+        },
+        "title-callout": {
+          "minX": 66,
+          "maxX": 143,
+          "minY": 9,
+          "maxY": 39,
+          "fixed": false
+        },
+        "text": {
+          "minX": 27,
+          "maxX": 182,
+          "minY": 28,
+          "maxY": 104,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "Personal Audio Guide-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/audio-guide/sign.png",
+        "highSrc": "/src/assets/audio-guide/sign.png",
+        "alt": "Personal Audio Guide sign",
+        "boundsSource": "raw",
+        "objectFit": "contain",
+        "offsetX": -20,
+        "offsetY": -36,
+        "scaleX": 1.8200000000000007,
+        "scaleY": 1.8200000000000007,
+        "stretchX": 1,
+        "stretchY": 1
+      },
+      {
+        "id": "Personal Audio Guide-image-0",
+        "anchorName": "hero-video-image-0",
+        "lowSrc": "/src/assets/audio-guide/guide_gallery.jpg",
+        "highSrc": "/src/assets/audio-guide/guide_gallery.jpg",
+        "alt": "Visitors standing by the Personal Audio Guide installation",
+        "boundsSource": "raw",
+        "objectFit": "contain"
+      }
+    ],
+    "primaryPhotoItemId": "Personal Audio Guide-main",
+    "primaryPhotoItem": {
+      "id": "Personal Audio Guide-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/audio-guide/sign.png",
+      "highSrc": "/src/assets/audio-guide/sign.png",
+      "alt": "Personal Audio Guide sign",
+      "boundsSource": "raw",
+      "objectFit": "contain",
+      "offsetX": -20,
+      "offsetY": -36,
+      "scaleX": 1.8200000000000007,
+      "scaleY": 1.8200000000000007,
+      "stretchX": 1,
+      "stretchY": 1
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1641,
+      "height": 2321
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "exportUrl": "http://localhost:3000/#/microwave?pdf=1",
+  "captureViewport": {
+    "width": 1233,
+    "height": 1744,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.6828872668288727,
+    "y": 0.6829128440366973
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 358.8,
+      "top": 169,
+      "width": 522.6,
+      "height": 65
+    },
+    "paddedTitleRect": {
+      "left": 241.79999999999998,
+      "top": -26,
+      "width": 756.6,
+      "height": 455
+    },
+    "titleOccupiedRects": [],
+    "textRect": {
+      "left": 257.4,
+      "top": 468,
+      "width": 725.4,
+      "height": 429
+    },
+    "paddedTextRect": {
+      "left": 140.4,
+      "top": 273,
+      "width": 959.4,
+      "height": 819
+    },
+    "contentBottom": 1092
+  },
+  "scaledContentBottom": 684.5728211009175,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#/microwave",
+  "titleLinkLayout": {
+    "centerX": 423,
+    "top": 172,
+    "width": 465,
+    "fontSize": 17,
+    "lineHeight": 20
+  },
+  "photoFrame": {
+    "x": 238,
+    "y": 688,
+    "width": 367,
+    "height": 483
+  },
+  "photoAspectRatio": 0.758971612212105,
+  "captureSelectionScore": 87086,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 1417,
+    "height": 1867,
+    "naturalWidth": 3024,
+    "naturalHeight": 4032,
+    "processingScale": 0.5952380952380952,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 211,
+      "maxX": 1505,
+      "minY": 360,
+      "maxY": 2104
+    },
+    "blobBounds": {
+      "minX": 150,
+      "maxX": 1566,
+      "minY": 299,
+      "maxY": 2165
+    },
+    "paddingRadius": 61
+  },
+  "primaryPhotoItem": {
+    "id": "Microwave-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/microwave/pictures/microwave_placeholder.png",
+    "highSrc": "/src/assets/microwave/pictures/microwave_placeholder.png",
+    "alt": "Microwave placeholder",
+    "boundsSource": "raw",
+    "objectFit": "cover",
+    "offsetX": -9,
+    "offsetY": -8.5,
+    "scaleX": 1.3200000000000003,
+    "scaleY": 1.3200000000000003,
+    "stretchX": 1.04,
+    "stretchY": 0.98
+  },
+  "metadata": {
+    "key": "Microwave",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 46,
+          "maxX": 112,
+          "minY": 13,
+          "maxY": 17,
+          "fixed": false
+        },
+        "text": {
+          "minX": 33,
+          "maxX": 125,
+          "minY": 36,
+          "maxY": 68,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 31,
+          "maxX": 127,
+          "minY": -2,
+          "maxY": 32,
+          "fixed": false
+        },
+        "text": {
+          "minX": 18,
+          "maxX": 140,
+          "minY": 21,
+          "maxY": 83,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "Microwave-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/microwave/pictures/microwave_placeholder.png",
+        "highSrc": "/src/assets/microwave/pictures/microwave_placeholder.png",
+        "alt": "Microwave placeholder",
+        "boundsSource": "raw",
+        "objectFit": "cover",
+        "offsetX": -9,
+        "offsetY": -8.5,
+        "scaleX": 1.3200000000000003,
+        "scaleY": 1.3200000000000003,
+        "stretchX": 1.04,
+        "stretchY": 0.98
+      }
+    ],
+    "primaryPhotoItemId": "Microwave-main",
+    "primaryPhotoItem": {
+      "id": "Microwave-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/microwave/pictures/microwave_placeholder.png",
+      "highSrc": "/src/assets/microwave/pictures/microwave_placeholder.png",
+      "alt": "Microwave placeholder",
+      "boundsSource": "raw",
+      "objectFit": "cover",
+      "offsetX": -9,
+      "offsetY": -8.5,
+      "scaleX": 1.3200000000000003,
+      "scaleY": 1.3200000000000003,
+      "stretchX": 1.04,
+      "stretchY": 0.98
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1233,
+      "height": 1744
+    }
+  }
+}

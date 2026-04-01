@@ -1,0 +1,208 @@
+{
+  "exportUrl": "http://localhost:3000/#/vending?pdf=1",
+  "captureViewport": {
+    "width": 1641,
+    "height": 2321,
+    "deviceScaleFactor": 4
+  },
+  "renderPixelRatio": 4,
+  "canvasDimensions": {
+    "width": 3368,
+    "height": 4764,
+    "cssWidth": 842,
+    "cssHeight": 1191,
+    "pixelRatio": 4
+  },
+  "captureScale": {
+    "x": 0.5131017672151127,
+    "y": 0.5131408875484705
+  },
+  "contentLayout": {
+    "titleRect": {
+      "left": 405.59999999999997,
+      "top": 221,
+      "width": 834.6,
+      "height": 130
+    },
+    "paddedTitleRect": {
+      "left": 288.59999999999997,
+      "top": 26,
+      "width": 1068.6,
+      "height": 520
+    },
+    "titleOccupiedRects": [],
+    "textRect": {
+      "left": 335.4,
+      "top": 585,
+      "width": 967.1999999999999,
+      "height": 611
+    },
+    "paddedTextRect": {
+      "left": 218.4,
+      "top": 390,
+      "width": 1201.2,
+      "height": 1001
+    },
+    "contentBottom": 1391
+  },
+  "scaledContentBottom": 685.7165015079707,
+  "maxTextBlobPhotoPadding": 72,
+  "hostedPageUrl": "https://warana.xyz/#/vending",
+  "titleLinkLayout": {
+    "centerX": 422,
+    "top": 192,
+    "width": 493,
+    "fontSize": 20,
+    "lineHeight": 24
+  },
+  "photoFrame": {
+    "x": 217,
+    "y": 689,
+    "width": 408,
+    "height": 482
+  },
+  "photoAspectRatio": 0.8457207207207207,
+  "captureSelectionScore": 116227,
+  "selectionMargins": {
+    "x": 48,
+    "bottom": 60,
+    "gap": 44
+  },
+  "compositionMargins": {
+    "x": 48,
+    "bottom": 20,
+    "gap": 3
+  },
+  "minimumPhotoComfort": {
+    "widthRatio": 0.34,
+    "heightRatio": 0.34
+  },
+  "targetPhotoProcessingDimension": 2400,
+  "processedPhotoAsset": {
+    "width": 751,
+    "height": 888,
+    "naturalWidth": 1500,
+    "naturalHeight": 1825,
+    "processingScale": 1,
+    "maxDimensionUsed": 2400,
+    "subjectBounds": {
+      "minX": 422,
+      "maxX": 1114,
+      "minY": 495,
+      "maxY": 1324
+    },
+    "blobBounds": {
+      "minX": 393,
+      "maxX": 1143,
+      "minY": 466,
+      "maxY": 1353
+    },
+    "paddingRadius": 29
+  },
+  "primaryPhotoItem": {
+    "id": "Vending Machine Organoid-main",
+    "anchorName": "hero",
+    "lowSrc": "/src/assets/vending/pictures/vending_machine.png",
+    "highSrc": "/src/assets/vending/pictures/vending_machine.png",
+    "alt": "Vending Machine Organoid vending machine",
+    "boundsSource": "raw",
+    "objectFit": "contain",
+    "offsetX": -44.5,
+    "offsetY": -28,
+    "scaleX": 2.360000000000001,
+    "scaleY": 2.360000000000001,
+    "stretchX": 1,
+    "stretchY": 0.94
+  },
+  "metadata": {
+    "key": "Vending Machine Organoid",
+    "charMetrics": {
+      "scaleFactor": 13,
+      "charWidth": 7.8,
+      "charHeight": 13
+    },
+    "bounds": {
+      "raw": {
+        "title": {
+          "minX": 52,
+          "maxX": 158,
+          "minY": 17,
+          "maxY": 26,
+          "fixed": false
+        },
+        "text": {
+          "minX": 43,
+          "maxX": 166,
+          "minY": 45,
+          "maxY": 91,
+          "fixed": false
+        }
+      },
+      "padded": {
+        "title": {
+          "minX": 37,
+          "maxX": 173,
+          "minY": 2,
+          "maxY": 41,
+          "fixed": false
+        },
+        "text": {
+          "minX": 28,
+          "maxX": 181,
+          "minY": 30,
+          "maxY": 106,
+          "fixed": false
+        }
+      }
+    },
+    "photoRects": {},
+    "photoItems": [
+      {
+        "id": "Vending Machine Organoid-main",
+        "anchorName": "hero",
+        "lowSrc": "/src/assets/vending/pictures/vending_machine.png",
+        "highSrc": "/src/assets/vending/pictures/vending_machine.png",
+        "alt": "Vending Machine Organoid vending machine",
+        "boundsSource": "raw",
+        "objectFit": "contain",
+        "offsetX": -44.5,
+        "offsetY": -28,
+        "scaleX": 2.360000000000001,
+        "scaleY": 2.360000000000001,
+        "stretchX": 1,
+        "stretchY": 0.94
+      },
+      {
+        "id": "Vending Machine Organoid-image-0",
+        "anchorName": "hero-video-image-0",
+        "lowSrc": "/src/assets/vending/pictures/vending_installation.jpg",
+        "highSrc": "/src/assets/vending/pictures/vending_installation.jpg",
+        "alt": "Vending Machine Organoid installation view",
+        "boundsSource": "raw",
+        "objectFit": "contain"
+      }
+    ],
+    "primaryPhotoItemId": "Vending Machine Organoid-main",
+    "primaryPhotoItem": {
+      "id": "Vending Machine Organoid-main",
+      "anchorName": "hero",
+      "lowSrc": "/src/assets/vending/pictures/vending_machine.png",
+      "highSrc": "/src/assets/vending/pictures/vending_machine.png",
+      "alt": "Vending Machine Organoid vending machine",
+      "boundsSource": "raw",
+      "objectFit": "contain",
+      "offsetX": -44.5,
+      "offsetY": -28,
+      "scaleX": 2.360000000000001,
+      "scaleY": 2.360000000000001,
+      "stretchX": 1,
+      "stretchY": 0.94
+    },
+    "alwaysVisiblePhotoItemIds": [],
+    "scrollOffset": 0,
+    "viewport": {
+      "width": 1641,
+      "height": 2321
+    }
+  }
+}

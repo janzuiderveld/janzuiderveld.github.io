@@ -1,0 +1,62 @@
+[
+  {
+    "name": "desktop-initial",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1",
+    "iframe": {
+      "x": 280.796875,
+      "y": 2.5,
+      "width": 717.59375,
+      "height": 403
+    },
+    "image": {
+      "x": -35.09375,
+      "y": 538.6195678710938,
+      "width": 1348.609375,
+      "height": 1460.1513671875
+    }
+  },
+  {
+    "name": "desktop-resized",
+    "viewport": {
+      "width": 1000,
+      "height": 720
+    },
+    "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1",
+    "iframe": {
+      "x": 218.390625,
+      "y": 48,
+      "width": 561.59375,
+      "height": 312
+    },
+    "image": {
+      "x": -175.5,
+      "y": 493.11956787109375,
+      "width": 1348.609375,
+      "height": 1460.1513671875
+    }
+  },
+  {
+    "name": "mobile",
+    "viewport": {
+      "width": 900,
+      "height": 1600
+    },
+    "iframeSrc": "https://player.vimeo.com/video/1153081771?autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1",
+    "iframe": {
+      "x": 202.796875,
+      "y": 501,
+      "width": 499.1875,
+      "height": 286
+    },
+    "image": {
+      "x": -230.09375,
+      "y": 920.1195678710938,
+      "width": 1348.609375,
+      "height": 1460.1513671875
+    }
+  }
+]

@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { BLOB_RADIUS, getCurrentCharMetrics } from '../ascii-art2/constants';
-import { PhotoLayerItem, PhotorealisticLayout } from './PhotorealisticLayer';
+import {
+  PhotoLayerItem,
+  PhotorealisticLayout,
+  resolvePhotoCropFrameStyle
+} from './PhotorealisticLayer';
 
 type PhotoHoverWindowProps = {
   item: PhotoLayerItem | null;
@@ -106,6 +110,26 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
   const top = (bounds.minY + (item.offsetY ?? 0)) * charHeight;
   const isFixed = item.fixed ?? bounds.fixed;
+  const cropFrameStyle = resolvePhotoCropFrameStyle(item.contentInsets);
+  const image = (
+    <img
+      src={item.highSrc}
+      alt={item.alt}
+      loading="eager"
+      decoding="async"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: item.objectFit ?? 'cover',
+        filter: item.filter,
+        transform: `scale(${stretchX}, ${stretchY})`,
+        transformOrigin: 'center',
+        opacity: 1
+      }}
+    />
+  );
 
   return (
     <div
@@ -138,24 +162,24 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
             willChange: isFixed ? 'auto' : 'transform'
           }}
         >
-          <img
-            src={item.highSrc}
-            alt={item.alt}
-            loading="eager"
-            decoding="async"
+          <div
             style={{
               position: 'absolute',
               left,
               top,
               width,
               height,
-              objectFit: item.objectFit ?? 'cover',
-              filter: item.filter,
-              transform: `scale(${stretchX}, ${stretchY})`,
-              transformOrigin: 'center',
-              opacity: 1
+              overflow: 'hidden'
             }}
-          />
+          >
+            {cropFrameStyle ? (
+              <div style={cropFrameStyle}>
+                {image}
+              </div>
+            ) : (
+              image
+            )}
+          </div>
         </div>
       </div>
     </div>
