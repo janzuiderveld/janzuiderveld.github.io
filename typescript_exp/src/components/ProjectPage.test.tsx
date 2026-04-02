@@ -153,6 +153,32 @@ describe('ProjectPage photo entry targets', () => {
     }));
   });
 
+  it('forwards photo-mode transform resolvers to the shared photo scene', async () => {
+    const photoModeTransformResolver = vi.fn(() => ({ offsetX: 12 }));
+
+    render(
+      <MemoryRouter initialEntries={['/fish']}>
+        <ProjectPage
+          title="This is not a fish"
+          text="Body copy"
+          asciiArt={'@@@\n@@@'}
+          photo={{ src: '/photo.png', alt: 'Fish placeholder' }}
+          align={{ offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 }}
+          photoModeTransformResolver={photoModeTransformResolver}
+        />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(photoModeSceneSpy).toHaveBeenCalled();
+    });
+    const lastCall = photoModeSceneSpy.mock.calls.at(-1)?.[0] as {
+      photoModeTransformResolver?: unknown;
+    };
+
+    expect(lastCall.photoModeTransformResolver).toBe(photoModeTransformResolver);
+  });
+
   it('switches to static export mode for pdf routes', async () => {
     render(
       <MemoryRouter initialEntries={['/fish?pdf=1']}>

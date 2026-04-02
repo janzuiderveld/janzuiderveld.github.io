@@ -349,4 +349,41 @@ describe('PhotoModeScene resize centering', () => {
     expect(photorealisticLayerSpy).not.toHaveBeenCalled();
     expect(lastAsciiCall.suppressTextCharacters).toBe(true);
   });
+
+  it('applies photo-mode-only transform overrides after entering photo mode', async () => {
+    const photoModeTransformResolver = vi.fn(() => ({ offsetX: 12 }));
+
+    render(
+      <PhotoModeScene
+        textContent={[]}
+        photoItems={[{
+          id: 'fish-main',
+          anchorName: 'hero',
+          lowSrc: '/fish.png',
+          highSrc: '/fish.png',
+          alt: 'Fish',
+          offsetX: 0
+        }]}
+        asciiClickTargets={['hero']}
+        photoModeTransformResolver={photoModeTransformResolver}
+      />
+    );
+
+    await act(async () => {
+      (window as typeof window & {
+        __projectPhotoMode?: { enter: () => boolean };
+      }).__projectPhotoMode?.enter();
+      vi.runOnlyPendingTimers();
+    });
+
+    const lastPhotoLayerCall = photorealisticLayerSpy.mock.calls.at(-1)?.[0] as {
+      items?: Array<{ id: string; offsetX?: number }>;
+    };
+
+    expect(photoModeTransformResolver).toHaveBeenCalled();
+    expect(lastPhotoLayerCall.items?.[0]).toEqual(expect.objectContaining({
+      id: 'fish-main',
+      offsetX: 12
+    }));
+  });
 });

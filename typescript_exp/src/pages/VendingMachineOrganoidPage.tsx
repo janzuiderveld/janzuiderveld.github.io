@@ -1,4 +1,7 @@
 import ProjectPage from '../components/ProjectPage';
+import { getGridDimensions } from '../components/ascii-art2/utils';
+import type { PhotorealisticLayout } from '../components/photorealistic/PhotorealisticLayer';
+import type { PhotoModeTransformResolver } from '../components/photorealistic/PhotoModeScene';
 import vendingAscii from '../assets/vending/vending_ascii.txt?raw';
 import vendingText from '../assets/vending/vending_text.txt?raw';
 import vendingMachinePhoto from '../assets/vending/pictures/vending_machine.png';
@@ -7,6 +10,82 @@ import { VENDING_ALIGN_DEFAULT } from '../assets/vending/align';
 
 const DISPLAY_TITLE = 'Vending Machine\nOrganoid';
 const VIMEO_VENDING_SRC = 'https://player.vimeo.com/video/1179367379?badge=0&autopause=0&player_id=0&app_id=58479';
+const VENDING_VIDEO_ANCHOR_NAME = 'hero-video-0';
+const VENDING_INSTALLATION_ANCHOR_NAME = 'hero-video-image-0';
+const VENDING_NARROW_VIEWPORT_MAX_WIDTH = 640;
+
+const isNarrowVendingViewport = (width: number) => width <= VENDING_NARROW_VIEWPORT_MAX_WIDTH;
+
+const augmentVendingPhotoLayout = (layout: PhotorealisticLayout): PhotorealisticLayout => {
+  if (typeof window === 'undefined') {
+    return layout;
+  }
+
+  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  if (!isNarrowVendingViewport(viewportWidth)) {
+    return layout;
+  }
+
+  const { cols } = getGridDimensions(viewportWidth, viewportHeight);
+  const centeredAnchors = [VENDING_VIDEO_ANCHOR_NAME, VENDING_INSTALLATION_ANCHOR_NAME] as const;
+  let changed = false;
+  const nextRawBounds = { ...layout.rawBounds };
+  const nextPaddedBounds = { ...layout.paddedBounds };
+
+  centeredAnchors.forEach(anchorName => {
+    const bounds = layout.rawBounds[anchorName];
+    if (!bounds) {
+      return;
+    }
+
+    const widthChars = bounds.maxX - bounds.minX + 1;
+    const minX = Math.max(0, Math.round((cols - widthChars) / 2));
+    const centeredBounds = {
+      ...bounds,
+      minX,
+      maxX: minX + widthChars - 1
+    };
+    nextRawBounds[anchorName] = centeredBounds;
+    nextPaddedBounds[anchorName] = centeredBounds;
+    changed = true;
+  });
+
+  if (!changed) {
+    return layout;
+  }
+
+  return {
+    rawBounds: nextRawBounds,
+    paddedBounds: nextPaddedBounds
+  };
+};
+
+const centerVendingPhotoModeTransform: PhotoModeTransformResolver = ({
+  defaultTransform,
+  item,
+  layout,
+  viewport,
+  metrics
+}) => {
+  if (!isNarrowVendingViewport(viewport.width) || !metrics.charWidth) {
+    return undefined;
+  }
+
+  const heroBounds = layout.rawBounds[item.anchorName];
+  if (!heroBounds) {
+    return undefined;
+  }
+
+  const heroWidthChars = heroBounds.maxX - heroBounds.minX + 1;
+  const centeredOffsetX = (
+    (viewport.width / metrics.charWidth) - (heroWidthChars * defaultTransform.scaleX)
+  ) / 2 - heroBounds.minX;
+
+  return {
+    offsetX: centeredOffsetX
+  };
+};
 
 function VendingMachineOrganoidPage() {
   return (
@@ -46,7 +125,9 @@ function VendingMachineOrganoidPage() {
       ]}
       inlinePhotoLinkLabel='Video & Photos'
       heroAnchorOffsetY={-8}
-      photoInitialScrollTargetId='hero-video-0'
+      photoLayoutAugmenter={augmentVendingPhotoLayout}
+      photoModeTransformResolver={centerVendingPhotoModeTransform}
+      photoInitialScrollTargetId={VENDING_VIDEO_ANCHOR_NAME}
       photoInitialScrollAlignment='start'
       photoInitialScrollPaddingRows={5}
       photoCenterOnEnter={true}

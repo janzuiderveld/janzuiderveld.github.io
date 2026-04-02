@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { getCurrentCharMetrics } from './ascii-art2/constants';
 import { TextBounds, TextContentItem } from './ascii-art2/types';
 import type { FontName } from './ascii-art2/ASCII_text_renderer';
-import PhotoModeScene from './photorealistic/PhotoModeScene';
+import PhotoModeScene, { type PhotoModeTransformResolver } from './photorealistic/PhotoModeScene';
 import {
   PhotoContentInsets,
   PhotoLayerItem,
@@ -116,6 +116,7 @@ type ProjectPageProps = {
   photoAnchorName?: string;
   extraPhotoItems?: PhotoLayerItem[];
   photoLayoutAugmenter?: (layout: PhotorealisticLayout) => PhotorealisticLayout;
+  photoModeTransformResolver?: PhotoModeTransformResolver;
   photoAlignmentKey?: string;
   photoAlignmentTargetId?: string;
   photoInitialScrollTargetId?: string;
@@ -150,6 +151,7 @@ const ProjectPage = ({
   photoAnchorName,
   extraPhotoItems,
   photoLayoutAugmenter,
+  photoModeTransformResolver,
   photoAlignmentKey,
   photoAlignmentTargetId,
   photoInitialScrollTargetId,
@@ -626,6 +628,7 @@ const ProjectPage = ({
           alignmentKey={photoAlignmentKey}
           alignmentTargetId={photoAlignmentTargetId}
           layoutAugmenter={combinedLayoutAugmenter}
+          photoModeTransformResolver={photoModeTransformResolver}
           disableLinks={pdfExportMode}
           alwaysVisiblePhotoItemIds={[]}
           exportMetadataKey={pdfExportMode ? title : undefined}

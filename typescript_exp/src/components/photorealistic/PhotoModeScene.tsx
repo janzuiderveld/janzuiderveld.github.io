@@ -23,6 +23,15 @@ type PhotoTransform = {
   stretchY: number;
 };
 
+export type PhotoModeTransformResolver = (context: {
+  defaultTransform: PhotoTransform;
+  item: PhotoLayerItem;
+  layout: PhotorealisticLayout;
+  viewport: { width: number; height: number };
+  metrics: ReturnType<typeof getCurrentCharMetrics>;
+  photoState: PhotoState;
+}) => Partial<PhotoTransform> | null | undefined;
+
 type WhiteInRequest = {
   position: { x: number; y: number };
   token: number;
@@ -53,6 +62,7 @@ type PhotoModeSceneProps = {
   alignmentKey?: string;
   alignmentTargetId?: string;
   layoutAugmenter?: (layout: PhotorealisticLayout) => PhotorealisticLayout;
+  photoModeTransformResolver?: PhotoModeTransformResolver;
   disableLinks?: boolean;
   alwaysVisiblePhotoItemIds?: string[];
   exportMetadataKey?: string;
@@ -265,6 +275,7 @@ const PhotoModeScene = ({
   alignmentKey,
   alignmentTargetId,
   layoutAugmenter,
+  photoModeTransformResolver,
   disableLinks = false,
   alwaysVisiblePhotoItemIds = [],
   exportMetadataKey,
@@ -445,6 +456,54 @@ const PhotoModeScene = ({
     }
   }, [alignmentStorageKey, defaultTransform]);
 
+  const mergedPhotoLayout = useMemo(() => {
+    if (!layoutAugmenter) {
+      return photoLayout;
+    }
+    return layoutAugmenter(photoLayout);
+  }, [layoutAugmenter, photoLayout]);
+
+  const effectivePhotoTransform = useMemo<PhotoTransform>(() => {
+    if (photoState === 'ascii' || !photoModeTransformResolver || !resolvedAlignmentTargetId || typeof window === 'undefined') {
+      return photoTransform;
+    }
+
+    const targetItem = photoItems.find(item => item.id === resolvedAlignmentTargetId);
+    if (!targetItem) {
+      return photoTransform;
+    }
+
+    const viewport = {
+      width: window.visualViewport?.width ?? window.innerWidth,
+      height: window.visualViewport?.height ?? window.innerHeight
+    };
+    const override = photoModeTransformResolver({
+      defaultTransform: photoTransform,
+      item: targetItem,
+      layout: mergedPhotoLayout,
+      viewport,
+      metrics: getCurrentCharMetrics(),
+      photoState
+    });
+
+    if (!override) {
+      return photoTransform;
+    }
+
+    return {
+      ...photoTransform,
+      ...override
+    };
+  }, [
+    mergedPhotoLayout,
+    photoItems,
+    photoModeTransformResolver,
+    photoState,
+    photoTransform,
+    resolvedAlignmentTargetId,
+    viewportRevision
+  ]);
+
   const alignedPhotoItems = useMemo<PhotoLayerItem[]>(() => {
     if (!resolvedAlignmentTargetId) {
       return photoItems;
@@ -455,22 +514,22 @@ const PhotoModeScene = ({
       }
       return {
         ...item,
-        offsetX: photoTransform.offsetX,
-        offsetY: photoTransform.offsetY,
-        scaleX: photoTransform.scaleX,
-        scaleY: photoTransform.scaleY,
-        stretchX: photoTransform.stretchX,
-        stretchY: photoTransform.stretchY
+        offsetX: effectivePhotoTransform.offsetX,
+        offsetY: effectivePhotoTransform.offsetY,
+        scaleX: effectivePhotoTransform.scaleX,
+        scaleY: effectivePhotoTransform.scaleY,
+        stretchX: effectivePhotoTransform.stretchX,
+        stretchY: effectivePhotoTransform.stretchY
       };
     });
   }, [
+    effectivePhotoTransform.offsetX,
+    effectivePhotoTransform.offsetY,
+    effectivePhotoTransform.scaleX,
+    effectivePhotoTransform.scaleY,
+    effectivePhotoTransform.stretchX,
+    effectivePhotoTransform.stretchY,
     photoItems,
-    photoTransform.offsetX,
-    photoTransform.offsetY,
-    photoTransform.scaleX,
-    photoTransform.scaleY,
-    photoTransform.stretchX,
-    photoTransform.stretchY,
     resolvedAlignmentTargetId
   ]);
 
@@ -532,13 +591,6 @@ const PhotoModeScene = ({
   useEffect(() => {
     photoEntryItemsRef.current = photoEntryItems;
   }, [photoEntryItems]);
-
-  const mergedPhotoLayout = useMemo(() => {
-    if (!layoutAugmenter) {
-      return photoLayout;
-    }
-    return layoutAugmenter(photoLayout);
-  }, [layoutAugmenter, photoLayout]);
 
   const computeTargetScrollOffset = useCallback(() => {
     if (!initialScrollTargetId) {
