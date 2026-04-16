@@ -52,4 +52,22 @@ describe('PersonalAudioGuidePage', () => {
     expect(lastCall.photoInitialScrollPaddingRows).toBe(5);
     expect(lastCall.photoCenterOnEnter).toBe(true);
   });
+
+  it('passes the updated website copy to the shared project page', () => {
+    render(
+      <MemoryRouter initialEntries={['/guide']}>
+        <PersonalAudioGuidePage />
+      </MemoryRouter>
+    );
+
+    const lastCall = projectPageSpy.mock.calls.at(-1)?.[0] as {
+      text?: string;
+    };
+
+    expect(lastCall.text).toContain('Personal Audio Guide begins as a familiar museum service.');
+    expect(lastCall.text).toContain('What began as a benign act of personalization returns as replication.');
+    expect(lastCall.text).toContain('The work stages AI not as a futuristic abstraction');
+    expect(lastCall.text).not.toContain('At what point do we intervene in systems designed to replicate us');
+    expect(lastCall.text).not.toContain('Bluetooth beacons lets the system register where the visitor lingers');
+  });
 });
