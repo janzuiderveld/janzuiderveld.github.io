@@ -66,4 +66,27 @@ describe('HomePage', () => {
       })
     ]);
   });
+
+  it('includes the Machine Consciousness conference as plain text in the upcoming section fallback', async () => {
+    render(<HomePage />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+      await Promise.resolve();
+    });
+
+    const lastCall = asciiArtGeneratorSpy.mock.calls.at(-1)?.[0] as {
+      textContent?: Array<{
+        name?: string;
+        text?: string;
+      }>;
+    };
+
+    const upcomingText = (lastCall.textContent ?? []).find(item => item.name === 'upcoming')?.text;
+
+    expect(upcomingText).toContain('==The Founding Assembly for Machine Consciousness Research==');
+    expect(upcomingText).not.toContain('machine-consciousness.ai');
+    expect(upcomingText).toContain('//Lighthaven (Berkeley, CA, US)//');
+    expect(upcomingText).toContain('29/05/2026 > 31/05/2026');
+  });
 });

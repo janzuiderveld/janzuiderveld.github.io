@@ -138,6 +138,12 @@ const FALLBACK_EXHIBITIONS: Exhibition[] = [
     location: 'KUMU Kunstimuuseum (Tallinn, EE)',
     dateRange: '12/02/2026 > 23/08/2026',
   },
+  {
+    title: '-',
+    subtitle: 'The Founding Assembly for Machine Consciousness Research',
+    location: 'Lighthaven (Berkeley, CA, US)',
+    dateRange: '29/05/2026 > 31/05/2026',
+  },
 ];
 
 const getStableScatterOffset = (key: string) => {
