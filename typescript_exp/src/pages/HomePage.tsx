@@ -1,8 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AsciiArtGenerator from '../components/ascii-art2/AsciiArtGenerator';
 import { BLOB_PADDING, getCurrentCharMetrics } from '../components/ascii-art2/constants';
-import { loadCsv, CsvRecord } from '../utils/csv';
-import { AsciiLayoutInfo } from '../components/ascii-art2/types';
+import type { AsciiLayoutInfo } from '../components/ascii-art2/types';
+import {
+  areExhibitionsEqual,
+  FALLBACK_EXHIBITIONS,
+  formatUpcomingText,
+  loadUpcomingExhibitions
+} from '../utils/upcomingExhibitions';
+import type { Exhibition } from '../utils/upcomingExhibitions';
 // You might want to add your own ASCII art for the homepage
 // import homeAsciiArt from '../assets/home/home_ascii.txt?raw';
 
@@ -26,19 +32,9 @@ type TextContentItem = {
   fontName?: 'regular' | 'ascii' | 'smallAscii'; // Add fontName explicitly if needed
 };
 
-type Exhibition = {
-  title: string;
-  subtitle?: string;
-  location?: string;
-  dateRange?: string;
-};
-
 type HomePageProps = {
   compatibilityOverlayActive?: boolean;
 };
-
-const UPCOMING_EXHIBITIONS_PATH = '/upcoming_exhibitions.csv';
-
 
 const HOME_SUBTITLE = '.';
 // const HOME_SUBTITLE = '';
@@ -97,110 +93,12 @@ const TITLE_TO_SUBTITLE_OFFSET_Y = -BLOB_PADDING + 0;
 // const SUBTITLE_TO_UPCOMING_OFFSET_Y = -BLOB_PADDING + 6;
 const ABOUT_TO_UPCOMING_OFFSET_Y = 3;
 
-const FALLBACK_EXHIBITIONS: Exhibition[] = [
-  {
-    title: 'Coffee Machine',
-    subtitle: 'Dutch, More or Less. Contemporary Architecture, Design and Digital Culture',
-    location: 'Het Nieuwe Instituut (Rotterdam, NL)',
-    dateRange: '01/06/2024 > 30/05/2026',
-  },
-  {
-    title: 'Coffee Machine',
-    location: 'Deutsches Museum Nürnberg (Nürnberg, DE)',
-    dateRange: '29/04/2025 > 29/06/2025',
-  },
-  {
-    title: 'Coffee Machine',
-    subtitle: 'AI Ecologies',
-    location: 'Artphy (Onstwedde, NL)',
-    dateRange: '06/07/2025 > 30/08/2025',
-  },
-  {
-    title: 'Keynote lecture',
-    subtitle: 'AI in Art Practices and Research Conference',
-    location: 'I.L. Caragiale - National University of Theatre and Film (Bucharest, RO)',
-    dateRange: '24/10/2025',
-  },
-  {
-    title: 'Workshop',
-    subtitle: 'AI in Art Practices and Research Conference',
-    location: 'I.L. Caragiale - National University of Theatre and Film (Bucharest, RO)',
-    dateRange: '25/10/2025',
-  },
-  {
-    title: 'Life on _',
-    subtitle: 'Big Dada',
-    location: 'Arti et Amicae (Amsterdam, NL)',
-    dateRange: '30/10/2025 > 21/11/2025',
-  },
-  {
-    title: 'Coffee Machine',
-    location: 'KUMU Kunstimuuseum (Tallinn, EE)',
-    dateRange: '12/02/2026 > 23/08/2026',
-  },
-  {
-    title: '-',
-    subtitle: 'The Founding Assembly for Machine Consciousness Research',
-    location: 'Lighthaven (Berkeley, CA, US)',
-    dateRange: '29/05/2026 > 31/05/2026',
-  },
-];
-
 const getStableScatterOffset = (key: string) => {
   let hash = 0;
   for (let index = 0; index < key.length; index += 1) {
     hash = (hash * 31 + key.charCodeAt(index)) | 0;
   }
   return (Math.abs(hash) % 21) - 10;
-};
-
-const mapExhibition = (record: CsvRecord): Exhibition | null => {
-  const title = record.title?.trim();
-  const subtitle = record.subtitle?.trim();
-  const location = record.location?.trim();
-  const dateRange = record['date_range']?.trim() || record.dates?.trim();
-
-  if (!title) {
-    return null;
-  }
-
-  const exhibition: Exhibition = { title };
-
-  if (subtitle) {
-    exhibition.subtitle = subtitle;
-  }
-  if (location) {
-    exhibition.location = location;
-  }
-  if (dateRange) {
-    exhibition.dateRange = dateRange;
-  }
-
-  return exhibition;
-};
-
-const formatUpcomingText = (entries: Exhibition[]): string => {
-  const heading = '==Upcoming ⟋ ongoing==';
-
-  if (!entries.length) {
-    return `${heading}\n\n-- none scheduled --`;
-  }
-
-  const blocks = entries.map(entry => {
-    const lines: string[] = [];
-    if (entry.subtitle) {
-      lines.push(`==${entry.subtitle}==`);
-    }
-    if (entry.location) {
-      lines.push(`//${entry.location}//`);
-    }
-    if (entry.dateRange) {
-      lines.push(entry.dateRange);
-    }
-    return lines.join('\n');
-  });
-
-  return [heading, ...blocks].join('\n\n');
 };
 
 const HOME_INTRO_RIPPLE_KEY = 'homeIntroRippleSeen';
@@ -351,28 +249,16 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
   useEffect(() => {
     let isMounted = true;
 
-    loadCsv(UPCOMING_EXHIBITIONS_PATH)
-      .then(records => {
+    loadUpcomingExhibitions()
+      .then(parsed => {
         if (!isMounted) {
           return;
         }
 
-        const parsed = records
-          .map(mapExhibition)
-          .filter((item): item is Exhibition => Boolean(item));
-
         if (parsed.length) {
-          setExhibitions(current => {
-            const sameLength = current.length === parsed.length;
-            const sameContent = sameLength && current.every((entry, index) => (
-              entry.title === parsed[index].title &&
-              entry.subtitle === parsed[index].subtitle &&
-              entry.location === parsed[index].location &&
-              entry.dateRange === parsed[index].dateRange
-            ));
-
-            return sameContent ? current : parsed;
-          });
+          setExhibitions(current => (
+            areExhibitionsEqual(current, parsed) ? current : parsed
+          ));
         }
       })
       .catch(error => {

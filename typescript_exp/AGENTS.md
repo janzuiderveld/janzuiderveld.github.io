@@ -62,6 +62,7 @@
 - `src/index.tsx` is a legacy troubleshooting entry point, not the normal bootstrap. Do not update it instead of `src/main.tsx` by accident.
 - `src/App.tsx` is the route registry. Current routes are:
   - `#/`
+  - `#/up` (hidden route showing only the upcoming/ongoing blob)
   - `#/about`
   - `#/camera`
   - `#/coffee`
@@ -107,7 +108,7 @@
   - `align.ts`
   - `pictures/`
 - Structured content is fetched from `public/*.csv`:
-  - `upcoming_exhibitions.csv` for the homepage
+  - `upcoming_exhibitions.csv` for the homepage and hidden `#/up` upcoming-only page
   - `selected_presentations.csv`, `selected_awards.csv`, `selected_publications.csv` for `#/about`
   - `all_presentations.csv` for `#/presentations`
 - When page media starts outside the repo, move or copy it into `src/assets/<project>/pictures/` or another project-owned path before embedding it. Do not wire website content directly to `Downloads`, absolute local filesystem paths, or other off-repo locations.

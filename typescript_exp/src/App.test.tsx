@@ -9,6 +9,10 @@ vi.mock('./pages/HomePage', () => ({
   default: () => <div>Home Page</div>
 }));
 
+vi.mock('./pages/UpcomingPage', () => ({
+  default: () => <div>Upcoming Page</div>
+}));
+
 vi.mock('./pages/AboutPage', () => ({
   default: () => <div>About Page</div>
 }));
@@ -77,6 +81,16 @@ vi.mock('./utils/compatibility', () => ({
 }));
 
 describe('App routes', () => {
+  it('renders the hidden upcoming-only page at /up', () => {
+    render(
+      <MemoryRouter initialEntries={['/up']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Upcoming Page')).toBeInTheDocument();
+  });
+
   it('renders the vending demo page as an embedded video only view', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/vending-demo']}>

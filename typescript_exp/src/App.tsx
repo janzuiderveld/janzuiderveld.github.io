@@ -6,6 +6,7 @@ import './App.css'
 // Import page components from pages directory
 import CameraPage from './pages/CameraPage';
 import HomePage from './pages/HomePage'; // Make sure this points to the correct file
+import UpcomingPage from './pages/UpcomingPage';
 import ConstructionPage from './pages/ConstructionPage';
 import CoffeeMachinePage from './pages/CoffeeMachinePage';
 import MicrowavePage from './pages/MicrowavePage';
@@ -48,6 +49,7 @@ function App() {
       <Routes>
         {/* Home page route */}
         <Route path="/" element={<HomePage compatibilityOverlayActive={showCompatibilityOverlay} />} />
+        <Route path="/up" element={<UpcomingPage />} />
         <Route path="/about" element={<AboutPage />} />
         
         {/* Camera page route */}
