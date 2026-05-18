@@ -94,6 +94,16 @@ describe('VendingMachineOrganoidPage', () => {
     });
   });
 
+  it('includes the collaborator and support credit in the page text', () => {
+    render(<VendingMachineOrganoidPage />);
+
+    const lastCall = projectPageSpy.mock.calls.at(-1)?.[0] as {
+      text?: string;
+    };
+
+    expect(lastCall.text).toContain('Developed in collaboration with Xinyi Zhang, supported by Finalspark.');
+  });
+
   it('centers the photo-mode media on narrow viewports without changing the saved hero alignment', () => {
     render(<VendingMachineOrganoidPage />);
 
