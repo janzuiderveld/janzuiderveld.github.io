@@ -140,6 +140,7 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
   const introRippleAttemptsRef = useRef(0);
   const introRippleScheduledRef = useRef(false);
   const hasBootstrappedContentRef = useRef(false);
+  const layoutCorrectionAppliedRef = useRef(false);
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(FALLBACK_EXHIBITIONS);
 
   // Always use the stacked (narrow) layout.
@@ -152,8 +153,15 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
     }
   }, [isNarrow]);
 
+  useEffect(() => {
+    layoutCorrectionAppliedRef.current = false;
+  }, [windowWidth, windowHeight, exhibitions]);
+
   const handleLayoutChange = useCallback((layout: AsciiLayoutInfo) => {
     if (!isNarrow) {
+      return;
+    }
+    if (layoutCorrectionAppliedRef.current) {
       return;
     }
 
@@ -173,6 +181,7 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
     const nextScrollRows = Math.max(0, baseUpcomingRow - targetRow);
     const nextOffset = nextScrollRows * charHeight;
 
+    layoutCorrectionAppliedRef.current = true;
     setInitialScrollOffset(prev => (prev === nextOffset ? prev : nextOffset));
     setNarrowShiftRows(prev => (prev === nextShiftRows ? prev : nextShiftRows));
   }, [isNarrow, narrowShiftRows]);
@@ -373,12 +382,18 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
           // }
         ];
 
-        // Small delay to ensure proper content height calculation on Safari
-        generationTimeout = window.setTimeout(() => {
+        const applyTextItems = () => {
           setTextContent(textItems);
           hasBootstrappedContentRef.current = true;
           setIsLoading(false);
-        }, hasBootstrappedContentRef.current ? 0 : 150); // Keep the initial white load but avoid re-entering it during layout corrections
+        };
+
+        if (hasBootstrappedContentRef.current) {
+          applyTextItems();
+        } else {
+          // Keep the initial white load while avoiding delayed writes for later layout corrections.
+          generationTimeout = window.setTimeout(applyTextItems, 150);
+        }
 
       } catch (error) {
         console.error("Error generating text content:", error);

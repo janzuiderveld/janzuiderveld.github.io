@@ -4,7 +4,7 @@ import { StrictMode } from 'react';
 import { act } from 'react';
 import ReactDOM from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AsciiArtGenerator from './AsciiArtGenerator';
+import AsciiArtGenerator, { resolveMeasuredSize } from './AsciiArtGenerator';
 
 type MockCursor = {
   grid: { x: number; y: number };
@@ -238,5 +238,12 @@ describe('AsciiArtGenerator white-in coordination', () => {
 
     expect(onAsciiClickStart).toHaveBeenCalledTimes(1);
     expect(startWhiteoutSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves size object identity when measured dimensions do not change', () => {
+    const previous = { width: 1024, height: 768 };
+
+    expect(resolveMeasuredSize(previous, 1024, 768)).toBe(previous);
+    expect(resolveMeasuredSize(previous, 1025, 768)).toEqual({ width: 1025, height: 768 });
   });
 });

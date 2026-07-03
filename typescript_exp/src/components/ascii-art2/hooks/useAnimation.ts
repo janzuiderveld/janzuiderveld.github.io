@@ -16,10 +16,375 @@ type CharacterCalculator = (
   rows: number,
   aspect: number,
   time: number,
+  scrollY: number,
   precomputed: CharacterPrecomputation | null,
   frameSeed: number,
   frameNow: number
 ) => string;
+
+type VisibleTextCell = {
+  x: number;
+  y: number;
+  char: string;
+};
+
+const HTML_ESCAPE_PATTERN = /[&<>]/g;
+const HTML_ESCAPE_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;'
+};
+
+const escapeHtmlText = (value: string) => (
+  value.replace(HTML_ESCAPE_PATTERN, char => HTML_ESCAPE_MAP[char])
+);
+
+const escapeHtmlCharacter = (value: string) => {
+  if (value === '&') return '&amp;';
+  if (value === '<') return '&lt;';
+  if (value === '>') return '&gt;';
+  return value;
+};
+
+const stringifyFrameCell = (value: unknown) => String(value);
+
+const stringifyFrameCells = (row: unknown[], start: number = 0, end: number = row.length) => {
+  let value = '';
+  for (let index = start; index < end; index++) {
+    value += stringifyFrameCell(row[index]);
+  }
+  return value;
+};
+
+type FrameDomTextSegment = {
+  type: 'text';
+  node: Text;
+  row: number;
+  start: number;
+  end: number;
+  suffix: string;
+};
+
+type FrameDomStyledSegment = {
+  type: 'styled';
+  node: Node;
+  row: number;
+  col: number;
+};
+
+type FrameDomFullTextSegment = {
+  type: 'fullText';
+  node: Text;
+};
+
+type FrameDomSegment = FrameDomTextSegment | FrameDomStyledSegment | FrameDomFullTextSegment;
+
+export type FrameDomCache = {
+  signature: string;
+  rows: number;
+  cols: number;
+  hasStyles: boolean;
+  segments: FrameDomSegment[];
+};
+
+export type FrameDomCacheRef = {
+  current: FrameDomCache | null;
+};
+
+const frameDomElementCache = new WeakMap<HTMLPreElement, FrameDomCache>();
+const frameWriterTokenByElement = new WeakMap<HTMLPreElement, number>();
+let nextFrameWriterToken = 0;
+
+const rowsToPlainText = (rowBuffers: string[][], rows: number) => {
+  const lines = new Array(rows);
+  for (let y = 0; y < rows; y++) {
+    lines[y] = stringifyFrameCells(rowBuffers[y]);
+  }
+  return lines.join('\n');
+};
+
+const getVisibleTextCell = (
+  textPositionCache: TextPositionCacheResult,
+  x: number,
+  y: number,
+  scrolledY: number
+) => {
+  const { grid, gridCols, offsetY } = textPositionCache;
+  const fixedY = y - offsetY;
+  const fixedIndex = fixedY * gridCols + x;
+  const fixedCell = x >= 0 &&
+    x < gridCols &&
+    fixedY >= 0 &&
+    fixedIndex >= 0 &&
+    fixedIndex < grid.length
+      ? grid[fixedIndex]
+      : null;
+
+  if (fixedCell?.fixed) {
+    return fixedCell;
+  }
+
+  const scrolledGridY = y + scrolledY - offsetY;
+  const scrolledIndex = scrolledGridY * gridCols + x;
+  const scrolledCell = x >= 0 &&
+    x < gridCols &&
+    scrolledGridY >= 0 &&
+    scrolledIndex >= 0 &&
+    scrolledIndex < grid.length
+      ? grid[scrolledIndex]
+      : null;
+
+  return scrolledCell && !scrolledCell.fixed ? scrolledCell : null;
+};
+
+export const shouldCalculateExactFrameCell = (
+  textPositionCache: TextPositionCacheResult,
+  styleMap: Map<number, string>,
+  cols: number,
+  x: number,
+  y: number,
+  scrolledY: number,
+  sourceRequiresExact: boolean = false
+) => (
+  sourceRequiresExact ||
+  styleMap.has(y * cols + x) ||
+  Boolean(getVisibleTextCell(textPositionCache, x, y, scrolledY))
+);
+
+export const renderRowsToHtml = (
+  rowBuffers: string[][],
+  rows: number,
+  cols: number,
+  styleMap: Map<number, string>
+) => {
+  const hasStyles = styleMap.size > 0;
+  const lines = new Array(rows);
+
+  if (!hasStyles) {
+    for (let y = 0; y < rows; y++) {
+      lines[y] = escapeHtmlText(stringifyFrameCells(rowBuffers[y]));
+    }
+  } else {
+    for (let y = 0; y < rows; y++) {
+      const row = rowBuffers[y];
+      let line = '';
+      for (let x = 0; x < cols; x++) {
+        const mapKey = y * cols + x;
+        const styled = styleMap.get(mapKey);
+        const char = escapeHtmlCharacter(stringifyFrameCell(row[x]));
+        line += styled ? styled.replace('$', char) : char;
+      }
+      lines[y] = line;
+    }
+  }
+
+  return lines.join('\n');
+};
+
+const getFrameDomSignature = (
+  rows: number,
+  cols: number,
+  styleMap: Map<number, string>
+) => {
+  if (styleMap.size === 0) {
+    return `${rows}x${cols}|text`;
+  }
+
+  return `${rows}x${cols}|${Array.from(styleMap.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([key, template]) => `${key}:${template}`)
+    .join('|')}`;
+};
+
+const createStyledNode = (template: string, char: string): Node => {
+  const wrapper = document.createElement('template');
+  wrapper.innerHTML = template.replace('$', '');
+  const node = wrapper.content.firstChild;
+
+  if (!node) {
+    return document.createTextNode(char);
+  }
+
+  node.textContent = char;
+  return node;
+};
+
+const updateFrameDomSegments = (
+  rowBuffers: string[][],
+  rows: number,
+  cache: FrameDomCache
+) => {
+  for (const segment of cache.segments) {
+    if (segment.type === 'fullText') {
+      segment.node.nodeValue = rowsToPlainText(rowBuffers, rows);
+      continue;
+    }
+
+    if (segment.type === 'text') {
+      segment.node.nodeValue = `${stringifyFrameCells(
+        rowBuffers[segment.row],
+        segment.start,
+        segment.end
+      )}${segment.suffix}`;
+      continue;
+    }
+
+    segment.node.textContent = stringifyFrameCell(rowBuffers[segment.row][segment.col]);
+  }
+};
+
+const isFrameDomCacheAttached = (
+  element: HTMLPreElement,
+  cache: FrameDomCache
+) => (
+  cache.segments.every(segment => segment.node.parentNode === element)
+);
+
+const attachFrameDomCache = (
+  element: HTMLPreElement,
+  cache: FrameDomCache
+) => {
+  const fragment = document.createDocumentFragment();
+  for (const segment of cache.segments) {
+    fragment.appendChild(segment.node);
+  }
+  element.replaceChildren(fragment);
+};
+
+const styledFallbackStillMatchesFrame = (
+  rowBuffers: string[][],
+  cache: FrameDomCache
+) => (
+  cache.segments.every(segment => (
+    segment.type !== 'styled' ||
+    stringifyFrameCell(rowBuffers[segment.row]?.[segment.col]) === segment.node.textContent
+  ))
+);
+
+const buildFrameDomCache = (
+  element: HTMLPreElement,
+  rowBuffers: string[][],
+  rows: number,
+  cols: number,
+  styleMap: Map<number, string>,
+  signature: string
+): FrameDomCache => {
+  const fragment = document.createDocumentFragment();
+  const segments: FrameDomSegment[] = [];
+
+  if (styleMap.size === 0) {
+    const node = document.createTextNode(rowsToPlainText(rowBuffers, rows));
+    fragment.appendChild(node);
+    segments.push({ type: 'fullText', node });
+    element.replaceChildren(fragment);
+    return { signature, rows, cols, hasStyles: false, segments };
+  }
+
+  const stylesByRow = new Map<number, Array<{ col: number; template: string }>>();
+  Array.from(styleMap.entries())
+    .sort(([left], [right]) => left - right)
+    .forEach(([key, template]) => {
+      const row = Math.floor(key / cols);
+      const col = key % cols;
+      if (row < 0 || row >= rows || col < 0 || col >= cols) {
+        return;
+      }
+
+      const rowStyles = stylesByRow.get(row) ?? [];
+      rowStyles.push({ col, template });
+      stylesByRow.set(row, rowStyles);
+    });
+
+  const appendTextSegment = (row: number, start: number, end: number, suffix: string) => {
+    if (start === end && !suffix) {
+      return;
+    }
+
+    const node = document.createTextNode(`${stringifyFrameCells(rowBuffers[row], start, end)}${suffix}`);
+    fragment.appendChild(node);
+    segments.push({
+      type: 'text',
+      node,
+      row,
+      start,
+      end,
+      suffix
+    });
+  };
+
+  for (let row = 0; row < rows; row++) {
+    const rowStyles = stylesByRow.get(row) ?? [];
+    let cursor = 0;
+
+    for (const { col, template } of rowStyles) {
+      appendTextSegment(row, cursor, col, '');
+
+      const node = createStyledNode(template, stringifyFrameCell(rowBuffers[row][col]));
+      fragment.appendChild(node);
+      segments.push({
+        type: 'styled',
+        node,
+        row,
+        col
+      });
+
+      cursor = col + 1;
+    }
+
+    appendTextSegment(row, cursor, cols, row === rows - 1 ? '' : '\n');
+  }
+
+  element.replaceChildren(fragment);
+  return { signature, rows, cols, hasStyles: true, segments };
+};
+
+export const renderRowsToPreElement = (
+  element: HTMLPreElement,
+  rowBuffers: string[][],
+  rows: number,
+  cols: number,
+  styleMap: Map<number, string>,
+  cacheRef: FrameDomCacheRef
+) => {
+  const signature = getFrameDomSignature(rows, cols, styleMap);
+  const elementCache = frameDomElementCache.get(element) ?? null;
+  const current = cacheRef.current ?? elementCache;
+  const styledFallback = styleMap.size === 0 &&
+    elementCache?.hasStyles &&
+    elementCache.rows === rows &&
+    elementCache.cols === cols
+      ? elementCache
+      : styleMap.size === 0 &&
+        current?.hasStyles &&
+        current.rows === rows &&
+        current.cols === cols
+          ? current
+          : null;
+
+  if (styledFallback && styledFallbackStillMatchesFrame(rowBuffers, styledFallback)) {
+    updateFrameDomSegments(rowBuffers, rows, styledFallback);
+    if (!isFrameDomCacheAttached(element, styledFallback)) {
+      attachFrameDomCache(element, styledFallback);
+    }
+    cacheRef.current = styledFallback;
+    frameDomElementCache.set(element, styledFallback);
+    return;
+  }
+
+  if (!current || current.signature !== signature) {
+    const nextCache = buildFrameDomCache(element, rowBuffers, rows, cols, styleMap, signature);
+    cacheRef.current = nextCache;
+    frameDomElementCache.set(element, nextCache);
+    return;
+  }
+
+  updateFrameDomSegments(rowBuffers, rows, current);
+  if (!isFrameDomCacheAttached(element, current)) {
+    attachFrameDomCache(element, current);
+  }
+  cacheRef.current = current;
+  frameDomElementCache.set(element, current);
+};
 
 export const useAnimation = (
   textRef: React.RefObject<HTMLPreElement>,
@@ -31,7 +396,8 @@ export const useAnimation = (
   scrollVelocity: React.MutableRefObject<number>,
   linkPositionsRef: React.MutableRefObject<LinkPosition[]>,
   isPaused: boolean = false,
-  setLinkClicked?: React.Dispatch<React.SetStateAction<string | null>>
+  setLinkClicked?: React.Dispatch<React.SetStateAction<string | null>>,
+  shouldOverlayTextCharacters: () => boolean = () => true
 ) => {
   const lastFrameTimeRef = useRef<number>(0);
   const frameSkipRef = useRef(0);
@@ -41,6 +407,7 @@ export const useAnimation = (
   const SAFARI_FRAME_INTERVAL = 1000 / 60;
   const lastActiveRowsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const lastActiveColsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const frameDomCacheRef = useRef<FrameDomCache | null>(null);
 
   useEffect(() => {
     const element = textRef.current;
@@ -68,6 +435,13 @@ export const useAnimation = (
         }
     `;
     document.head.appendChild(style);
+    nextFrameWriterToken += 1;
+    const writerToken = nextFrameWriterToken;
+    frameWriterTokenByElement.set(element, writerToken);
+
+    const isCurrentWriter = () => (
+      animationActive && frameWriterTokenByElement.get(element) === writerToken
+    );
 
     const handleLinkClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -168,9 +542,21 @@ export const useAnimation = (
       return precomputed;
     };
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
+    let animationActive = true;
+    const scheduleNextFrame = () => {
+      if (!isCurrentWriter()) {
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
 
     const animate = (timestamp: number) => {
+      if (!isCurrentWriter()) {
+        return;
+      }
+
       if (IS_SAFARI) {
         if (safariLastTickRef.current === 0) {
           safariLastTickRef.current = timestamp;
@@ -184,7 +570,7 @@ export const useAnimation = (
         );
 
         if (safariFrameAccumulatorRef.current < SAFARI_FRAME_INTERVAL) {
-          animationFrameId = requestAnimationFrame(animate);
+          scheduleNextFrame();
           return;
         }
 
@@ -197,7 +583,7 @@ export const useAnimation = (
         if (isScrolling.current && !IS_SAFARI) {
           frameSkipRef.current = (frameSkipRef.current + 1) % 3;
           if (frameSkipRef.current === 2) {
-            animationFrameId = requestAnimationFrame(animate);
+            scheduleNextFrame();
             return;
           }
         } else {
@@ -207,7 +593,7 @@ export const useAnimation = (
         // Skip heavy work when the tab is hidden, but keep timestamps fresh
         if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
           lastFrameTimeRef.current = timestamp;
-          animationFrameId = requestAnimationFrame(animate);
+          scheduleNextFrame();
           return;
         }
 
@@ -234,7 +620,8 @@ export const useAnimation = (
 
         styleMap.clear();
 
-        const scrolledY = Math.floor(scrollOffsetRef.current / CHAR_HEIGHT);
+        const scrollOffsetSnapshot = scrollOffsetRef.current;
+        const scrolledY = Math.floor(scrollOffsetSnapshot / CHAR_HEIGHT);
 
         let activeRowStart = 0;
         let activeRowEnd = rows;
@@ -350,8 +737,9 @@ export const useAnimation = (
         const precomputed = ensurePrecomputed();
         const frameSeed = timestamp | 0;
         const frameNow = Date.now();
+        const visibleTextCells: VisibleTextCell[] = [];
 
-        for (const link of linkPositionsRef.current) {
+        for (const link of textPositionCache.links) {
           const isFixed = textPositionCache.bounds[link.textKey]?.fixed || false;
           const linkY = isFixed ? link.y : link.y - scrolledY;
           if (linkY < 0 || linkY >= rows) {
@@ -392,7 +780,13 @@ export const useAnimation = (
             }
 
             const mapKey = y * cols + x;
-            if (styleMap.has(mapKey) || !pos.char || pos.char === ' ') {
+            if (!pos.char || pos.char === ' ') {
+              continue;
+            }
+
+            visibleTextCells.push({ x, y, char: pos.char });
+
+            if (styleMap.has(mapKey)) {
               continue;
             }
 
@@ -430,6 +824,14 @@ export const useAnimation = (
 
           for (let y = chunkRowStart; y < chunkRowEnd; y++) {
             for (let x = activeColStart; x < activeColEnd; x += skipFactor) {
+              const sourceRequiresExact = shouldCalculateExactFrameCell(
+                textPositionCache,
+                styleMap,
+                cols,
+                x,
+                y,
+                scrolledY
+              );
               const char = calculateCharacter(
                 x,
                 y,
@@ -437,6 +839,7 @@ export const useAnimation = (
                 rows,
                 aspectRatio,
                 timestamp,
+                scrollOffsetSnapshot,
                 precomputed,
                 frameSeed,
                 frameNow
@@ -444,43 +847,57 @@ export const useAnimation = (
               rowBuffers[y][x] = char;
 
               for (let i = 1; i < skipFactor && x + i < cols; i++) {
-                rowBuffers[y][x + i] = char;
+                const targetX = x + i;
+                if (shouldCalculateExactFrameCell(
+                  textPositionCache,
+                  styleMap,
+                  cols,
+                  targetX,
+                  y,
+                  scrolledY,
+                  sourceRequiresExact
+                )) {
+                  rowBuffers[y][targetX] = calculateCharacter(
+                    targetX,
+                    y,
+                    cols,
+                    rows,
+                    aspectRatio,
+                    timestamp,
+                    scrollOffsetSnapshot,
+                    precomputed,
+                    frameSeed,
+                    frameNow
+                  );
+                } else {
+                  rowBuffers[y][targetX] = char;
+                }
               }
             }
           }
         }
 
-        const hasStyles = styleMap.size > 0;
-        const lines = new Array(rows);
-
-        if (!hasStyles) {
-          for (let y = 0; y < rows; y++) {
-            lines[y] = rowBuffers[y].join('');
-          }
-        } else {
-          for (let y = 0; y < rows; y++) {
-            const row = rowBuffers[y];
-            let line = '';
-            for (let x = 0; x < cols; x++) {
-              const mapKey = y * cols + x;
-              const styled = styleMap.get(mapKey);
-              const char = row[x];
-              line += styled ? styled.replace('$', char) : char;
-            }
-            lines[y] = line;
+        if (shouldOverlayTextCharacters()) {
+          for (const cell of visibleTextCells) {
+            rowBuffers[cell.y][cell.x] = cell.char;
           }
         }
 
-        element.innerHTML = lines.join('\n');
+        renderRowsToPreElement(element, rowBuffers, rows, cols, styleMap, frameDomCacheRef);
       }
 
-      animationFrameId = requestAnimationFrame(animate);
+      scheduleNextFrame();
     };
 
-    animationFrameId = requestAnimationFrame(animate);
+    scheduleNextFrame();
 
     return () => {
+      animationActive = false;
       cancelAnimationFrame(animationFrameId);
+      if (frameWriterTokenByElement.get(element) === writerToken) {
+        frameWriterTokenByElement.delete(element);
+      }
+      frameDomCacheRef.current = null;
       safariLastTickRef.current = 0;
       safariFrameAccumulatorRef.current = 0;
       element.removeEventListener('click', handleLinkClick);
@@ -497,7 +914,9 @@ export const useAnimation = (
     linkPositionsRef,
     isPaused,
     setLinkClicked,
-    textPositionCache.bounds
+    shouldOverlayTextCharacters,
+    textPositionCache.bounds,
+    textPositionCache.links
   ]);
 
   return undefined;

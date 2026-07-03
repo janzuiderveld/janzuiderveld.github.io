@@ -60,6 +60,12 @@ const getAutoWhiteInStateForPage = (pageUrl: string) => {
   });
 };
 
+export const resolveMeasuredSize = (previous: Size, width: number, height: number): Size => (
+  previous.width === width && previous.height === height
+    ? previous
+    : { height, width }
+);
+
 const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({ 
   textContent, 
   maxScrollHeight,
@@ -703,12 +709,13 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     rows: number,
     aspect: number,
     time: number,
+    scrollY: number,
     precomputed: CharacterPrecomputation | null,
     frameSeed: number,
     frameNow: number
-    ) => {
-      return calculateCharacter(
-        x,
+  ) => {
+    return calculateCharacter(
+      x,
       y,
       cols,
       rows,
@@ -717,15 +724,23 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       textPositionCache,
       blobGridCache.current,
       cursorRef,
-      scrollOffsetRef.current,
+      scrollY,
       fastSin,
-        fastCos,
-        precomputed,
-        frameSeed,
-        frameNow,
-        suppressTextCharacters
-      );
+      fastCos,
+      precomputed,
+      frameSeed,
+      frameNow,
+      suppressTextCharacters
+    );
   }, [blobGridCache, cursorRef, fastCos, fastSin, suppressTextCharacters, textPositionCache]);
+
+  const shouldOverlayTextCharacters = useCallback(() => {
+    const cursorState = cursorRef.current;
+    return !suppressTextCharacters &&
+      !cursorState.whiteOverlay?.active &&
+      !cursorState.whiteIn?.active &&
+      !cursorState.whiteout?.active;
+  }, [cursorRef, suppressTextCharacters]);
 
   // Animation
   useAnimation(
@@ -737,7 +752,9 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     isScrolling,
     scrollVelocity,
     linkPositionsRef,
-    pauseAnimation
+    pauseAnimation,
+    undefined,
+    shouldOverlayTextCharacters
   );
 
   // Resize handling
@@ -747,7 +764,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       const width = window.visualViewport?.width ?? window.innerWidth;
       const height = window.visualViewport?.height ?? window.innerHeight;
       updateCharMetricsForViewport(width);
-      setSize({ height, width });
+      setSize(previous => resolveMeasuredSize(previous, width, height));
     };
 
     handleResize(); // Initial size
