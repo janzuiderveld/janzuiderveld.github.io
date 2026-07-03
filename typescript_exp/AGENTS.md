@@ -135,6 +135,8 @@
 - `npm run preview` serves the built app on port `8000`.
 - `npm run render:project-pdf -- <slug>` opens `#/slug?pdf=1` in headless Chrome, captures a single frozen page frame with the live ASCII background plus title/text, cleans the main image down to its detected subject silhouette, erases a padded blob from the captured ASCII field behind that silhouette on character-cell boundaries, and prints the one-page PDF composition. Re-render the PDF to PNG with `pdftoppm -png` when checking final output.
 - `vite.config.ts` uses `base: '/'` because deployment copies the build output into the parent repository root.
+- GitHub Pages should serve the `gh-pages` branch at `/`. The `Build and Deploy` workflow builds `typescript_exp/dist` and publishes that compact output to `gh-pages` with `clean: true`; do not point Pages back at `main /`, because the tracked source repo is too large for the Pages artifact and the legacy Pages deployment can fail above the 1 GB limit.
+- If `warana.xyz` still serves an old bundle after a push, check `gh run list`, `gh api repos/janzuiderveld/janzuiderveld.github.io/pages --jq '.source'`, and `gh api repos/janzuiderveld/janzuiderveld.github.io/pages/builds/latest`. If Pages is already pointed at `gh-pages`, trigger a rebuild with `gh api --method POST repos/janzuiderveld/janzuiderveld.github.io/pages/builds` and verify the public `index.html` references the current `assets/index-*.js`.
 - `deploy.sh` publishes from the parent repo, not from `typescript_exp` alone. It:
   1. builds inside `typescript_exp`
   2. changes to the parent repo
