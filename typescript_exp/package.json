@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "sync:presentations": "node scripts/sync-upcoming-presentations.mjs",
     "preview": "vite preview",
     "profile:animation": "node scripts/profile-animation.mjs",
     "render:project-pdf": "node scripts/render-project-pdf.mjs",

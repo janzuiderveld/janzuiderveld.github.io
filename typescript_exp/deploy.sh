@@ -8,6 +8,10 @@ echo "Starting deployment process..."
 # Navigate to the typescript_exp directory
 cd "$(dirname "$0")"
 
+# Add missing upcoming / ongoing entries to the full presentation log
+echo "Syncing upcoming presentations..."
+npm run sync:presentations
+
 # Build the project
 echo "Building the project..."
 npm run build
@@ -33,4 +37,4 @@ git commit -m "auto-commit"
 echo "Pushing changes to GitHub..."
 git push
 
-echo "Deployment completed successfully!" 
+echo "Deployment completed successfully!"

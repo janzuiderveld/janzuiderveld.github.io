@@ -131,6 +131,7 @@
 ## Build, Preview, And Deployment
 - `npm run dev` starts Vite on `http://localhost:3000/`.
 - `npm run build` runs `tsc -b && vite build`.
+- `npm run sync:presentations` adds missing rows from `public/upcoming_exhibitions.csv` to the matching year groups in `public/all_presentations.csv`. The sync is idempotent and `deploy.sh` runs it before every build; keep the upcoming location format as `Venue (City, country code)` so venue and location columns are derived correctly. Date ranges normally supply the presentation year; permanent or otherwise undated entries must set the optional `presentation_year` CSV column to a four-digit year.
 - `tsconfig.app.json` should exclude `src/**/*.test.*` and `src/**/*.spec.*` so colocated Vitest files do not get compiled as production app source during `npm run build`.
 - `npm run preview` serves the built app on port `8000`.
 - `npm run render:project-pdf -- <slug>` opens `#/slug?pdf=1` in headless Chrome, captures a single frozen page frame with the live ASCII background plus title/text, cleans the main image down to its detected subject silhouette, erases a padded blob from the captured ASCII field behind that silhouette on character-cell boundaries, and prints the one-page PDF composition. Re-render the PDF to PNG with `pdftoppm -png` when checking final output.

@@ -68,7 +68,7 @@ describe('HomePage', () => {
     ]);
   });
 
-  it('includes the Machine Consciousness conference as plain text in the upcoming section fallback', async () => {
+  it('keeps the upcoming fallback content synchronized with the public event list', async () => {
     render(<HomePage />);
 
     await act(async () => {
@@ -85,10 +85,15 @@ describe('HomePage', () => {
 
     const upcomingText = (lastCall.textContent ?? []).find(item => item.name === 'upcoming')?.text;
 
-    expect(upcomingText).toContain('==The Founding Assembly for Machine Consciousness Research==');
-    expect(upcomingText).not.toContain('machine-consciousness.ai');
-    expect(upcomingText).toContain('//Lighthaven (Berkeley, CA, US)//');
-    expect(upcomingText).toContain('29/05/2026 > 31/05/2026');
+    expect(upcomingText).not.toContain('The Founding Assembly for Machine Consciousness Research');
+    expect(upcomingText).not.toContain('Lighthaven (Berkeley, CA, US)');
+    expect(upcomingText).not.toContain('Dutch, More or Less');
+    expect(upcomingText).toContain('==Semi-permanent installation==');
+    expect(upcomingText).toContain('//California Institute for Machine Consciousness (San Francisco, US)//');
+    expect(upcomingText).toContain('1/6/2026 > ?');
+    expect(upcomingText).toContain('==Hello Worlds!==');
+    expect(upcomingText).toContain('//Ars Electronica Center (Linz, AT)//');
+    expect(upcomingText).toContain('9/9/2026 > ?');
   });
 
   it('applies the automatic home layout correction once per viewport/content generation', async () => {

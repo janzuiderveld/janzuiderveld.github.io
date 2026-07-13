@@ -13,12 +13,6 @@ export const UPCOMING_EXHIBITIONS_PATH = '/upcoming_exhibitions.csv';
 export const FALLBACK_EXHIBITIONS: Exhibition[] = [
   {
     title: 'Coffee Machine',
-    subtitle: 'Dutch, More or Less. Contemporary Architecture, Design and Digital Culture',
-    location: 'Het Nieuwe Instituut (Rotterdam, NL)',
-    dateRange: '01/06/2024 > 30/05/2026',
-  },
-  {
-    title: 'Coffee Machine',
     location: 'Deutsches Museum Nürnberg (Nürnberg, DE)',
     dateRange: '29/04/2025 > 29/06/2025',
   },
@@ -53,9 +47,15 @@ export const FALLBACK_EXHIBITIONS: Exhibition[] = [
   },
   {
     title: '-',
-    subtitle: 'The Founding Assembly for Machine Consciousness Research',
-    location: 'Lighthaven (Berkeley, CA, US)',
-    dateRange: '29/05/2026 > 31/05/2026',
+    subtitle: 'Semi-permanent installation',
+    location: 'California Institute for Machine Consciousness (San Francisco, US)',
+    dateRange: '1/6/2026 > ?',
+  },
+  {
+    title: '-',
+    subtitle: 'Hello Worlds!',
+    location: 'Ars Electronica Center (Linz, AT)',
+    dateRange: '9/9/2026 > ?',
   },
 ];
 
