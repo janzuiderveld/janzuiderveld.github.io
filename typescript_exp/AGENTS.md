@@ -138,6 +138,7 @@
 - `vite.config.ts` uses `base: '/'` because deployment copies the build output into the parent repository root.
 - GitHub Pages should serve the `gh-pages` branch at `/`. The `Build and Deploy` workflow builds `typescript_exp/dist` and publishes that compact output to `gh-pages` with `clean: true`; do not point Pages back at `main /`, because the tracked source repo is too large for the Pages artifact and the legacy Pages deployment can fail above the 1 GB limit.
 - If `warana.xyz` still serves an old bundle after a push, check `gh run list`, `gh api repos/janzuiderveld/janzuiderveld.github.io/pages --jq '.source'`, and `gh api repos/janzuiderveld/janzuiderveld.github.io/pages/builds/latest`. If Pages is already pointed at `gh-pages`, trigger a rebuild with `gh api --method POST repos/janzuiderveld/janzuiderveld.github.io/pages/builds` and verify the public `index.html` references the current `assets/index-*.js`.
+- GitHub Pages currently serves `upcoming_exhibitions.csv` with `cache-control: max-age=14400`. A browser that loaded the page before a deployment can therefore render the old event list for up to four hours even when the new CSV and bundle are live. Verify the deployed CSV with a cache-busting query and use a clean browser profile (or clear the site's cached data) for immediate end-to-end checks.
 - `deploy.sh` publishes from the parent repo, not from `typescript_exp` alone. It:
   1. builds inside `typescript_exp`
   2. changes to the parent repo
