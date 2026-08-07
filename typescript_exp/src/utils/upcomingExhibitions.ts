@@ -57,6 +57,12 @@ export const FALLBACK_EXHIBITIONS: Exhibition[] = [
     location: 'Ars Electronica Center (Linz, AT)',
     dateRange: '9/9/2026 > ?',
   },
+  {
+    title: 'Coffee Machine',
+    subtitle: 'KIKK Festival 2026',
+    location: 'Le Pavillon (Namur, BE)',
+    dateRange: '22/10/2026 > 25/10/2026',
+  },
 ];
 
 export const mapExhibition = (record: CsvRecord): Exhibition | null => {

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { FALLBACK_EXHIBITIONS } from '../src/utils/upcomingExhibitions';
 import {
   parseCsvRecords,
   syncUpcomingIntoPresentations,
@@ -143,6 +144,18 @@ describe('syncUpcomingIntoPresentations', () => {
       subtitle: 'Hello Worlds!',
       location: 'Ars Electronica Center (Linz, AT)',
       date_range: '9/9/2026 > ?',
+    }));
+    expect(upcomingRecords).toContainEqual(expect.objectContaining({
+      title: 'Coffee Machine',
+      subtitle: 'KIKK Festival 2026',
+      location: 'Le Pavillon (Namur, BE)',
+      date_range: '22/10/2026 > 25/10/2026',
+    }));
+    expect(FALLBACK_EXHIBITIONS).toContainEqual(expect.objectContaining({
+      title: 'Coffee Machine',
+      subtitle: 'KIKK Festival 2026',
+      location: 'Le Pavillon (Namur, BE)',
+      dateRange: '22/10/2026 > 25/10/2026',
     }));
     expect(presentationRecords).toContainEqual(expect.objectContaining({
       year: '2026',
