@@ -60,7 +60,7 @@ export const FALLBACK_EXHIBITIONS: Exhibition[] = [
   {
     title: 'Coffee Machine',
     subtitle: 'KIKK Festival 2026',
-    location: 'Le Pavillon (Namur, BE)',
+    location: 'Le Delta (Namur, BE)',
     dateRange: '22/10/2026 > 25/10/2026',
   },
 ];
