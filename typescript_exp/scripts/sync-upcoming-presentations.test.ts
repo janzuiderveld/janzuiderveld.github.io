@@ -146,6 +146,16 @@ describe('syncUpcomingIntoPresentations', () => {
       date_range: '9/9/2026 > ?',
     }));
     expect(upcomingRecords).toContainEqual(expect.objectContaining({
+      subtitle: 'Conflux Festival 2026',
+      location: 'Keilepand (Rotterdam, NL)',
+      date_range: '26/09/2026 > 27/09/2026',
+    }));
+    expect(FALLBACK_EXHIBITIONS).toContainEqual(expect.objectContaining({
+      subtitle: 'Conflux Festival 2026',
+      location: 'Keilepand (Rotterdam, NL)',
+      dateRange: '26/09/2026 > 27/09/2026',
+    }));
+    expect(upcomingRecords).toContainEqual(expect.objectContaining({
       title: 'Coffee Machine',
       subtitle: 'KIKK Festival 2026',
       location: 'Le Delta (Namur, BE)',

@@ -58,6 +58,12 @@ export const FALLBACK_EXHIBITIONS: Exhibition[] = [
     dateRange: '9/9/2026 > ?',
   },
   {
+    title: '-',
+    subtitle: 'Conflux Festival 2026',
+    location: 'Keilepand (Rotterdam, NL)',
+    dateRange: '26/09/2026 > 27/09/2026',
+  },
+  {
     title: 'Coffee Machine',
     subtitle: 'KIKK Festival 2026',
     location: 'Le Delta (Namur, BE)',

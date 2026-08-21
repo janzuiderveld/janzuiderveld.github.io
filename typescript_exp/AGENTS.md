@@ -21,6 +21,7 @@
 
 ## Local Serving And Verification
 - The app is served locally at `http://localhost:3000/`. Do not assume Vite defaults to `5173`; `vite.config.ts` pins the dev server to `3000`.
+- On Node 25 in the current Codex environment, Node exposes a broken built-in `localStorage` unless `--localstorage-file` receives a valid path. A plain full `npm test` can therefore fail every `PhotoModeScene` test with `window.localStorage.getItem is not a function`. Run the full suite with a fresh explicit file, for example `task_storage_path=$(mktemp -t codex-node-localstorage.XXXXXX) && NODE_OPTIONS="--localstorage-file=$task_storage_path" npm test`.
 - Routing uses `HashRouter`, so test routes as `http://localhost:3000/#/…`.
 - Always verify changes with Chrome DevTools MCP.
 - For repeatable animation/performance work, there is now a local harness at `npm run profile:animation`. It uses `puppeteer-core` against the system Chrome binary and writes screenshots to `tmp/animation-profiles/`.
