@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import './App.css'
 
 // Import page components from pages directory
+import BiodieseLLMPage from './pages/BiodieseLLMPage';
 import CameraPage from './pages/CameraPage';
 import HomePage from './pages/HomePage'; // Make sure this points to the correct file
 import UpcomingPage from './pages/UpcomingPage';
@@ -55,6 +56,7 @@ function App() {
         {/* Camera page route */}
         <Route path="/camera" element={<CameraPage />} />
 
+        <Route path="/biodiesellm" element={<BiodieseLLMPage />} />
         <Route path="/coffee" element={<CoffeeMachinePage />} />
         <Route path="/microwave" element={<MicrowavePage />} />
         <Route path="/copy" element={<CopyMachinePage />} />

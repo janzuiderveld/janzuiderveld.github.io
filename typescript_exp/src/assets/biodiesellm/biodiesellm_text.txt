@@ -1,0 +1,9 @@
+B10d13$3L-LLM is a performative installation in which LLMs run on scrapped hardware powered by self-produced biodiesel. A diesel engine and dynamo generate its electricity, a small-scale refinery supplies the fuel, and a printer records the models’ output. Their conversation unfolds in a never-ending loop: a human selects earlier outputs to inspire new questions, which the models discuss. The resulting outputs become material for the next round.
+
+With dark humor, the work exposes AI’s hidden costs, from the fuel, machinery and human labour that sustain it to the erosion of our ability to think for ourselves as we increasingly rely on it.
+
+Initiated by Gökay Atabek, created in collaboration with Jan Zuiderveld and Ritsert Mans.
+
+Supported by the Creative Industries Fund NL through Grounding the Cloud.
+
+Photos: [[Tom Mesic]](https://photos.ars.electronica.art/picture.php?/15662), Ars Electronica 2026 / [[CC BY-NC-ND 4.0]](https://creativecommons.org/licenses/by-nc-nd/4.0/)

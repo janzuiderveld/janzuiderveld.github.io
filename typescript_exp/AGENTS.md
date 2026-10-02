@@ -23,7 +23,7 @@
 - The app is served locally at `http://localhost:3000/`. Do not assume Vite defaults to `5173`; `vite.config.ts` pins the dev server to `3000`.
 - On Node 25 in the current Codex environment, Node exposes a broken built-in `localStorage` unless `--localstorage-file` receives a valid path. A plain full `npm test` can therefore fail every `PhotoModeScene` test with `window.localStorage.getItem is not a function`. Run the full suite with a fresh explicit file, for example `task_storage_path=$(mktemp -t codex-node-localstorage.XXXXXX) && NODE_OPTIONS="--localstorage-file=$task_storage_path" npm test`.
 - Routing uses `HashRouter`, so test routes as `http://localhost:3000/#/…`.
-- Always verify changes with Chrome DevTools MCP.
+- Always verify changes with Chrome DevTools MCP. When using the bundled MCP SDK from a standalone verification script, current versions register roots with `client.setRequestHandler("roots/list", handler)` rather than a schema object; register workspace roots so screenshot writes are permitted.
 - For repeatable animation/performance work, there is now a local harness at `npm run profile:animation`. It uses `puppeteer-core` against the system Chrome binary and writes screenshots to `tmp/animation-profiles/`.
 - Safari-family automation helpers now exist:
   - `npm run safari:webkit` for Playwright WebKit
@@ -77,6 +77,7 @@
   - `#/up` (hidden route showing only the upcoming/ongoing blob)
   - `#/about`
   - `#/camera`
+  - `#/biodiesellm`
   - `#/coffee`
   - `#/microwave`
   - `#/copy`
@@ -94,6 +95,7 @@
 - `Touching Distance` and `Lasers` currently have direct route components and asset folders, but the homepage still links their labels to `#/construction` and their text files are placeholder copy. Treat them as incomplete public project pages unless the homepage/text has been updated.
 - `src/components/ascii-art2/*` is the active renderer, layout engine, link-overlay system, and animation stack. Prefer extending it instead of reviving code from `src/components/.ascii-art` or any `*.bak` file.
 - `src/components/ProjectPage.tsx` is the shared shell for most project pages. It handles the title, back link, `[[VISUALS]]` control, `?photo=1` media mode, and optional media blocks anchored around the hero art.
+- Supplemental image entry targets use `hero-video-image-<index>` (for example `hero-video-image-0`), while videos use `hero-video-<index>`. A nonexistent initial target can prevent photo mode from opening.
 - `ProjectPage` can now stack supplemental photo-mode media above or below the main hero anchor through `photoImages` and `photoVideos`. Supplemental media can size itself relative to the hero anchor or to the full page width, so use that instead of hard-coding standalone DOM media for project pages.
 - `ProjectPage` also supports `extraPhotoItems` plus `photoLayoutAugmenter` for pages that need custom photo-mode galleries while still using the shared route shell. Extend those hooks before rebuilding a page-local photo-mode implementation.
 - Treat saved photo alignment data as a stable artwork-to-ASCII contract. Do not tweak a page's main `align` offsets just to rebalance supplemental videos or galleries; solve that with supplemental bounds, scroll targets, or media sizing instead.
@@ -115,6 +117,7 @@
 - `src/components/photorealistic/PhotoModeScene.tsx` has an ASCII-side alignment mode for the main hero image: press `A` on the ASCII page, use arrows to move, `=` / `-` to scale, `[` / `]` and `,` / `.` to stretch, `S` to save locally, `Shift+S` to copy the JSON, and `R` / `Esc` to reset or exit.
 
 ## Content And Assets
+- BiodieseLLM has no homepage link for now and is served at `#/biodiesellm`. Its published Ars Electronica title is `B10d13$3L-LLM`; use `titleFontName="ascii"` because `blockAsciiDouble` drops digits and punctuation. Describe output through the printer. In the continuing question/output loop, a human selects previous outputs to inspire new questions that the little language models discuss; do not imply the human authors every question. Use “created in collaboration” in the website credit. The text asset contains the September 16, 2026 website revision, followed by the collaboration credit and the Creative Industries Fund NL / Grounding the Cloud funding acknowledgement. The original Ars Electronica wording and source URL are preserved in `src/assets/biodiesellm/sources.md`; do not label the revised site copy as verbatim festival text. Credits: Gökay Atabek, developed with Jan Zuiderveld and Ritsert Mans. The photo gallery uses Tom Mesic’s September 9, 2026 festival photographs; preserve the visible credits, source/license links and uncropped rendering. Photo provenance and library terms are in `src/assets/biodiesellm/sources.md`. The older prototype photo remains as an unused asset. BiodieseLLM’s ASCII hover uses a separately labeled AI-edited white-background image; `?photo=1` restores the documentary overview. Its 84-column raster-derived ASCII and hover contentInsets share the same crop, so keep them aligned when regenerating. Adaptation/publication rights are distinct from the originals’ licence; see sources.md.
 - Most project pages are built from a bundle under `src/assets/<project>/`:
   - `<project>_ascii.txt`
   - `<project>_text.txt`

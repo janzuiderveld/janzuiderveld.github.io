@@ -80,7 +80,18 @@ vi.mock('./utils/compatibility', () => ({
   markCompatibilityMessageSeen: vi.fn()
 }));
 
+vi.mock('./pages/BiodieseLLMPage', () => ({
+  default: () => <div>BiodieseLLM Page</div>
+}));
+
 describe('App routes', () => {
+  it('renders BiodieseLLM at its public route, including photo entry', () => {
+    const view = render(<MemoryRouter initialEntries={['/biodiesellm']}><App /></MemoryRouter>);
+    expect(screen.getByText('BiodieseLLM Page')).toBeInTheDocument();
+    view.unmount();
+    render(<MemoryRouter initialEntries={['/biodiesellm?photo=1']}><App /></MemoryRouter>);
+    expect(screen.getByText('BiodieseLLM Page')).toBeInTheDocument();
+  });
   it('renders the hidden upcoming-only page at /up', () => {
     render(
       <MemoryRouter initialEntries={['/up']}>
