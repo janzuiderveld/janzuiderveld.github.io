@@ -61,10 +61,6 @@ vi.mock('./pages/VendingMachineOrganoidPage', () => ({
   default: () => <div>Vending Machine Organoid Page</div>
 }));
 
-vi.mock('./pages/BiodieseLLMPage', () => ({
-  default: () => <div>B10d13$3LLM Page</div>
-}));
-
 vi.mock('./pages/PersonalAudioGuidePage', () => ({
   default: () => <div>Personal Audio Guide Page</div>
 }));
@@ -84,7 +80,18 @@ vi.mock('./utils/compatibility', () => ({
   markCompatibilityMessageSeen: vi.fn()
 }));
 
+vi.mock('./pages/BiodieseLLMPage', () => ({
+  default: () => <div>BiodieseLLM Page</div>
+}));
+
 describe('App routes', () => {
+  it('renders BiodieseLLM at its public route, including photo entry', () => {
+    const view = render(<MemoryRouter initialEntries={['/biodiesellm']}><App /></MemoryRouter>);
+    expect(screen.getByText('BiodieseLLM Page')).toBeInTheDocument();
+    view.unmount();
+    render(<MemoryRouter initialEntries={['/biodiesellm?photo=1']}><App /></MemoryRouter>);
+    expect(screen.getByText('BiodieseLLM Page')).toBeInTheDocument();
+  });
   it('renders the hidden upcoming-only page at /up', () => {
     render(
       <MemoryRouter initialEntries={['/up']}>
@@ -93,16 +100,6 @@ describe('App routes', () => {
     );
 
     expect(screen.getByText('Upcoming Page')).toBeInTheDocument();
-  });
-
-  it('renders the unlisted B10d13$3LLM draft page at /biodiesellm', () => {
-    render(
-      <MemoryRouter initialEntries={['/biodiesellm']}>
-        <App />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText('B10d13$3LLM Page')).toBeInTheDocument();
   });
 
   it('renders the vending demo page as an embedded video only view', () => {
