@@ -106,6 +106,32 @@ describe('PhotoModeScene resize centering', () => {
     window.location.hash = '#/';
   });
 
+  it('keeps the ASCII reveal on the rendered character rows after fractional scrolling', async () => {
+    window.location.hash = '#/vending';
+    render(<PhotoModeScene textContent={[]} photoItems={[{
+      id: 'vending-main', anchorName: 'hero', lowSrc: '/vending.png', highSrc: '/vending.png', alt: 'Vending'
+    }]} />);
+    const { charHeight } = getCurrentCharMetrics();
+    for (const fraction of [0.1, 0.5, 0.95]) {
+      await act(async () => {
+        asciiArtGeneratorSpy.mock.calls.at(-1)![0].onScrollOffsetChange((10 + fraction) * charHeight);
+      });
+      expect(photorealisticLayerSpy.mock.calls.at(-1)![0].scrollOffset).toBe(10 * charHeight);
+    }
+  });
+
+  it('preserves smooth pixel scrolling in full photo mode', async () => {
+    render(<PhotoModeScene textContent={[]} photoItems={[{
+      id: 'vending-main', anchorName: 'hero', lowSrc: '/vending.png', highSrc: '/vending.png', alt: 'Vending'
+    }]} autoEnterPhoto />);
+    await act(async () => { vi.runOnlyPendingTimers(); });
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    await act(async () => {
+      asciiArtGeneratorSpy.mock.calls.at(-1)![0].onScrollOffsetChange(123.75);
+    });
+    expect(photorealisticLayerSpy.mock.calls.at(-1)![0].scrollOffset).toBe(123.75);
+  });
+
   it('recenters the active photo entry target after viewport resize', async () => {
     render(
       <PhotoModeScene

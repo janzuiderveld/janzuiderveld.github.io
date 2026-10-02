@@ -1,0 +1,33 @@
+{
+  "source": "/Users/janzuiderveld/Documents/Codex/2026-09-30/ap/work/assets/conflux/conflux_02.jpg",
+  "output": "/Users/janzuiderveld/GitHub/janzuiderveld.github.io/typescript_exp/output/imagegen/vending-white-max.png",
+  "requested": {
+    "model": "gpt-image-2.5-sunburst",
+    "size": "2304x3600",
+    "quality": "max",
+    "output_format": "png",
+    "background": "opaque",
+    "n": "1"
+  },
+  "dimensions": {
+    "width": 2304,
+    "height": 3600
+  },
+  "prompt": "Use case: background-extraction.\nInput image: the original photograph, the sole edit target.\nCreate a faithful photographic cutout of the complete vending machine on flat pure white RGB 255,255,255. Remove only the surrounding wall, cast wall shadow and loose electrical cable below the cabinet. Preserve the original photographed cabinet precisely: its complete outline and four rounded corners, proportions, camera perspective, gray metal finish, natural lighting and reflections, wear, glass, every snack packet in its original position, vending spirals, keypad, display, coin mechanism, the FinalSpark logo and SNACKS lettering. Do not redesign, beautify, relight or turn it into an idealized product render. Keep the entire cabinet visible with clean accurate edges. Center it in a portrait frame with modest white margins and no added floor, pedestal, cast shadow, texture, gradient or watermark. Preserve fine photographic details at the requested full output resolution. Fidelity to the original object is the priority.",
+  "created": 1790926990,
+  "returnedQuality": "max",
+  "returnedSize": "2304x3600",
+  "usage": {
+    "input_tokens": 1748,
+    "input_tokens_details": {
+      "image_tokens": 1536,
+      "text_tokens": 212
+    },
+    "output_tokens": 15072,
+    "output_tokens_details": {
+      "image_tokens": 15072,
+      "text_tokens": 0
+    },
+    "total_tokens": 16820
+  }
+}

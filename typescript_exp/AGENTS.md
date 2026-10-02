@@ -21,9 +21,11 @@
 
 ## Local Serving And Verification
 - The app is served locally at `http://localhost:3000/`. Do not assume Vite defaults to `5173`; `vite.config.ts` pins the dev server to `3000`.
+- If port 3000 is occupied, Vite can start on 3001 while 3000 continues serving another worktree. Check the startup URL and verify the served CSV against this checkout before browser validation. Leave the other worktree's server running; use this server's actual port. The fixed HMR port 5176 can also collide across worktrees, so reload explicitly if HMR is unavailable.
 - On Node 25 in the current Codex environment, Node exposes a broken built-in `localStorage` unless `--localstorage-file` receives a valid path. A plain full `npm test` can therefore fail every `PhotoModeScene` test with `window.localStorage.getItem is not a function`. Run the full suite with a fresh explicit file, for example `task_storage_path=$(mktemp -t codex-node-localstorage.XXXXXX) && NODE_OPTIONS="--localstorage-file=$task_storage_path" npm test`.
 - Routing uses `HashRouter`, so test routes as `http://localhost:3000/#/…`.
 - Always verify changes with Chrome DevTools MCP.
+- A fresh Chrome DevTools MCP process started with `--workspace` restricts screenshot output to that workspace root. Save captures under the project's `tmp/` directory; `/private/tmp` is rejected even when shell tools can write there.
 - For repeatable animation/performance work, there is now a local harness at `npm run profile:animation`. It uses `puppeteer-core` against the system Chrome binary and writes screenshots to `tmp/animation-profiles/`.
 - Safari-family automation helpers now exist:
   - `npm run safari:webkit` for Playwright WebKit
@@ -65,6 +67,7 @@
 
 ### If MCP Says `Transport closed`
 - Re-run the reset steps above first.
+- A standalone Chrome DevTools MCP process must receive `--workspace=<absolute project root>` to save screenshots in the project; otherwise current versions reject file paths because no permitted workspace roots are configured.
 - Use Node `>= 20.19.0`.
 - Check `/tmp/mcp-devtools.log`.
 - Confirm Chrome exists at `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`.
@@ -88,6 +91,7 @@
   - `#/presentations`
   - `#/vending`
   - `#/vending-demo`
+  - `#/biodiesellm` (unlisted draft page for B10d13$3LLM)
   - `#guide` (the guide page is intentionally using a bare hash instead of `#/guide`)
   - `#/construction`
   - any unknown route redirects to `#/construction`
@@ -109,6 +113,7 @@
 - File-backed photo-mode videos should still opt into `autoplay`, but the shared scene now forces restart, unmutes, and restores volume when photo mode becomes visible.
 - Vimeo photo-mode embeds should use normal Vimeo player URLs and let the shared embed helper normalize autoplay query params while preserving any explicit `muted=` choice from the page config.
 - Keep `ProjectPage` photo-entry hit testing aligned with the same ASCII region that drives the hover-reveal preview. Do not fall back to making the title clickable just because the named `hero` overlay misses; the correct fix is to reuse the hover/photo-entry geometry for click and tap.
+- The ASCII renderer floors scrolling to whole character rows. `PhotoModeScene` must use that same floored offset for ASCII-side photo reveals, alignment mode, and hover/click hit testing; full photo mode retains smooth pixel scrolling. Otherwise an apparently correct saved alignment drifts by up to one row after scrolling.
 - Shared photorealistic hover/click geometry lives in `src/components/photorealistic/photoHitTest.ts`. Reuse that helper from `PhotoModeScene` and any future custom photo-mode entry logic instead of reintroducing page-specific name-overlay click targets.
 - `src/pages/CameraPage.tsx` now uses `ProjectPage` with custom supplemental photo items and layout augmentation. Keep camera-specific gallery behavior inside that shared-page config unless the shared photo-mode scene becomes insufficient.
 - `src/components/photorealistic/*` powers the media layer used by project photo mode.
@@ -125,9 +130,12 @@
   - `selected_presentations.csv`, `selected_awards.csv`, `selected_publications.csv` for `#/about`
   - `all_presentations.csv` for `#/presentations`
 - When page media starts outside the repo, move or copy it into `src/assets/<project>/pictures/` or another project-owned path before embedding it. Do not wire website content directly to `Downloads`, absolute local filesystem paths, or other off-repo locations.
+- The Vending Machine Organoid description comes from the sent Conflux email of 31 August 2026 (subject: `Invitation to participate at Conflux festival 2026: Tactics for Cultural Resistance`). Its two photos by Gaia D'Arrigo (Gaiadrr) are the installation and visitor images selected for the Mondriaan application, stored as `conflux_installation_Gaiadrr.jpg` and `conflux_visitor_Gaiadrr.jpg`. Keep photographer and collaborator credits with this content.
+- Vending uses the approved GPT Image 2.5 white-background cutout (`vending-white-max.png`, 2304×3600) as its hero. Its 56×42 ASCII grid was sampled from the cabinet rectangle (x=118, y=472, width=2068, height=2579); bright flat tones are suppressed and dark details enhanced for contrast; matching `contentInsets` remove the source margins at render time, with identity alignment. Keep the hero bounds unchanged in the page layout augmenter so the ASCII reveal stays registered. Center/size only the supplemental video and the two original Gaia D'Arrigo gallery photos, preserving their natural aspect ratios and gaps. The shelf and collection/change tray outlines are traced in the ASCII after tonal conversion, since their low-contrast metal edges disappear under the contrast threshold. Use the asset-specific `photoAlignmentKey` (`vending-white-max`) to keep saved mappings for older photos from overriding this one. Generation prompt/settings are in `output/imagegen/vending-white-max.json`.
 - If you change CSV schema or columns, update the matching parsers/formatters in `src/utils/*.ts` and keep fallback data in sync.
 - Home and About both have fallback content in TypeScript so the pages still render if CSV fetches fail. Preserve that resilience unless the task explicitly removes it.
 - Interactive controls are usually authored inside ASCII text with markdown-like link syntax. Prefer adding links inside rendered text instead of introducing standalone buttons.
+- The default `blockAsciiDouble` title font does not contain digits or punctuation. Titles such as `B10d13$3LLM` must choose a font that supports those glyphs, such as `ascii`, or the unsupported characters disappear.
 
 ## Build, Preview, And Deployment
 - `npm run dev` starts Vite on `http://localhost:3000/`.

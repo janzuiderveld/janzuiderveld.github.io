@@ -1,4 +1,4 @@
-export const VENDING_ALIGN_DEFAULT = {
+export const BIODIESELLM_ALIGN_DEFAULT = {
   offsetX: 0,
   offsetY: 0,
   scaleX: 1,

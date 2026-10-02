@@ -41,11 +41,6 @@ export const FALLBACK_EXHIBITIONS: Exhibition[] = [
     dateRange: '30/10/2025 > 21/11/2025',
   },
   {
-    title: 'Coffee Machine',
-    location: 'KUMU Kunstimuuseum (Tallinn, EE)',
-    dateRange: '12/02/2026 > 23/08/2026',
-  },
-  {
     title: '-',
     subtitle: 'Semi-permanent installation',
     location: 'California Institute for Machine Consciousness (San Francisco, US)',
@@ -58,16 +53,16 @@ export const FALLBACK_EXHIBITIONS: Exhibition[] = [
     dateRange: '9/9/2026 > ?',
   },
   {
-    title: '-',
-    subtitle: 'Conflux Festival 2026',
-    location: 'Keilepand (Rotterdam, NL)',
-    dateRange: '26/09/2026 > 27/09/2026',
-  },
-  {
     title: 'Coffee Machine',
     subtitle: 'KIKK Festival 2026',
     location: 'Le Delta (Namur, BE)',
     dateRange: '22/10/2026 > 25/10/2026',
+  },
+  {
+    title: '-',
+    subtitle: '798 Multidisciplinary Residency',
+    location: 'BOUNDED SPACE, 798 Art District (Beijing, CN)',
+    dateRange: '08/11/2026 > 19/12/2026',
   },
 ];
 

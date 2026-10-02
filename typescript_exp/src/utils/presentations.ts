@@ -16,6 +16,24 @@ export const ALL_PRESENTATIONS_PATH = '/all_presentations.csv';
 export const FALLBACK_PRESENTATIONS: Presentation[] = [
   {
     year: '2026',
+    title: 'Conflux Festival 2026',
+    titleNarrow: 'Conflux Festival 2026',
+    venue: 'Keilepand',
+    venueNarrow: 'Keilepand',
+    location: 'Rotterdam (NL)',
+    locationNarrow: 'Rotterdam (NL)',
+  },
+  {
+    year: '2026',
+    title: 'Triumph of Galatea. Art in the Age of AI',
+    titleNarrow: 'Triumph of Galatea – Art in AI',
+    venue: 'KUMU Art Museum',
+    venueNarrow: 'KUMU Art Museum',
+    location: 'Tallinn (EE)',
+    locationNarrow: 'Tallinn (EE)',
+  },
+  {
+    year: '2026',
     title: 'Coffee Machine keynote',
     titleNarrow: 'Coffee Machine keynote',
     venue: 'KUMU Museum',

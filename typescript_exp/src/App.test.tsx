@@ -61,6 +61,10 @@ vi.mock('./pages/VendingMachineOrganoidPage', () => ({
   default: () => <div>Vending Machine Organoid Page</div>
 }));
 
+vi.mock('./pages/BiodieseLLMPage', () => ({
+  default: () => <div>B10d13$3LLM Page</div>
+}));
+
 vi.mock('./pages/PersonalAudioGuidePage', () => ({
   default: () => <div>Personal Audio Guide Page</div>
 }));
@@ -89,6 +93,16 @@ describe('App routes', () => {
     );
 
     expect(screen.getByText('Upcoming Page')).toBeInTheDocument();
+  });
+
+  it('renders the unlisted B10d13$3LLM draft page at /biodiesellm', () => {
+    render(
+      <MemoryRouter initialEntries={['/biodiesellm']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('B10d13$3LLM Page')).toBeInTheDocument();
   });
 
   it('renders the vending demo page as an embedded video only view', () => {

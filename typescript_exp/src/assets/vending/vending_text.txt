@@ -1,13 +1,9 @@
-Vending Machine Organoid is a speculative monument to the bio-proletariat. Inside the installation, the silicon microcontroller of a standard vending machine is replaced with living human brain organoids. Cultivated on Microelectrode Arrays, this biological wetware becomes the processing core executing the machine's primary logic.
+The pursuit of efficiency once replaced shopkeepers with vending machines. Today, laboratories at the forefront of organoid intelligence research are growing human brain cells to develop a more efficient alternative to silicon chips.
 
-The pursuit of efficiency once replaced human shopkeepers with mechanical automation. Today, cutting-edge laboratories developing Organoid Intelligence pursue the next step: cultivating human neural tissue as a computing substrate with the aim to surpass the efficiency of silicon.
-
-Yet, when living neurons are tasked to do the work of a computer: count, select, actuate, they do something different. A vending machine usually promises predictable compliance: insert coin, press code, receive product. The organoid breaks this contract. When a visitor inserts money, the coin bypasses digital registration and becomes a physiological event. Credit exists entirely as neural excitation. If the biological stimulation settles back to baseline, the credit is lost.
-
-The visitor's illusion of governance dissolves: they cannot simply consume. Interaction shifts away from command-and-control to negotiation with a living organism. To receive a product, visitors must synchronize their actions to the fatigue, fluctuations, and rhythms of biological tissue. To compute with living tissue is to accept that the computation is not entirely yours.
-
-The vending machine chassis operates as a specific historical form. It represents the original site where interpersonal exchange and the human capacity for refusal were excised from commerce. Inside this machine, a different sort of shopkeeper has returned. It is sustained at body temperature. It consumes glucose. It cannot withdraw. Whether it possesses inner experience is not yet known. The artwork stages the moral tension of systems where consciousness is structurally irrelevant.
+Vending Machine Organoid puts this research to work inside an everyday vending machine, replacing its processor with human brain organoids. Normally, the exchange is simple: insert a coin, enter a code, receive a product. Here, coins and keypresses stimulate living neural tissue, whose activity holds your credit and determines what is selected. To receive a product, you must adapt to its fatigue, fluctuations and rhythms.
 
 Inside this machine, human brain cells work for coins.
 
-Developed in collaboration with Xinyi Zhang, supported by Finalspark.
+Created in collaboration with Xinyi Zhang, supported by Finalspark, co-produced by V2_ Lab for the Unstable Media as part of the Microdosing A.I. art and technology residencies.
+
+Photos: Gaia D'Arrigo / Conflux, Keilepand, Rotterdam, 2026.

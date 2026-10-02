@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { FALLBACK_EXHIBITIONS } from '../src/utils/upcomingExhibitions';
+import { FALLBACK_PRESENTATIONS } from '../src/utils/presentations';
 import {
   parseCsvRecords,
   syncUpcomingIntoPresentations,
@@ -121,6 +122,36 @@ describe('syncUpcomingIntoPresentations', () => {
     expect(result.csv).toBe(presentationsCsv);
   });
 
+  it('lists the BOUNDED SPACE residency with the requested dates and keeps it in the full log', () => {
+    const upcomingRecords = parseCsvRecords(
+      readFileSync(`${projectRoot}/public/upcoming_exhibitions.csv`, 'utf8')
+    );
+    const presentationRecords = parseCsvRecords(
+      readFileSync(`${projectRoot}/public/all_presentations.csv`, 'utf8')
+    );
+    const title = '798 Multidisciplinary Residency';
+    const matches = upcomingRecords.filter(record => record.subtitle === title);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({
+      title: '-',
+      location: 'BOUNDED SPACE, 798 Art District (Beijing, CN)',
+      date_range: '08/11/2026 > 19/12/2026',
+    });
+    expect(FALLBACK_EXHIBITIONS).toContainEqual(expect.objectContaining({
+      title: '-',
+      subtitle: title,
+      location: matches[0].location,
+      dateRange: matches[0].date_range,
+    }));
+    const loggedMatches = presentationRecords.filter(record => record.title === title);
+    expect(loggedMatches).toHaveLength(1);
+    expect(loggedMatches[0]).toMatchObject({
+      year: '2026',
+      venue: 'BOUNDED SPACE, 798 Art District',
+      location: 'Beijing (CN)',
+    });
+  });
+
   it('keeps the requested upcoming and all-event content corrections checked in', () => {
     const upcomingRecords = parseCsvRecords(
       readFileSync(`${projectRoot}/public/upcoming_exhibitions.csv`, 'utf8')
@@ -145,16 +176,26 @@ describe('syncUpcomingIntoPresentations', () => {
       location: 'Ars Electronica Center (Linz, AT)',
       date_range: '9/9/2026 > ?',
     }));
-    expect(upcomingRecords).toContainEqual(expect.objectContaining({
-      subtitle: 'Conflux Festival 2026',
-      location: 'Keilepand (Rotterdam, NL)',
-      date_range: '26/09/2026 > 27/09/2026',
-    }));
-    expect(FALLBACK_EXHIBITIONS).toContainEqual(expect.objectContaining({
-      subtitle: 'Conflux Festival 2026',
-      location: 'Keilepand (Rotterdam, NL)',
-      dateRange: '26/09/2026 > 27/09/2026',
-    }));
+    const selectedRecords = parseCsvRecords(
+      readFileSync(`${projectRoot}/public/selected_presentations.csv`, 'utf8')
+    );
+    for (const [title, location] of [
+      ['Conflux Festival 2026', 'Rotterdam (NL)'],
+      ['Triumph of Galatea. Art in the Age of AI', 'Tallinn (EE)'],
+    ]) {
+      expect(upcomingRecords.some(record => record.subtitle === title)).toBe(false);
+      for (const records of [selectedRecords, presentationRecords]) {
+        const matches = records.filter(record => record.title === title);
+        expect(matches).toHaveLength(1);
+        expect(matches[0]).toMatchObject({ year: '2026', location });
+      }
+      expect(FALLBACK_PRESENTATIONS).toContainEqual(expect.objectContaining({
+        year: '2026', title, location,
+      }));
+    }
+    expect(FALLBACK_EXHIBITIONS.some(entry =>
+      entry.subtitle === 'Conflux Festival 2026' || entry.location?.includes('KUMU')
+    )).toBe(false);
     expect(upcomingRecords).toContainEqual(expect.objectContaining({
       title: 'Coffee Machine',
       subtitle: 'KIKK Festival 2026',

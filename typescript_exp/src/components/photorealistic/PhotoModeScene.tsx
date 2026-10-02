@@ -296,6 +296,8 @@ const PhotoModeScene = ({
     && alwaysVisiblePhotoItemIds.length === 0
     && supportsHoverInteractions();
   const [scrollOffset, setScrollOffset] = useState(0);
+  // The ASCII renderer floors its scroll to whole rows; its reveal must use the same position.
+  const asciiScrollOffset = Math.floor(scrollOffset / CHAR_HEIGHT) * CHAR_HEIGHT;
   const [initialScrollOffset, setInitialScrollOffset] = useState<number | undefined>(undefined);
   const [scrollToOffset, setScrollToOffset] = useState<number | null>(null);
   const [initialScrollReady, setInitialScrollReady] = useState(!centerOnLoad);
@@ -716,8 +718,8 @@ const PhotoModeScene = ({
   }, [mergedPhotoLayout]);
 
   useEffect(() => {
-    hoverScrollOffsetRef.current = scrollOffset;
-  }, [scrollOffset]);
+    hoverScrollOffsetRef.current = asciiScrollOffset;
+  }, [asciiScrollOffset]);
 
   const forwardVideoWheel = useCallback((event: WheelEvent) => {
     const container = asciiContainerRef.current;
@@ -1459,7 +1461,7 @@ const PhotoModeScene = ({
         <PhotorealisticLayer
           items={photoLayerItems}
           layout={mergedPhotoLayout}
-          scrollOffset={scrollOffset}
+          scrollOffset={photoState === 'ascii' ? asciiScrollOffset : scrollOffset}
           isVisible={showPhotorealisticLayer}
           showHighRes={photoLayerHighRes}
           isInteractive={photoLayerInteractive}
@@ -1476,7 +1478,7 @@ const PhotoModeScene = ({
         <PhotoHoverWindow
           item={photoState === 'ascii' && !alignmentMode ? hoveredPhotoItem : null}
           layout={mergedPhotoLayout}
-          scrollOffset={scrollOffset}
+          scrollOffset={asciiScrollOffset}
           cursorRef={hoverCursorRef}
           isActive={photoState === 'ascii' && hoverPreviewActive && !alignmentMode}
         />
