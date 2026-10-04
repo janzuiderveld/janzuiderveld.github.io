@@ -300,6 +300,7 @@ function HomePage({ compatibilityOverlayActive = false }: HomePageProps) {
         // Extract individual works from the works text
         const works = [
           { title: "[[Personal Audio Guide]](#guide)", x: 16, y: 18, name: "work-guide" },
+          { title: "[[B10d13$3L-LLM]](#/biodiesellm)", x: 20, y: 19, name: "work-biodiesellm" },
           { title: "[[Vending Machine Organoid]](#vending)", x: 24, y: 20, name: "work-vending" },
           { title: "[[Life on _]](#camera)", x: 19, y: 22, name: "work-camera" },
           { title: "[[Coffee Machine]](#coffee)", x: 72, y: 39, name: "work-coffee" },

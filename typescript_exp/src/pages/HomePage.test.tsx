@@ -29,7 +29,7 @@ describe('HomePage', () => {
     vi.useRealTimers();
   });
 
-  it('lists Personal Audio Guide above Vending Machine Organoid at the top of the home project stack', async () => {
+  it('lists BiodieseLLM immediately below Personal Audio Guide and above Vending Machine Organoid', async () => {
     render(<HomePage />);
 
     await act(async () => {
@@ -50,16 +50,21 @@ describe('HomePage', () => {
 
     const workItems = (lastCall.textContent ?? []).filter(item => item.name?.startsWith('work-'));
 
-    expect(workItems.slice(0, 3)).toEqual([
+    expect(workItems.slice(0, 4)).toEqual([
       expect.objectContaining({
         name: 'work-guide',
         text: '[[Personal Audio Guide]](#guide)',
         anchorTo: 'upcoming'
       }),
       expect.objectContaining({
+        name: 'work-biodiesellm',
+        text: '[[B10d13$3L-LLM]](#/biodiesellm)',
+        anchorTo: 'work-guide'
+      }),
+      expect.objectContaining({
         name: 'work-vending',
         text: '[[Vending Machine Organoid]](#vending)',
-        anchorTo: 'work-guide'
+        anchorTo: 'work-biodiesellm'
       }),
       expect.objectContaining({
         name: 'work-camera',
