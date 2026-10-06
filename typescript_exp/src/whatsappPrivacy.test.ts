@@ -33,6 +33,11 @@ describe('unlisted WhatsApp privacy notice', () => {
     expect(doc.querySelector('meta[name="robots"][content*="nofollow"]')).toBeNull();
   });
 
+  it('keeps contact links readable through Cloudflare without JavaScript', () => {
+    const protectedLinks = source().match(/<!--email_off--><a href="mailto:[^"]+">jan@warana\.xyz<\/a><!--\/email_off-->/g);
+    expect(protectedLinks).toHaveLength(2);
+  });
+
   it('is not added to the site navigation', () => {
     for (const file of ['pages/HomePage.tsx', 'pages/AboutPage.tsx', 'App.tsx']) {
       expect(readFileSync(new URL(file, import.meta.url), 'utf8')).not.toContain('whatsapp-privacy');
