@@ -8,7 +8,7 @@ const source = () => readFileSync(new URL('../public/whatsapp-privacy.html', imp
 describe('unlisted WhatsApp privacy notice', () => {
   it('is a standalone, crawler-readable page with contact and deletion instructions', () => {
     const doc = new JSDOM(source()).window.document;
-    expect(doc.title).toContain('Codex Messaging Gateway');
+    expect(doc.title).toContain('WhatsApp');
     expect(doc.documentElement.lang).toBe('en');
     expect(doc.querySelector('meta[name="viewport"]')).not.toBeNull();
     expect(doc.querySelector('h1')?.textContent).toContain('Privacy');
@@ -19,11 +19,13 @@ describe('unlisted WhatsApp privacy notice', () => {
 
   it('discloses actual processing and retention limits', () => {
     const text = new JSDOM(source()).window.document.body.textContent ?? '';
-    for (const term of ['Jan Zuiderveld', 'Meta', 'OpenAI', 'Cloudflare', 'GitHub', 'legitimate interests', 'automatic deletion', '15 minutes', 'Autoriteit Persoonsgegevens']) {
+    for (const term of ['Jan Zuiderveld', 'Meta', 'external software providers', 'legitimate interests', 'automatic deletion', 'Autoriteit Persoonsgegevens']) {
       expect(text).toContain(term);
     }
-    expect(text).toContain('not an automatic deletion of the draft file');
     expect(text).toContain('not a complete copy');
+    expect(text).toContain('outside the European Economic Area');
+    expect(source()).not.toMatch(/openai|codex|\bAI\b/i);
+    expect(text).toContain('not an automatic deletion of the draft file');
   });
 
   it('does not load scripts, tracking pixels, fonts, forms or embedded services', () => {
