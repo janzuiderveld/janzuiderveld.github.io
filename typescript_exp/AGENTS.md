@@ -140,6 +140,7 @@
 - The default `blockAsciiDouble` title font does not contain digits or punctuation. Titles such as `B10d13$3LLM` must choose a font that supports those glyphs, such as `ascii`, or the unsupported characters disappear.
 
 ## Build, Preview, And Deployment
+- `public/whatsapp-privacy.html` is an intentionally unlisted, standalone privacy/deletion notice for Codex Messaging Gateway. Keep it readable without JavaScript, authentication or hash routing so Meta can crawl the actual text. Do not add it to portfolio navigation unless requested. It uses system monospace styling, not the animated artwork renderer. Its deletion anchor is `#delete-data`. Keep disclosures aligned with the real plugin implementation; draft expiry is not file deletion, and local storage does not exclude OpenAI or webhook-network processing. The source-of-truth integration guide is `/Users/janzuiderveld/plugins/whatsapp-business/README.md` on Jan's Mac.
 - `npm run dev` starts Vite on `http://localhost:3000/`.
 - `npm run build` runs `tsc -b && vite build`.
 - `npm run sync:presentations` adds missing rows from `public/upcoming_exhibitions.csv` to the matching year groups in `public/all_presentations.csv`. The sync is idempotent and `deploy.sh` runs it before every build; keep the upcoming location format as `Venue (City, country code)` so venue and location columns are derived correctly. Date ranges normally supply the presentation year; permanent or otherwise undated entries must set the optional `presentation_year` CSV column to a four-digit year.
