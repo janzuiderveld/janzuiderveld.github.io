@@ -16,7 +16,7 @@ const AUDIO_GUIDE_ALIGN_DEFAULT = {
 } as const;
 
 const DISPLAY_TITLE = 'PERSONAL AUDIO GUIDE';
-const SALES_GUIDE_CALLOUT = 'Call +31 97010223622 to speak to our Sales Guide';
+const SALES_REPRESENTATIVE_CALLOUT = 'Call +31 97010223622 to speak to our Sales Representative';
 const VIMEO_AUDIO_GUIDE_SRC = 'https://player.vimeo.com/video/1171945928?app_id=122963&autoplay=1&muted=0&loop=1&autopause=0&playsinline=1&title=0&byline=0&portrait=0&controls=1';
 
 function PersonalAudioGuidePage() {
@@ -51,7 +51,7 @@ function PersonalAudioGuidePage() {
       title='Personal Audio Guide'
       displayTitle={DISPLAY_TITLE}
       titleFontName='ascii'
-      titleCalloutText={SALES_GUIDE_CALLOUT}
+      titleCalloutText={SALES_REPRESENTATIVE_CALLOUT}
       titleCalloutOffsetY={-12}
       hashPathOverride='guide'
       text={audioGuideText}

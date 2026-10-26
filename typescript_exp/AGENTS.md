@@ -25,6 +25,7 @@
 - On Node 25 in the current Codex environment, Node exposes a broken built-in `localStorage` unless `--localstorage-file` receives a valid path. A plain full `npm test` can therefore fail every `PhotoModeScene` test with `window.localStorage.getItem is not a function`. Run the full suite with a fresh explicit file, for example `task_storage_path=$(mktemp -t codex-node-localstorage.XXXXXX) && NODE_OPTIONS="--localstorage-file=$task_storage_path" npm test`.
 - Routing uses `HashRouter`, so test routes as `http://localhost:3000/#/…`.
 - Always verify changes with Chrome DevTools MCP. When using the bundled MCP SDK from a standalone verification script, current versions register roots with `client.setRequestHandler("roots/list", handler)` rather than a schema object; register workspace roots so screenshot writes are permitted.
+- Chrome DevTools MCP 1.12 requires an explicit `pageId` for navigation, evaluation, resizing, and screenshots. Read `list_pages` first and use its returned ID; do not assume the selected page is an implicit target.
 - A fresh Chrome DevTools MCP process started with `--workspace` restricts screenshot output to that workspace root. Save captures under the project's `tmp/` directory; `/private/tmp` is rejected even when shell tools can write there.
 - For repeatable animation/performance work, there is now a local harness at `npm run profile:animation`. It uses `puppeteer-core` against the system Chrome binary and writes screenshots to `tmp/animation-profiles/`.
 - Safari-family automation helpers now exist:

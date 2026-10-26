@@ -62,8 +62,10 @@ describe('PersonalAudioGuidePage', () => {
 
     const lastCall = projectPageSpy.mock.calls.at(-1)?.[0] as {
       text?: string;
+      titleCalloutText?: string;
     };
 
+    expect(lastCall.titleCalloutText).toBe('Call +31 97010223622 to speak to our Sales Representative');
     expect(lastCall.text).toContain('Personal Audio Guide begins as a familiar museum service.');
     expect(lastCall.text).toContain('What began as a benign act of personalization returns as replication.');
     expect(lastCall.text).toContain('The work stages AI not as a futuristic abstraction');
