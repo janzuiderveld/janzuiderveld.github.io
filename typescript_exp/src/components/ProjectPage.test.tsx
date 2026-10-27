@@ -1,8 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ProjectPage from './ProjectPage';
 import { PhotorealisticLayout } from './photorealistic/PhotorealisticLayer';
+import { renderTextString } from './ascii-art2/ASCII_text_renderer';
+import type { TextContentItem } from './ascii-art2/types';
 
 const photoModeSceneSpy = vi.fn();
 
@@ -15,7 +17,52 @@ vi.mock('./photorealistic/PhotoModeScene', () => ({
 
 describe('ProjectPage photo entry targets', () => {
   afterEach(() => {
+    cleanup();
     photoModeSceneSpy.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  it.each([390, 430, 820])('gives touch titles side margins and wraps Audio below Personal at %i px', async width => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    render(<MemoryRouter><ProjectPage title="Personal Audio Guide" displayTitle="PERSONAL AUDIO GUIDE"
+      titleFontName="ascii" text="Body" asciiArt="@@" photo={{src:'/photo.png',alt:'Guide'}}
+      align={{offsetX:0,offsetY:0,scaleX:1,scaleY:1}} /></MemoryRouter>);
+    await waitFor(() => expect(photoModeSceneSpy).toHaveBeenCalled());
+    const title = (photoModeSceneSpy.mock.calls.at(-1)![0].textContent as TextContentItem[]).find(i=>i.name==='title')!;
+    const cellWidth = width < 760 ? 5.4 : 7.8;
+    const cols = Math.ceil(width / cellWidth);
+    const maxWidth = Math.floor(cols * (title.maxWidthPercent ?? 100) / 100);
+    const lines = renderTextString(title.text, 'ascii', {maxWidth, respectLineBreaks:true}).split('\n');
+    const personal = renderTextString('PERSONAL', 'ascii').split('\n');
+    expect(lines.slice(0, personal.length).map(l=>l.trimEnd())).toEqual(personal.map(l=>l.trimEnd()));
+    expect(Math.max(...lines.map(l=>l.length))*cellWidth).toBeLessThanOrEqual(width-40);
+  });
+
+  it('preserves the full title width for mouse-driven desktop layouts', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    render(<MemoryRouter><ProjectPage title="Coffee Machine" text="Body" asciiArt="@@"
+      photo={{src:'/photo.png',alt:'Coffee'}} align={{offsetX:0,offsetY:0,scaleX:1,scaleY:1}} /></MemoryRouter>);
+    await waitFor(() => expect(photoModeSceneSpy).toHaveBeenCalled());
+    const title = (photoModeSceneSpy.mock.calls.at(-1)![0].textContent as TextContentItem[]).find(i=>i.name==='title')!;
+    expect(title.maxWidthPercent ?? 100).toBe(100);
+  });
+
+  it.each(['modern', 'legacy'])('updates title width when the %s media query changes and removes its listener', async api => {
+    let listener: (() => void) | undefined;
+    const add = vi.fn((...args: unknown[]) => { listener = args.at(-1) as () => void; });
+    const remove = vi.fn();
+    const query = api === 'modern'
+      ? { matches: false, addEventListener: add, removeEventListener: remove }
+      : { matches: false, addListener: add, removeListener: remove };
+    vi.stubGlobal('matchMedia', () => query);
+    const { unmount } = render(<MemoryRouter><ProjectPage title="Coffee Machine" text="Body" asciiArt="@@"
+      photo={{src:'/photo.png',alt:'Coffee'}} align={{offsetX:0,offsetY:0,scaleX:1,scaleY:1}} /></MemoryRouter>);
+    const getTitle = () => (photoModeSceneSpy.mock.calls.at(-1)![0].textContent as TextContentItem[]).find(i => i.name === 'title')!;
+    await waitFor(() => expect(getTitle().maxWidthPercent ?? 100).toBe(100));
+    act(() => { query.matches = true; listener!(); });
+    await waitFor(() => expect(getTitle().maxWidthPercent).toBe(88));
+    unmount();
+    expect(remove).toHaveBeenCalledWith(...(api === 'modern' ? ['change', listener] : [listener]));
   });
 
   it('keeps photo entry bound to the hero target instead of the title text', async () => {

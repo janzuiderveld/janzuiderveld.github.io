@@ -12,6 +12,7 @@ Design tests before changes. Run `npm test` and `npm run build`. On Node 25, sup
 | --- | --- |
 | `npm run check:browsers` | Chromium, Firefox, WebKit; 1280×720 and 390×844; home, coffee ASCII/photo, camera photo; actual ASCII redraw cadence, gestures, warnings, errors and media/link geometry. |
 | `npm run check:touch` | System Chrome's trusted touch input, normal and 4× CPU slowdown; fling, touch-to-stop, video controls and photo exit. |
+| `npm run check:peek` | Finger tracking, release/cancel/multi-touch cleanup, tap photo entry and desktop mouse peek. Uses trusted touch in Chrome and synthetic touch in Firefox/WebKit; `PREVIEW_URL` selects a local or deployed build. Captures are in `tmp/browser-verification/picture-peek/`. |
 | `npm run check:updates` | Stale entry recovery, hash/query preservation, reload-loop guard, unavailable-manifest fallback and recovery from removed lazy chunks in all three engines. |
 | `npm run check:older-browsers` | Four routes with Object.fromEntries, Array.flatMap, Promise.allSettled and ResizeObserver absent. This is a synthetic API check, not physical legacy-device certification. |
 | `npm run check:visuals` | Frozen, pixel-for-pixel before/after captures of seven routes at desktop, phone and tall widths. Requires an original production preview on port 8001 and the current one on 8000. |

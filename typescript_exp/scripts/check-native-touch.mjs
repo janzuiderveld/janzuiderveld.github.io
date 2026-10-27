@@ -7,6 +7,15 @@ try {
     await context.addInitScript(() => {
       sessionStorage.setItem('homeIntroRippleSeen', 'true');
       sessionStorage.setItem('sessionInitialized', 'true');
+      window.__touchTestOffset = () => location.hash.includes('photo=1')
+        ? new DOMMatrix(getComputedStyle(document.querySelector('[data-photorealistic-layer] > div')).transform).m42
+        : -Number(document.querySelector('[data-link-overlay]')?.getAttribute('data-scroll-y') || 0)
+          * parseFloat(document.querySelector('pre')?.style.fontSize || '9');
+      // Measure inside the release event. A CDP evaluation before dispatching
+      // touchEnd can itself exceed the release-velocity window at 4x slowdown.
+      window.addEventListener('touchend', () => {
+        window.__touchTestReleaseOffset = window.__touchTestOffset();
+      }, { capture: true, passive: true });
     });
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
@@ -15,9 +24,7 @@ try {
       await page.goto(`http://localhost:8000/#${route}`, { waitUntil: 'load' });
       await page.waitForTimeout(2800);
       const photo = route.includes('photo=1');
-      const position = () => page.evaluate(photo => photo
-        ? new DOMMatrix(getComputedStyle(document.querySelector('[data-photorealistic-layer] > div')).transform).m42
-        : parseFloat(document.querySelector('[data-link-overlay]')?.style.top || '0'), photo);
+      const position = () => page.evaluate(() => window.__touchTestOffset());
       const touch = (type, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: 25, y, id: 1 }] });
       await touch('touchStart', 650);
       await page.waitForTimeout(350);
@@ -25,8 +32,8 @@ try {
         await touch('touchMove', 650 - i * 22);
         await page.waitForTimeout(16);
       }
-      const released = await position();
       await touch('touchEnd');
+      const released = await page.evaluate(() => window.__touchTestReleaseOffset);
       await page.waitForTimeout(500);
       const coast = released - await position();
       assert.ok(coast > 70, `${route} ${cpuRate}x CPU: real input failed to coast (${coast})`);

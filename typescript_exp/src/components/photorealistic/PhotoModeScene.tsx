@@ -294,8 +294,7 @@ const PhotoModeScene = ({
     && alwaysVisiblePhotoItemIds.length === 0;
   const hoverPreviewEnabled = photoModeEnabled
     && !disableLinks
-    && alwaysVisiblePhotoItemIds.length === 0
-    && supportsHoverInteractions();
+    && alwaysVisiblePhotoItemIds.length === 0;
   const [scrollOffset, setScrollOffset] = useState(0);
   // The ASCII renderer floors its scroll to whole rows; its reveal must use the same position.
   const asciiScrollOffset = Math.floor(scrollOffset / CHAR_HEIGHT) * CHAR_HEIGHT;
@@ -1117,33 +1116,78 @@ const PhotoModeScene = ({
       return;
     }
 
-    const handleMouseMove = (event: MouseEvent) => {
+    let touchId: number | null = null;
+    let lastTouchTime = -Infinity;
+    const movePeek = (clientX: number, clientY: number) => {
       hoverPointerActiveRef.current = true;
-      hoverCursorRef.current = { x: event.clientX, y: event.clientY };
+      hoverCursorRef.current = { x: clientX, y: clientY };
       scheduleHoverUpdate();
+    };
+    const handleMouseMove = (event: MouseEvent) => {
+      // Older Safari synthesizes mouse events after a touch. Those must not
+      // leave a frozen peek behind after the finger has lifted.
+      if (touchId !== null || performance.now() - lastTouchTime < 800 || !supportsHoverInteractions()) return;
+      movePeek(event.clientX, event.clientY);
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (touchId === null && (event.pointerType === 'mouse' || event.pointerType === 'pen')) {
+        movePeek(event.clientX, event.clientY);
+      }
+    };
+    const handleTouch = (event: TouchEvent) => {
+      lastTouchTime = performance.now();
+      if (event.type === 'touchend' || event.type === 'touchcancel' || event.touches.length !== 1) {
+        touchId = null;
+        clearHoverState();
+        return;
+      }
+      const touch = event.touches[0];
+      if (event.type === 'touchstart') {
+        if (!asciiContainerRef.current?.contains(event.target as Node)) return;
+        touchId = touch.identifier;
+      }
+      if (touch.identifier !== touchId) return;
+      movePeek(touch.clientX, touch.clientY);
     };
 
     const handleMouseLeave = () => {
+      touchId = null;
       clearHoverState();
     };
+    const handleVisibility = () => { if (document.hidden) handleMouseLeave(); };
 
     const handleScroll = () => {
       if (!hoverPointerActiveRef.current) return;
       scheduleHoverUpdate();
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    const pointerEvents = typeof window.PointerEvent === 'function';
+    if (pointerEvents) window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    else window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    // Observe gestures without stealing them from scrolling or tap-to-open.
+    // Capture sees touches even when the ASCII click layer stops propagation.
+    const touchOptions = { capture: true, passive: true };
+    for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
+      window.addEventListener(type, handleTouch as EventListener, touchOptions);
+    }
     window.addEventListener('blur', handleMouseLeave);
     document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      if (pointerEvents) window.removeEventListener('pointermove', handlePointerMove);
+      else window.removeEventListener('mousemove', handleMouseMove);
+      for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
+        window.removeEventListener(type, handleTouch as EventListener, { capture: true });
+      }
       window.removeEventListener('blur', handleMouseLeave);
       document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll);
+      clearHoverState();
     };
   }, [alignmentMode, clearHoverState, hoverPreviewEnabled, photoState, scheduleHoverUpdate]);
 

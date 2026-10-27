@@ -129,6 +129,7 @@ const DEFAULT_VIDEO_HEIGHT_RATIO = 0.35;
 const DEFAULT_VIDEO_MIN_HEIGHT = 10;
 const DEFAULT_VIDEO_MAX_HEIGHT = 60;
 const DEFAULT_VIDEO_GAP = 4;
+const COMPACT_TITLE_QUERY = '(max-width: 759px), (pointer: coarse)';
 
 const ProjectPage = ({
   title,
@@ -160,6 +161,21 @@ const ProjectPage = ({
   photoCenterOnEnter = false
 }: ProjectPageProps) => {
   const location = useLocation();
+  const [compactTitles, setCompactTitles] = useState(() => typeof window !== 'undefined'
+    && (window.matchMedia?.(COMPACT_TITLE_QUERY).matches ?? window.innerWidth < 760));
+  useEffect(() => {
+    const query = window.matchMedia?.(COMPACT_TITLE_QUERY);
+    if (!query) return;
+    const update = () => setCompactTitles(query.matches);
+    update();
+    if (query.addEventListener) {
+      query.addEventListener('change', update);
+      return () => query.removeEventListener('change', update);
+    }
+    // Safari 12 uses the older MediaQueryList listener API.
+    query.addListener(update);
+    return () => query.removeListener(update);
+  }, []);
   const [textContent, setTextContent] = useState<TextContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const heroName = 'hero';
@@ -262,7 +278,10 @@ const ProjectPage = ({
   useEffect(() => {
     setIsLoading(true);
     const textItems: TextContentItem[] = [
-      { name: 'title', text: renderedTitle, x: 0, y: 10, centered: true, fontName: titleFontName },
+      {
+        name: 'title', text: renderedTitle, x: 0, y: 10, centered: true, fontName: titleFontName,
+        maxWidthPercent: compactTitles && !pdfExportMode ? 88 : undefined
+      },
       ...(
         pdfExportMode
           ? []
@@ -351,6 +370,7 @@ const ProjectPage = ({
     asciiArt,
     photoHref,
     pdfExportMode,
+    compactTitles,
     renderedTitle,
     showHero,
     heroAnchorOffsetY,

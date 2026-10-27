@@ -133,6 +133,8 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
 
   return (
     <div
+      data-photo-peek
+      data-photo-peek-active={isActive}
       style={{
         position: 'fixed',
         inset: 0,

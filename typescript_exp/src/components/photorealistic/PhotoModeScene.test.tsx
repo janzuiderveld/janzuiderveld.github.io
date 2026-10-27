@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { act, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentCharMetrics } from '../ascii-art2/constants';
 import PhotoModeScene from './PhotoModeScene';
 
 const asciiArtGeneratorSpy = vi.fn();
 const photorealisticLayerSpy = vi.fn();
+const photoHoverSpy = vi.fn();
 
 vi.mock('../ascii-art2/AsciiArtGenerator', async () => {
   const React = await import('react');
@@ -19,6 +20,7 @@ vi.mock('../ascii-art2/AsciiArtGenerator', async () => {
         size: { width: number; height: number };
       }) => void;
       scrollToOffset?: number | null;
+      externalContainerRef?: React.MutableRefObject<HTMLDivElement | null>;
     }) => {
       asciiArtGeneratorSpy(props);
 
@@ -39,7 +41,7 @@ vi.mock('../ascii-art2/AsciiArtGenerator', async () => {
         });
       }, [props.onLayoutChange]);
 
-      return <div data-testid="ascii-generator" />;
+      return <div ref={props.externalContainerRef} data-testid="ascii-generator" />;
     }
   };
 });
@@ -57,7 +59,7 @@ vi.mock('./PhotorealisticLayer', async (importOriginal) => {
 });
 
 vi.mock('./PhotoHoverWindow', () => ({
-  default: () => null,
+  default: (props: unknown) => { photoHoverSpy(props); return null; },
   getPhotoHoverRadiusPx: () => 0
 }));
 
@@ -93,6 +95,7 @@ describe('PhotoModeScene resize centering', () => {
     vi.useFakeTimers();
     asciiArtGeneratorSpy.mockReset();
     photorealisticLayerSpy.mockReset();
+    photoHoverSpy.mockReset();
     playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => Promise.resolve());
     pauseSpy = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
     setViewportSize(1280, 720);
@@ -100,10 +103,42 @@ describe('PhotoModeScene resize centering', () => {
   });
 
   afterEach(() => {
+    cleanup();
     playSpy.mockRestore();
     pauseSpy.mockRestore();
     vi.useRealTimers();
     window.location.hash = '#/';
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['touchend', 'touchcancel', 'multitouch', 'blur'])('follows a finger without consuming scroll input and clears on %s', async ending => {
+    window.location.hash = '#/coffee';
+    render(<PhotoModeScene textContent={[]} asciiClickTargets={['hero']} photoItems={[{
+      id:'coffee-main', anchorName:'hero',lowSrc:'/coffee.png',highSrc:'/coffee.png',alt:'Coffee'
+    }]} />);
+    // The mock hero begins at row 80. Bring it into the viewport just as the
+    // real shared renderer reports its virtual scroll offset.
+    await act(async () => asciiArtGeneratorSpy.mock.calls.at(-1)![0].onScrollOffsetChange(80 * getCurrentCharMetrics().charHeight));
+    const target = screen.getByTestId('ascii-generator');
+    const point = {identifier:1,clientX:50,clientY:80};
+    fireEvent.touchStart(target,{touches:[point],changedTouches:[point]});
+    await act(async () => { vi.advanceTimersByTime(20); });
+    expect(photoHoverSpy.mock.calls.at(-1)?.[0].isActive).toBe(true);
+    const moved = {...point,clientY:110};
+    const move = new Event('touchmove',{bubbles:true,cancelable:true});
+    Object.defineProperties(move,{touches:{value:[moved]},changedTouches:{value:[moved]}});
+    fireEvent(target,move);
+    await act(async () => { vi.advanceTimersByTime(20); });
+    expect(move.defaultPrevented).toBe(false);
+    expect(photoHoverSpy.mock.calls.at(-1)![0].cursorRef.current).toEqual({x:50,y:110});
+    if(ending==='multitouch') fireEvent.touchStart(target,{touches:[moved,{...moved,identifier:2}],changedTouches:[moved]});
+    else if(ending==='blur') fireEvent.blur(window);
+    else fireEvent[ending==='touchend'?'touchEnd':'touchCancel'](target,{touches:[],changedTouches:[moved]});
+    await act(async () => { vi.advanceTimersByTime(20); });
+    expect(photoHoverSpy.mock.calls.at(-1)?.[0].isActive).toBe(false);
+    fireEvent.mouseMove(window,{clientX:50,clientY:110});
+    await act(async () => { vi.advanceTimersByTime(20); });
+    expect(photoHoverSpy.mock.calls.at(-1)?.[0].isActive).toBe(false);
   });
 
   it('keeps the ASCII reveal on the rendered character rows after fractional scrolling', async () => {
