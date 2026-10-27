@@ -167,6 +167,61 @@ describe('PhotoModeScene resize centering', () => {
     expect(photorealisticLayerSpy.mock.calls.at(-1)![0].scrollOffset).toBe(123.75);
   });
 
+  it('keeps both fades aligned to the ASCII rows, including the first entry', async () => {
+    window.location.hash = '#/coffee';
+    render(<PhotoModeScene textContent={[]} asciiClickTargets={['hero']} photoItems={[{
+      id: 'coffee', anchorName: 'hero', lowSrc: '/coffee.png', highSrc: '/coffee.png', alt: 'Coffee'
+    }]} />);
+    const { charHeight } = getCurrentCharMetrics();
+    const offset = 80.7 * charHeight;
+    await act(async () => asciiArtGeneratorSpy.mock.calls.at(-1)![0].onScrollOffsetChange(offset));
+    await act(async () => asciiArtGeneratorSpy.mock.calls.at(-1)![0].onAsciiClickStart());
+    // Both opacity targets must change in the same commit, without an extra rAF.
+    expect(photorealisticLayerSpy.mock.calls.at(-1)![0].opacity).toBe(1);
+    expect(photorealisticLayerSpy.mock.calls.at(-1)![0].scrollOffset).toBe(80 * charHeight);
+    await act(async () => vi.advanceTimersByTime(1100));
+    await act(async () => (window as typeof window & { __projectPhotoMode?: { exit: () => void } }).__projectPhotoMode?.exit());
+    expect(photorealisticLayerSpy.mock.calls.at(-1)![0].scrollOffset).toBe(80 * charHeight);
+  });
+
+  it('only accepts artwork bounds for photo entry, independent of the photo alignment or peek radius', async () => {
+    window.location.hash = '#/coffee';
+    render(<PhotoModeScene textContent={[]} asciiClickTargets={['hero']} photoItems={[{
+      id: 'coffee', anchorName: 'hero', lowSrc: '/coffee.png', highSrc: '/coffee.png', alt: 'Coffee', offsetX: 50
+    }]} />);
+    const { charWidth, charHeight } = getCurrentCharMetrics();
+    await act(async () => asciiArtGeneratorSpy.mock.calls.at(-1)![0].onScrollOffsetChange(80 * charHeight));
+    const hit = asciiArtGeneratorSpy.mock.calls.at(-1)![0].asciiClickHitTest;
+    expect(hit(10 * charWidth, 10 * charHeight)).toBe(true);
+    expect(hit(10 * charWidth, -1)).toBe(false);
+    expect(hit(21 * charWidth + 1, 10 * charHeight)).toBe(false);
+    expect(hit(10 * charWidth, 21 * charHeight + 1)).toBe(false);
+  });
+
+  it('defers offscreen video startup until the entry fade finishes', async () => {
+    render(<PhotoModeScene textContent={[]} asciiClickTargets={['hero']} photoItems={[{
+      id: 'coffee', anchorName: 'hero', lowSrc: '/coffee.png', highSrc: '/coffee.png', alt: 'Coffee'
+    }, {
+      id: 'offscreen', anchorName: 'target', offsetY: 100, mediaType: 'video', kind: 'file', videoSrc: '/video.mp4', alt: 'Video'
+    }]} />);
+    await act(async () => asciiArtGeneratorSpy.mock.calls.at(-1)![0].onAsciiClickStart());
+    expect(document.querySelector('video')).toBeNull();
+    await act(async () => vi.advanceTimersByTime(1100));
+    expect(document.querySelector('video')).not.toBeNull();
+  });
+
+  it('settles first-entry centering before starting either fade', async () => {
+    window.location.hash = '#/coffee';
+    render(<PhotoModeScene textContent={[]} asciiClickTargets={['hero']} centerOnEnter initialScrollTargetId="target" photoItems={[{
+      id: 'coffee', anchorName: 'hero', lowSrc: '/coffee.png', highSrc: '/coffee.png', alt: 'Coffee'
+    }]} />);
+    await act(async () => asciiArtGeneratorSpy.mock.calls.at(-1)![0].onAsciiClickStart());
+    expect(getLatestScrollToOffset()).not.toBeNull();
+    expect(photorealisticLayerSpy.mock.calls.at(-1)![0].opacity).toBe(0);
+    await act(async () => vi.advanceTimersByTime(50));
+    expect(photorealisticLayerSpy.mock.calls.at(-1)![0].opacity).toBe(1);
+  });
+
   it('recenters the active photo entry target after viewport resize', async () => {
     render(
       <PhotoModeScene

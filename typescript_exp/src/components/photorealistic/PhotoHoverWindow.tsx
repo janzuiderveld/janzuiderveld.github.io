@@ -21,6 +21,7 @@ const NOISE_SCALE = 0.18;
 const MIN_RADIUS = 110;
 const RADIUS_SCALE = 4;
 const TOUCH_RADIUS = 680;
+const TOUCH_MOTION_TIME_SCALE = 2;
 
 export const getPhotoHoverRadiusPx = (isTouch = false) => {
   const { charWidth } = getCurrentCharMetrics();
@@ -107,7 +108,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
       let baseRadius = isActive ? getPhotoHoverRadiusPx() : 0;
       if (isTouch) {
         const elapsed = previousTime === null ? 0 : Math.min((time - previousTime) / 1000, 0.1);
-        const reveal = advanceReveal(revealRef.current.amount, revealRef.current.velocity, isActive ? 1 : 0, elapsed);
+        const reveal = advanceReveal(revealRef.current.amount, revealRef.current.velocity, isActive ? 1 : 0, elapsed / TOUCH_MOTION_TIME_SCALE);
         if ((!isActive && reveal.amount <= 0) || document.hidden) {
           reveal.amount = 0;
           reveal.velocity = 0;

@@ -331,7 +331,15 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
           style={style}
           loading="eager"
           decoding="async"
-          onLoad={onLoad}
+          onLoad={event => {
+            // Warm the primary artwork while the layer is hidden. Decoding all
+            // offscreen gallery images here would waste memory on older phones.
+            const image = event.currentTarget;
+            if (item === items[0] && typeof image.decode === 'function') {
+              image.decode().catch(() => {});
+            }
+            onLoad?.();
+          }}
         />
       );
 
@@ -348,8 +356,16 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
 
     return (
       <div key={item.id} data-photo-image="true" style={baseStyle}>
-        {showLowRes && renderImage(item.lowSrc, lowStyle)}
-        {shouldShowHighRes && renderImage(item.highSrc, highStyle, () => markHighResLoaded(item.id))}
+        {item.lowSrc === item.highSrc ? (
+          // Most project images have one source. Keep its decoded DOM image
+          // ready under the hidden layer instead of swapping two copies on entry.
+          renderImage(item.highSrc, { ...highStyle, opacity: 1, transition: undefined })
+        ) : (
+          <>
+            {showLowRes && renderImage(item.lowSrc, lowStyle)}
+            {shouldShowHighRes && renderImage(item.highSrc, highStyle, () => markHighResLoaded(item.id))}
+          </>
+        )}
       </div>
     );
   };

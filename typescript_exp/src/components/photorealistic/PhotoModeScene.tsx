@@ -264,7 +264,7 @@ const PhotoVideoFrame = ({ item, style, isVisible, onForwardWheel }: PhotoVideoF
 const PhotoModeScene = ({
   textContent,
   photoItems,
-  asciiClickTargets,
+  asciiClickTargets = [],
   maxScrollHeight,
   disablePhotoMode = false,
   autoEnterPhoto = false,
@@ -334,6 +334,8 @@ const PhotoModeScene = ({
   const photoTransformRef = useRef(photoTransform);
   const exitTimeoutRef = useRef<number | null>(null);
   const enterTimeoutRef = useRef<number | null>(null);
+  const enterFrameRef = useRef<number | null>(null);
+  const enterStartedAtRef = useRef(0);
   const saveFlashTimeoutRef = useRef<number | null>(null);
   const photoHistoryPushedRef = useRef(false);
   const exitRequestedRef = useRef(false);
@@ -344,7 +346,6 @@ const PhotoModeScene = ({
   const hoverFrameRef = useRef<number | null>(null);
   const hoverPointerActiveRef = useRef(false);
   const hoverItemsRef = useRef<PhotoLayerItem[]>([]);
-  const photoEntryItemsRef = useRef<PhotoLayerItem[]>([]);
   const hoverLayoutRef = useRef(photoLayout);
   const hoverScrollOffsetRef = useRef(scrollOffset);
   const initialScrollLockRef = useRef(false);
@@ -548,15 +549,6 @@ const PhotoModeScene = ({
     },
     [alignedPhotoItems, hoverPreviewEnabled, resolvedAlignmentTargetId]
   );
-  const photoEntryItems = useMemo(
-    () => {
-      if (!resolvedAlignmentTargetId) {
-        return [];
-      }
-      return alignedPhotoItems.filter(item => item.id === resolvedAlignmentTargetId);
-    },
-    [alignedPhotoItems, resolvedAlignmentTargetId]
-  );
   const photoImageItems = useMemo(
     () => alignedPhotoItems.filter(isImagePhotoItem),
     [alignedPhotoItems]
@@ -592,10 +584,6 @@ const PhotoModeScene = ({
     hoverItemsRef.current = hoverPreviewItems;
   }, [hoverPreviewItems]);
 
-  useEffect(() => {
-    photoEntryItemsRef.current = photoEntryItems;
-  }, [photoEntryItems]);
-
   const computeTargetScrollOffset = useCallback(() => {
     if (!initialScrollTargetId) {
       return null;
@@ -614,16 +602,16 @@ const PhotoModeScene = ({
 
   const maybeCenterScroll = useCallback((force: boolean) => {
     if (!initialScrollTargetId) {
-      return;
+      return false;
     }
     const bounds = mergedPhotoLayout.rawBounds[initialScrollTargetId];
     const { charHeight } = getCurrentCharMetrics();
     if (!bounds || !charHeight || !window.innerHeight) {
-      return;
+      return false;
     }
     const targetOffset = computeTargetScrollOffset();
     if (targetOffset == null) {
-      return;
+      return false;
     }
     if (!force) {
       const topPx = bounds.minY * charHeight - scrollOffset;
@@ -632,10 +620,12 @@ const PhotoModeScene = ({
         ? Math.max(0, initialScrollPaddingRows) * charHeight
         : 0;
       if (topPx >= paddingPx && bottomPx <= window.innerHeight) {
-        return;
+        return false;
       }
     }
+    if (Math.abs(targetOffset - scrollOffset) < 0.5) return false;
     setScrollToOffset(targetOffset);
+    return true;
   }, [
     computeTargetScrollOffset,
     initialScrollAlignment,
@@ -794,13 +784,15 @@ const PhotoModeScene = ({
       return false;
     }
 
-    return Boolean(resolvePhotoItemAtPoint(
-      photoEntryItemsRef.current,
-      clientX,
-      clientY,
-      getPhotoHoverRadiusPx()
-    ));
-  }, [photoModeEnabled, resolvePhotoItemAtPoint]);
+    const { charWidth, charHeight } = getCurrentCharMetrics();
+    return asciiClickTargets.some(name => {
+      const bounds = hoverLayoutRef.current.rawBounds[name];
+      if (!bounds) return false;
+      const top = bounds.minY * charHeight - (bounds.fixed ? 0 : hoverScrollOffsetRef.current);
+      return clientX >= bounds.minX * charWidth && clientX < (bounds.maxX + 1) * charWidth
+        && clientY >= top && clientY < top + (bounds.maxY - bounds.minY + 1) * charHeight;
+    });
+  }, [asciiClickTargets, photoModeEnabled]);
 
   const updateHoverTarget = useCallback(() => {
     hoverFrameRef.current = null;
@@ -823,7 +815,8 @@ const PhotoModeScene = ({
   }, [updateHoverTarget]);
 
   const completePhotoEnter = useCallback(() => {
-    if (!photoModeEnabled || photoStateRef.current !== 'entering') {
+    if (!photoModeEnabled || photoStateRef.current !== 'entering'
+      || Date.now() - enterStartedAtRef.current < PHOTO_ENTER_FADE_DURATION) {
       return;
     }
     if (enterTimeoutRef.current) {
@@ -837,28 +830,30 @@ const PhotoModeScene = ({
   }, [photoModeEnabled]);
 
   const beginPhotoEnter = useCallback(() => {
-    if (!photoModeEnabled || photoStateRef.current !== 'ascii') {
+    if (!photoModeEnabled || photoStateRef.current !== 'ascii' || enterFrameRef.current !== null) {
       return;
     }
     photoParamActiveRef.current = hasPhotoHashParam();
-    if (centerOnEnter) {
-      maybeCenterScroll(false);
-    }
-    if (enterTimeoutRef.current) {
-      clearTimeout(enterTimeoutRef.current);
-      enterTimeoutRef.current = null;
-    }
-    photoStateRef.current = 'entering';
-    setPhotoState('entering');
-    setShowHighRes(true);
-    setPhotoOpacityTransition(`opacity ${PHOTO_ENTER_FADE_DURATION}ms linear`);
-    setPhotoOpacity(0);
-    requestAnimationFrame(() => {
+    const startFade = () => {
+      enterFrameRef.current = null;
+      if (photoStateRef.current !== 'ascii') return;
+      if (enterTimeoutRef.current) clearTimeout(enterTimeoutRef.current);
+      enterStartedAtRef.current = Date.now();
+      photoStateRef.current = 'entering';
+      setPhotoState('entering');
+      setShowHighRes(true);
+      setPhotoOpacityTransition(`opacity ${PHOTO_ENTER_FADE_DURATION}ms linear`);
+      // This layer already exists at zero opacity. Start both fades together.
       setPhotoOpacity(1);
-    });
-    enterTimeoutRef.current = window.setTimeout(() => {
-      completePhotoEnter();
-    }, PHOTO_ENTER_FADE_DURATION);
+      enterTimeoutRef.current = window.setTimeout(completePhotoEnter, PHOTO_ENTER_FADE_DURATION);
+    };
+    if (centerOnEnter && maybeCenterScroll(false)) {
+      // Let the scroll command commit and the ASCII renderer draw its new row
+      // before revealing the photo, especially on the first centered entry.
+      enterFrameRef.current = requestAnimationFrame(() => {
+        enterFrameRef.current = requestAnimationFrame(startFade);
+      });
+    } else startFade();
   }, [centerOnEnter, completePhotoEnter, hasPhotoHashParam, maybeCenterScroll, photoModeEnabled]);
 
   const handleAsciiClickStart = useCallback(() => {
@@ -886,6 +881,10 @@ const PhotoModeScene = ({
 
   useEffect(() => {
     if (!photoModeEnabled) {
+      if (enterFrameRef.current !== null) {
+        cancelAnimationFrame(enterFrameRef.current);
+        enterFrameRef.current = null;
+      }
       return;
     }
 
@@ -1307,6 +1306,7 @@ const PhotoModeScene = ({
 
   useEffect(() => {
     return () => {
+      if (enterFrameRef.current !== null) cancelAnimationFrame(enterFrameRef.current);
       if (enterTimeoutRef.current) {
         clearTimeout(enterTimeoutRef.current);
       }
@@ -1320,6 +1320,8 @@ const PhotoModeScene = ({
   }, []);
 
   const alignmentPhotoActive = photoModeEnabled && photoState === 'ascii' && alignmentMode;
+  // Both layers must use the same character rows while they overlap.
+  const photoScrollOffset = photoState === 'photo' ? scrollOffset : asciiScrollOffset;
   const exportPhotoLayerVisible = photoModeEnabled
     && photoState === 'ascii'
     && alwaysVisiblePhotoItems.length > 0;
@@ -1445,7 +1447,11 @@ const PhotoModeScene = ({
       const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
       const top = (bounds.minY + (item.offsetY ?? 0)) * charHeight;
       const isFixed = item.fixed ?? bounds.fixed;
-      const transform = isFixed ? 'none' : `translate3d(0, ${-scrollOffset}px, 0)`;
+      const screenTop = top - (isFixed ? 0 : photoScrollOffset);
+      if (photoState === 'entering' && (screenTop >= window.innerHeight || screenTop + height <= 0)) {
+        return null;
+      }
+      const transform = isFixed ? 'none' : `translate3d(0, ${-photoScrollOffset}px, 0)`;
 
       return (
         <PhotoVideoFrame
@@ -1476,7 +1482,8 @@ const PhotoModeScene = ({
     photoLayerOpacity,
     photoLayerTransition,
     photoVideoItems,
-    scrollOffset,
+    photoScrollOffset,
+    photoState,
     showPhotoVideos
   ]);
 
@@ -1533,7 +1540,7 @@ const PhotoModeScene = ({
         <PhotorealisticLayer
           items={photoLayerItems}
           layout={mergedPhotoLayout}
-          scrollOffset={photoState === 'ascii' ? asciiScrollOffset : scrollOffset}
+          scrollOffset={photoScrollOffset}
           isVisible={showPhotorealisticLayer}
           showHighRes={photoLayerHighRes}
           isInteractive={photoLayerInteractive}

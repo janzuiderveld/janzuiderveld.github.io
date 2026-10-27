@@ -441,10 +441,9 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       return [];
     }
 
-    const { charWidth: fallbackCharWidth, charHeight } = getCurrentCharMetrics();
-    const measuredCharWidth = textPositionCache.gridCols > 0 && size.width
-      ? size.width / textPositionCache.gridCols
-      : fallbackCharWidth;
+    // gridCols includes horizontal overflow storage (twice the visible grid).
+    // Dividing the viewport by that value halves the clickable artwork width.
+    const { charWidth: measuredCharWidth, charHeight } = getCurrentCharMetrics();
 
     if (!measuredCharWidth || !charHeight) {
       return [];
@@ -454,8 +453,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
       && typeof window.matchMedia === 'function'
       && window.matchMedia('(pointer: coarse)').matches;
     const viewportHeight = size.height || (typeof window !== 'undefined' ? window.innerHeight : 0);
-    const hitPaddingX = Math.ceil(measuredCharWidth * (coarsePointer ? 2.2 : 1.35));
-    const hitPaddingY = Math.ceil(charHeight * (coarsePointer ? 2.1 : 1.2));
     const actualScrollY = Math.floor(scrollOffset / charHeight);
     const viewportRows = viewportHeight / charHeight;
     const visibilityBufferRows = coarsePointer ? 8 : 5;
@@ -474,10 +471,10 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         return [];
       }
 
-      const left = Math.max(0, Math.floor(bounds.minX * measuredCharWidth) - hitPaddingX);
-      const top = Math.floor(minRow * charHeight) - hitPaddingY;
-      const width = Math.ceil((bounds.maxX - bounds.minX + 1) * measuredCharWidth) + hitPaddingX * 2;
-      const height = Math.ceil((maxRow - minRow + 1) * charHeight) + hitPaddingY * 2;
+      const left = Math.max(0, Math.floor(bounds.minX * measuredCharWidth));
+      const top = Math.floor(minRow * charHeight);
+      const width = Math.ceil((bounds.maxX - bounds.minX + 1) * measuredCharWidth);
+      const height = Math.ceil((maxRow - minRow + 1) * charHeight);
 
       if (width <= 0 || height <= 0) {
         return [];
@@ -501,7 +498,6 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     scrollOffset,
     size.height,
     size.width,
-    textPositionCache.gridCols
   ]);
 
   // Links management
@@ -1072,6 +1068,7 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
                 WebkitTouchCallout: 'none'
               }}
               onClick={e => {
+                if (asciiClickHitTest && !asciiClickHitTest(e.clientX, e.clientY)) return;
                 e.preventDefault();
                 e.stopPropagation();
                 (e.nativeEvent as MouseEvent).stopImmediatePropagation?.();

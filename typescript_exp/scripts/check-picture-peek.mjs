@@ -100,7 +100,8 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     assert.ok(growth.find(sample => sample.active)?.width < fingerWidth * 0.15, `${name}: touch peek must start near zero`);
     assert.ok(growth.some(sample => sample.elapsed > 80 && sample.elapsed < 220
       && sample.width > fingerWidth * 0.15 && sample.width < fingerWidth * 0.9), `${name}: grow smoothly rather than appearing instantly`);
-    assert.ok(growth.some(sample => sample.elapsed < 550 && sample.width > fingerWidth * 0.9), `${name}: grow faster than one second`);
+    assert.ok(growth.some(sample => sample.elapsed > 200 && sample.elapsed < 300 && sample.width < fingerWidth * 0.8), `${name}: give the spring time to unfold`);
+    assert.ok(growth.some(sample => sample.elapsed < 850 && sample.width > fingerWidth * 0.9), `${name}: reach full size within a second`);
     const coverage = await page.locator(`${active} > div`).evaluate(element => {
       const numbers = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number);
       const polygon = numbers.filter((_, i) => i % 2 === 0).map((x, i) => [x, numbers[i * 2 + 1]]);
@@ -129,7 +130,7 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
       return Math.max(...xs) - Math.min(...xs);
     });
     assert.ok(closingWidth > fingerWidth * 0.1, `${name}: release should shrink instead of disappearing instantly`);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(550);
     const closedWidth = await page.locator('[data-photo-peek] > div').evaluate(element => {
       const xs = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number).filter((_, i) => i % 2 === 0);
       return Math.max(...xs) - Math.min(...xs);
