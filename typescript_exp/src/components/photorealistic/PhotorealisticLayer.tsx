@@ -73,6 +73,7 @@ type PhotorealisticLayerProps = {
   onLayerClick?: (origin: { x: number; y: number }) => void;
   onLayerTouchEnd?: (origin: { x: number; y: number }) => void;
   onForwardWheel?: (event: WheelEvent) => void;
+  onForwardTouch?: (event: TouchEvent) => void;
   zIndex?: number;
 };
 
@@ -174,6 +175,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
   onLayerClick,
   onLayerTouchEnd,
   onForwardWheel,
+  onForwardTouch,
   zIndex = 2
 }) => {
   const { charWidth, charHeight } = getCurrentCharMetrics();
@@ -357,6 +359,9 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
   const effectiveOpacity = typeof opacity === 'number' ? opacity : (isVisible ? 1 : 0);
   const transition = opacityTransition ?? (isVisible ? 'opacity 0.2s ease' : 'opacity 0s');
 
+  const inputHandlersRef = useRef({ onForwardWheel, onForwardTouch, onLayerClick, onLayerTouchEnd });
+  inputHandlersRef.current = { onForwardWheel, onForwardTouch, onLayerClick, onLayerTouchEnd };
+
   useEffect(() => {
     const node = inputShieldRef.current;
     if (!node || !isInteractive) {
@@ -370,6 +375,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     }
 
     const handleClick = (event: MouseEvent) => {
+      const { onLayerClick } = inputHandlersRef.current;
       if (performance.now() < suppressClickUntilRef.current || !onLayerClick) {
         return;
       }
@@ -380,6 +386,8 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     };
 
     const handleWheel = (event: WheelEvent) => {
+      const { onForwardWheel } = inputHandlersRef.current;
+      if (event.ctrlKey) return;
       if (!onForwardWheel) {
         return;
       }
@@ -399,6 +407,7 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     };
 
     const handleTouchStart = (event: TouchEvent) => {
+      inputHandlersRef.current.onForwardTouch?.(event);
       if (event.touches.length !== 1) {
         resetTouchGesture();
         return;
@@ -413,6 +422,8 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     };
 
     const handleTouchMove = (event: TouchEvent) => {
+      const { onForwardTouch, onForwardWheel } = inputHandlersRef.current;
+      onForwardTouch?.(event);
       const gesture = touchGestureRef.current;
       if (!gesture.active || event.touches.length !== 1) {
         return;
@@ -426,6 +437,12 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
         gesture.moved = true;
       }
       gesture.lastY = touch.clientY;
+      if (onForwardTouch) {
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return;
+      }
       if (!onForwardWheel || Math.abs(deltaY) <= 0.5) {
         return;
       }
@@ -440,12 +457,16 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
     };
 
     const handleTouchEnd = (event: TouchEvent) => {
+      const { onForwardTouch, onLayerTouchEnd } = inputHandlersRef.current;
+      onForwardTouch?.(event);
       const gesture = touchGestureRef.current;
       if (!gesture.active) {
         return;
       }
       const touch = Array.from(event.changedTouches).find(candidate => candidate.identifier === gesture.identifier);
       const shouldExit = !gesture.moved && Boolean(onLayerTouchEnd) && Boolean(touch);
+      // Some touch browsers synthesize a click after release, even after a drag.
+      if (gesture.moved) suppressClickUntilRef.current = performance.now() + 400;
       resetTouchGesture();
       if (!shouldExit || !touch || !onLayerTouchEnd) {
         return;
@@ -456,13 +477,17 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       event.stopImmediatePropagation();
       onLayerTouchEnd({ x: touch.clientX, y: touch.clientY });
     };
+    const handleTouchCancel = (event: TouchEvent) => {
+      inputHandlersRef.current.onForwardTouch?.(event);
+      resetTouchGesture();
+    };
 
     node.addEventListener('click', handleClick, { capture: true });
     node.addEventListener('wheel', handleWheel, { capture: true, passive: false });
     node.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
     node.addEventListener('touchmove', handleTouchMove, { capture: true, passive: false });
     node.addEventListener('touchend', handleTouchEnd, { capture: true, passive: false });
-    node.addEventListener('touchcancel', resetTouchGesture, { capture: true });
+    node.addEventListener('touchcancel', handleTouchCancel, { capture: true });
 
     return () => {
       node.removeEventListener('click', handleClick, { capture: true });
@@ -470,9 +495,9 @@ const PhotorealisticLayer: React.FC<PhotorealisticLayerProps> = ({
       node.removeEventListener('touchstart', handleTouchStart, { capture: true });
       node.removeEventListener('touchmove', handleTouchMove, { capture: true });
       node.removeEventListener('touchend', handleTouchEnd, { capture: true });
-      node.removeEventListener('touchcancel', resetTouchGesture, { capture: true });
+      node.removeEventListener('touchcancel', handleTouchCancel, { capture: true });
     };
-  }, [isInteractive, onForwardWheel, onLayerClick, onLayerTouchEnd]);
+  }, [isInteractive]);
 
   return (
     <div

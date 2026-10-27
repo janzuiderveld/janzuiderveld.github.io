@@ -70,13 +70,13 @@ vi.mock('./pages/ConstructionPage', () => ({
 }));
 
 vi.mock('./components/CompatibilityOverlay', () => ({
-  default: () => null
+  default: () => <div data-testid="compatibility-warning">Unsupported browser</div>
 }));
 
 vi.mock('./utils/compatibility', () => ({
   COMPATIBILITY_MESSAGE: '',
-  hasSeenCompatibilityMessage: () => true,
-  supportsPrimaryExperienceBrowser: () => true,
+  hasSeenCompatibilityMessage: () => false,
+  supportsPrimaryExperienceBrowser: () => false,
   markCompatibilityMessageSeen: vi.fn()
 }));
 
@@ -85,31 +85,36 @@ vi.mock('./pages/BiodieseLLMPage', () => ({
 }));
 
 describe('App routes', () => {
-  it('renders BiodieseLLM at its public route, including photo entry', () => {
+  it('does not gate the site behind the old browser allowlist warning', () => {
+    render(<MemoryRouter><App /></MemoryRouter>);
+    expect(screen.getByText('Home Page')).toBeInTheDocument();
+    expect(screen.queryByTestId('compatibility-warning')).toBeNull();
+  });
+  it('renders BiodieseLLM at its public route, including photo entry', async () => {
     const view = render(<MemoryRouter initialEntries={['/biodiesellm']}><App /></MemoryRouter>);
-    expect(screen.getByText('BiodieseLLM Page')).toBeInTheDocument();
+    expect(await screen.findByText('BiodieseLLM Page')).toBeInTheDocument();
     view.unmount();
     render(<MemoryRouter initialEntries={['/biodiesellm?photo=1']}><App /></MemoryRouter>);
-    expect(screen.getByText('BiodieseLLM Page')).toBeInTheDocument();
+    expect(await screen.findByText('BiodieseLLM Page')).toBeInTheDocument();
   });
-  it('renders the hidden upcoming-only page at /up', () => {
+  it('renders the hidden upcoming-only page at /up', async () => {
     render(
       <MemoryRouter initialEntries={['/up']}>
         <App />
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Upcoming Page')).toBeInTheDocument();
+    expect(await screen.findByText('Upcoming Page')).toBeInTheDocument();
   });
 
-  it('renders the vending demo page as an embedded video only view', () => {
+  it('renders the vending demo page as an embedded video only view', async () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/vending-demo']}>
         <App />
       </MemoryRouter>
     );
 
-    const iframe = screen.getByTitle('Vending demo video');
+    const iframe = await screen.findByTitle('Vending demo video');
 
     expect(iframe.tagName).toBe('IFRAME');
     expect(iframe).toHaveAttribute('src', VENDING_DEMO_EMBED_SRC);

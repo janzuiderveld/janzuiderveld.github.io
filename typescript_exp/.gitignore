@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+tmp/performance-before/
+tmp/browser-performance/
+tmp/browser-verification/
 *.local
 
 # Editor directories and files

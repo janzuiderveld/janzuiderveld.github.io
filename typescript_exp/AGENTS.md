@@ -3,8 +3,9 @@
 ## Core Experience
 - This site is ASCII-first. Keep the primary UI on a monospaced character grid: titles, navigation, tables, illustrations, frames, and overlays should read as text art, not standard web widgets.
 - Photorealistic media is a secondary layer. Current project pages expose it through `[[VISUALS]]` and `#/slug?photo=1`. Do not replace ASCII navigation or layout with conventional DOM UI unless explicitly asked.
-- Safari now follows the same supported path as Chromium across desktop and mobile, including project click/tap-to-photo entry and `?photo=1` routes. Unsupported browsers can still show the compatibility overlay.
+- Support Chrome, Safari, Edge, Firefox and mobile browsers without a user-agent compatibility warning. The old `supportsPrimaryExperienceBrowser` allowlist excluded all Android browsers and Firefox; its warning was present even in the current bundle, so it was not evidence of stale deployment.
 - Photo mode now depends on a transparent input shield inside `src/components/photorealistic/PhotorealisticLayer.tsx` to forward wheel/touch scrolling and click/tap exit while leaving video wrappers above it interactive. Keep that layering intact when changing photo mode.
+- Forward complete photo touch gestures with `forwardTouchToScroll`; converting moves into wheels discards release velocity. `useScrolling` integrates velocity in pixels/ms with time-based decay, samples recent motion, cancels on multi-touch/cancel/blur/outside media touches, and reads current bounds/callbacks without restarting an active gesture. Native wheel events already contain trackpad inertia; do not add a second fling. Normalize wheel line/page units.
 - When a photo-mode hero image looks missing below a video because the source PNG has large transparent margins, crop the rendered image content with `contentInsets` on the photo item. Do not move the saved `align` offsets or the wrapper bounds just to compensate for transparent padding in the asset.
 - Transitions matter. The app uses white-in / white-out effects and route-entry animations; let the page settle before judging layout or capturing screenshots.
 - Load white-in coordination now goes through `src/components/ascii-art2/autoWhiteIn.ts`. If you add another automatic white-in entry point, mark the current page as already handled before any async delay or remount boundary, or the intro can replay twice on dev remounts and other fast reload paths.
@@ -12,6 +13,7 @@
 - Zoomed-out browser views make the ASCII grid much larger. Do not reparse the full frame HTML on every animation tick; reuse the `<pre>` text/link/span nodes and update their text values so the in-app browser does not flicker under zoom.
 - At Chrome zoom levels below 100%, the link/text style map can briefly report empty while the visible frame is otherwise unchanged. Preserve the existing styled `<pre>` node structure only when the current frame still has the same text characters at those styled cells; otherwise stale link wrappers can display animated background glyphs such as `rjrjr` instead of `ABOUT`.
 - `useAnimation` effects can restart while an already-queued animation frame is too late to cancel. Keep an effect-local active flag plus the per-`<pre>` writer token check before rendering or scheduling the next frame, or stale loops can keep writing older plain/styled frame structures into the current `<pre>`.
+- Preserve the fractional 60 Hz render deadline with timestamp tolerance. Comparing rounded deltas directly to `1000 / 60`, or deliberately dropping every third scrolling frame, causes visible stutter. Test 60 Hz and high-refresh displays; skip hidden-tab work and retain existing glyph/DOM output.
 - Same-size `resize` / `visualViewport.resize` events must be a no-op for `AsciiArtGenerator` size state. Creating a fresh `{ width, height }` object for unchanged dimensions invalidates text positioning, restarts animation, and can reintroduce low-zoom flicker.
 - Keep the frame DOM cache associated with the actual `<pre>` element, not only one hook effect ref. A restarted writer can otherwise lose the styled node structure and replace the same element with plain text before the next styled frame.
 - Use one scroll-offset snapshot for link placement and character lookup inside a frame. Reading `scrollOffsetRef.current` again from the character calculator can wrap links around a different scroll row during inertia/layout correction.
@@ -20,6 +22,7 @@
 - Preserve the historical frame-cell stringification behavior. If the background character map returns `undefined`, the visible ASCII output should show the literal text `undefined`; do not serialize frame rows with `Array.join('')` or `?? ''` because those collapse undefined cells to empty space.
 
 ## Local Serving And Verification
+- Design regression tests before implementation changes, then run the relevant suite and the real browser path. Unit tests alone do not verify touch scrolling, photo-layer event forwarding, rendering cadence or deployment caching. Use the project-root `.venv` for any Python commands.
 - The app is served locally at `http://localhost:3000/`. Do not assume Vite defaults to `5173`; `vite.config.ts` pins the dev server to `3000`.
 - If port 3000 is occupied, Vite can start on 3001 while 3000 continues serving another worktree. Check the startup URL and verify the served CSV against this checkout before browser validation. Leave the other worktree's server running; use this server's actual port. The fixed HMR port 5176 can also collide across worktrees, so reload explicitly if HMR is unavailable.
 - On Node 25 in the current Codex environment, Node exposes a broken built-in `localStorage` unless `--localstorage-file` receives a valid path. A plain full `npm test` can therefore fail every `PhotoModeScene` test with `window.localStorage.getItem is not a function`. Run the full suite with a fresh explicit file, for example `task_storage_path=$(mktemp -t codex-node-localstorage.XXXXXX) && NODE_OPTIONS="--localstorage-file=$task_storage_path" npm test`.
@@ -32,7 +35,7 @@
   - `npm run safari:webkit` for Playwright WebKit
   - `npm run safari:real` for real Safari through `safaridriver`
   - `npm run safari:stp` for Safari Technology Preview through `safaridriver`
-- For Safari/WebKit animation work, trust the `<pre>` redraw metrics from `npm run safari:webkit`, not the raw page `requestAnimationFrame` count. The renderer intentionally self-throttles on Safari, so page `rAF` can still read ~60fps while visible ASCII redraws are lower.
+- Use `npm run check:browsers` to measure actual `<pre>` mutations in Chromium, Firefox and WebKit. Raw page rAF counts and the legacy `safari:webkit` innerHTML-only probe do not measure the renderer's cached text-node updates. See README for production-build, touch, cache-recovery and visual-parity checks.
 - Hover reveal checks should only be expected on hover-capable devices. Touch devices should enter photo mode through links or taps instead of hover.
 - Real Safari automation still needs one manual macOS step: `safaridriver --enable` (password prompt) and possibly `Develop > Allow Remote Automation` inside Safari.
 - `xctrace` is present on the machine but not usable until full Xcode is selected; Command Line Tools alone are not enough.
@@ -153,7 +156,9 @@
 - `vite.config.ts` uses `base: '/'` because deployment copies the build output into the parent repository root.
 - GitHub Pages should serve the `gh-pages` branch at `/`. The `Build and Deploy` workflow builds `typescript_exp/dist` and publishes that compact output to `gh-pages` with `clean: true`; do not point Pages back at `main /`, because the tracked source repo is too large for the Pages artifact and the legacy Pages deployment can fail above the 1 GB limit.
 - If `warana.xyz` still serves an old bundle after a push, check `gh run list`, `gh api repos/janzuiderveld/janzuiderveld.github.io/pages --jq '.source'`, and `gh api repos/janzuiderveld/janzuiderveld.github.io/pages/builds/latest`. If Pages is already pointed at `gh-pages`, trigger a rebuild with `gh api --method POST repos/janzuiderveld/janzuiderveld.github.io/pages/builds` and verify the public `index.html` references the current `assets/index-*.js`.
-- GitHub Pages currently serves `upcoming_exhibitions.csv` with `cache-control: max-age=14400`. A browser that loaded the page before a deployment can therefore render the old event list for up to four hours even when the new CSV and bundle are live. Verify the deployed CSV with a cache-busting query and use a clean browser profile (or clear the site's cached data) for immediate end-to-end checks.
+- Mutable CSVs use `fetch(..., { cache: 'no-cache' })` to revalidate; leave fingerprinted images/scripts cacheable. Pages HTML has a ten-minute cache lifetime in the October 2026 live check. The build emits `site-version.json`; production checks it without cache on entry and return to the tab, preserves the hash route when refreshing, and guards against reload loops. Keep that manifest and entry bundle from the same build. There is no service worker.
+- Test removed lazy-chunk recovery with two actual builds, as `check:updates` does. WebKit may retain a failed module URL across reloads; returning 404 once and then re-serving the identical script URL does not model a deployment with new content hashes. Use a new route that has not already been imported so the failed network request is actually exercised.
+- Project routes load lazily while Home remains eager. Vite targets Chrome 64, Edge 79, Firefox 67 and Safari 12 syntax; this is a compilation target, not certification on those historical engines. Avoid unguarded ES2019 APIs (`Object.fromEntries`, `Array.flatMap`) in the startup path. Vite's generated lazy-chunk preloader uses `Promise.allSettled` despite an older syntax target, so `main.tsx` imports its core-js polyfill before the app. `check:older-browsers` removes those APIs and ResizeObserver in a real Chromium session, but does not substitute for a physical old phone.
 - `deploy.sh` publishes from the parent repo, not from `typescript_exp` alone. It:
   1. builds inside `typescript_exp`
   2. changes to the parent repo
@@ -173,7 +178,7 @@
 - ASCII layout is fragile. After edits, check:
   - link overlays still line up with visible text
   - anchored text blobs do not collide on desktop
-  - mobile/tall view either behaves intentionally or shows the compatibility overlay intentionally on unsupported browsers
+  - mobile/tall views retain their intended layout without browser-name compatibility warnings
   - photorealistic mode enters and exits cleanly
 
 ALWAYS UPDATE THIS FILE WHEN PROJECT GUIDELINES CHANGE, OR YOU LEARN NEW THINGS THAT SHOULD BE DOCUMENTED FOR FUTURE CONTRIBUTORS.

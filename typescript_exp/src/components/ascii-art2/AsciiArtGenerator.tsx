@@ -460,7 +460,8 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
     const viewportRows = viewportHeight / charHeight;
     const visibilityBufferRows = coarsePointer ? 8 : 5;
 
-    return asciiClickTargets.flatMap(name => {
+    const targets: Array<{ name: string; left: number; top: number; width: number; height: number }> = [];
+    asciiClickTargets.forEach(name => {
       const bounds = namedRawBounds[name];
       if (!bounds) {
         return [];
@@ -482,14 +483,15 @@ const AsciiArtGenerator: React.FC<AsciiArtGeneratorProps> = ({
         return [];
       }
 
-      return [{
+      targets.push({
         name,
         left,
         top,
         width,
         height
-      }];
+      });
     });
+    return targets;
   }, [
     asciiClickTargets,
     hasAsciiClickHandlers,

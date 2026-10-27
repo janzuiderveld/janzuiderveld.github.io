@@ -1,3 +1,10 @@
+// Avoid ES2019 Object.fromEntries on older Android/iOS engines.
+const lowercaseGlyphs = (glyphs: Record<string, string[]>): Record<string, string[]> => {
+  const lower: Record<string, string[]> = {};
+  Object.keys(glyphs).forEach(key => { lower[key.toLowerCase()] = glyphs[key]; });
+  return lower;
+};
+
 /**
  * ASCII Font Definitions
  * Contains character sets for ASCII art text rendering
@@ -1039,9 +1046,7 @@ const blockAsciiDouble: Record<string, string[]> = {
     ]
   };
 
-const blockAsciiDoubleLower = Object.fromEntries(
-  Object.entries(blockAsciiDouble).map(([key, value]) => [key.toLowerCase(), value]),
-) as Record<string, string[]>;
+const blockAsciiDoubleLower = lowercaseGlyphs(blockAsciiDouble);
 
 export const blockAsciiDoubleChars: Record<string, string[]> = {
   ...blockAsciiDouble,
@@ -1055,9 +1060,7 @@ export const blockAsciiDoubleChars: Record<string, string[]> = {
   ],
 };
 
-const blockAsciiLower = Object.fromEntries(
-  Object.entries(blockAsciiUpper).map(([key, value]) => [key.toLowerCase(), value]),
-) as Record<string, string[]>;
+const blockAsciiLower = lowercaseGlyphs(blockAsciiUpper);
 
 export const blockAsciiChars: Record<string, string[]> = {
   ...blockAsciiUpper,
@@ -1257,9 +1260,7 @@ const outlineAsciiUpper: Record<string, string[]> = {
   ],
 };
 
-const outlineAsciiLower = Object.fromEntries(
-  Object.entries(outlineAsciiUpper).map(([key, value]) => [key.toLowerCase(), value]),
-) as Record<string, string[]>;
+const outlineAsciiLower = lowercaseGlyphs(outlineAsciiUpper);
 
 export const outlineAsciiChars: Record<string, string[]> = {
   ...outlineAsciiUpper,
@@ -1407,9 +1408,7 @@ const lineAsciiUpper: Record<string, string[]> = {
   ],
 };
 
-const lineAsciiLower = Object.fromEntries(
-  Object.entries(lineAsciiUpper).map(([key, value]) => [key.toLowerCase(), value]),
-) as Record<string, string[]>;
+const lineAsciiLower = lowercaseGlyphs(lineAsciiUpper);
 
 export const lineAsciiChars: Record<string, string[]> = {
   ...lineAsciiUpper,
@@ -1608,9 +1607,7 @@ const twinRailWireframeUpper: Record<string, string[]> = {
   ],
 };
 
-const twinRailWireframeLower = Object.fromEntries(
-  Object.entries(twinRailWireframeUpper).map(([key, value]) => [key.toLowerCase(), value]),
-) as Record<string, string[]>;
+const twinRailWireframeLower = lowercaseGlyphs(twinRailWireframeUpper);
 
 export const twinRailWireframeChars: Record<string, string[]> = {
   ...twinRailWireframeUpper,

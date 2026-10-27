@@ -399,12 +399,8 @@ export const useAnimation = (
   setLinkClicked?: React.Dispatch<React.SetStateAction<string | null>>,
   shouldOverlayTextCharacters: () => boolean = () => true
 ) => {
-  const lastFrameTimeRef = useRef<number>(0);
-  const frameSkipRef = useRef(0);
+  const nextFrameTimeRef = useRef<number>(0);
   const precomputedRef = useRef<CharacterPrecomputation | null>(null);
-  const safariLastTickRef = useRef(0);
-  const safariFrameAccumulatorRef = useRef(0);
-  const SAFARI_FRAME_INTERVAL = 1000 / 60;
   const lastActiveRowsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const lastActiveColsRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
   const frameDomCacheRef = useRef<FrameDomCache | null>(null);
@@ -557,47 +553,22 @@ export const useAnimation = (
         return;
       }
 
-      if (IS_SAFARI) {
-        if (safariLastTickRef.current === 0) {
-          safariLastTickRef.current = timestamp;
-        }
-
-        const elapsedSinceSafariTick = timestamp - safariLastTickRef.current;
-        safariLastTickRef.current = timestamp;
-        safariFrameAccumulatorRef.current = Math.min(
-          safariFrameAccumulatorRef.current + Math.max(0, elapsedSinceSafariTick),
-          SAFARI_FRAME_INTERVAL * 2
-        );
-
-        if (safariFrameAccumulatorRef.current < SAFARI_FRAME_INTERVAL) {
-          scheduleNextFrame();
-          return;
-        }
-
-        safariFrameAccumulatorRef.current -= SAFARI_FRAME_INTERVAL;
-      }
-
-      const frameDue = IS_SAFARI || timestamp - lastFrameTimeRef.current >= FRAME_DURATION;
+      // Keep the deadline's fractional remainder. Comparing every rounded rAF
+      // timestamp to 16.666 ms used to discard normal 60 Hz frames. The small
+      // tolerance handles clock precision without rendering at 120/144 Hz.
+      const frameDue = timestamp >= nextFrameTimeRef.current - 0.5;
 
       if (frameDue) {
-        if (isScrolling.current && !IS_SAFARI) {
-          frameSkipRef.current = (frameSkipRef.current + 1) % 3;
-          if (frameSkipRef.current === 2) {
-            scheduleNextFrame();
-            return;
-          }
-        } else {
-          frameSkipRef.current = 0;
-        }
-
         // Skip heavy work when the tab is hidden, but keep timestamps fresh
         if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-          lastFrameTimeRef.current = timestamp;
+          nextFrameTimeRef.current = 0;
           scheduleNextFrame();
           return;
         }
 
-        lastFrameTimeRef.current = timestamp;
+        nextFrameTimeRef.current = timestamp - nextFrameTimeRef.current > FRAME_DURATION
+          ? timestamp + FRAME_DURATION
+          : nextFrameTimeRef.current + FRAME_DURATION;
         clearCharacterCache();
 
         let skipFactor = 1;
@@ -898,8 +869,7 @@ export const useAnimation = (
         frameWriterTokenByElement.delete(element);
       }
       frameDomCacheRef.current = null;
-      safariLastTickRef.current = 0;
-      safariFrameAccumulatorRef.current = 0;
+      nextFrameTimeRef.current = 0;
       element.removeEventListener('click', handleLinkClick);
       document.head.removeChild(style);
     };

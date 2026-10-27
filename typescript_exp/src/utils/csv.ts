@@ -49,7 +49,7 @@ export const parseCsv = (text: string): CsvRecord[] => {
 };
 
 export const loadCsv = async (url: string): Promise<CsvRecord[]> => {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: 'no-cache' });
 
   if (!response.ok) {
     throw new Error(`Failed to load CSV from ${url}: ${response.status}`);

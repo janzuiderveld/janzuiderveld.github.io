@@ -247,10 +247,10 @@ describe('useAnimation lifecycle', () => {
   let nextRafId: number;
   let rafCallbacks: Map<number, FrameRequestCallback>;
 
-  const Harness = ({ marker }: { marker: string }) => {
+  const Harness = ({ marker, scrolling = false, onFrame }: { marker: string; scrolling?: boolean; onFrame?: (time: number) => void }) => {
     const preRef = useRef<HTMLPreElement>(null);
     const scrollOffsetRef = useRef(0);
-    const isScrolling = useRef(false);
+    const isScrolling = useRef(scrolling);
     const scrollVelocity = useRef(0);
     const linkPositionsRef = useRef<LinkPosition[]>([]);
     const textPositionCacheRef = useRef<TextPositionCacheResult>({
@@ -261,7 +261,10 @@ describe('useAnimation lifecycle', () => {
       gridCols: 0,
       offsetY: 0
     });
-    const calculateCharacter = useCallback(() => marker, [marker]);
+    const calculateCharacter = useCallback((x: number, y: number, _cols: number, _rows: number, _aspect: number, time: number) => {
+      if (x === 0 && y === 0) onFrame?.(time);
+      return marker;
+    }, [marker, onFrame]);
 
     useAnimation(
       preRef,
@@ -473,6 +476,29 @@ describe('useAnimation lifecycle', () => {
       staleCallback?.(1040);
     });
     expect(container.querySelector('pre')?.textContent?.startsWith('B')).toBe(true);
+  });
+
+  it.each([false, true])('maintains 60 Hz cadence without dropping rounded frame timestamps (scrolling=%s)', async scrolling => {
+    const times: number[] = [];
+    await act(async () => root.render(React.createElement(Harness, { marker: 'A', scrolling, onFrame: time => times.push(time) })));
+    for (let i = 0; i < 60; i++) {
+      const callbacks = [...rafCallbacks.values()];
+      rafCallbacks.clear();
+      await act(async () => callbacks.forEach(callback => callback(1000 + Math.floor(i * 1000 / 60 * 10) / 10)));
+    }
+    expect(times.length).toBeGreaterThanOrEqual(59);
+  });
+
+  it('caps heavy ASCII rendering at 60 fps on 120 Hz displays', async () => {
+    const times: number[] = [];
+    await act(async () => root.render(React.createElement(Harness, { marker: 'A', onFrame: time => times.push(time) })));
+    for (let i = 0; i < 120; i++) {
+      const callbacks = [...rafCallbacks.values()];
+      rafCallbacks.clear();
+      await act(async () => callbacks.forEach(callback => callback(1000 + i * 1000 / 120)));
+    }
+    expect(times.length).toBeGreaterThanOrEqual(59);
+    expect(times.length).toBeLessThanOrEqual(61);
   });
 
   it('uses one scroll offset snapshot for every character in a frame', async () => {

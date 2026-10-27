@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import AsciiArtGenerator from '../ascii-art2/AsciiArtGenerator';
+import { forwardTouchToScroll } from '../ascii-art2/hooks/useScrolling';
 import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
 import { CHAR_HEIGHT } from '../ascii-art2/constants';
 import PhotorealisticLayer, {
@@ -185,6 +186,10 @@ function PhotorealisticProjectPage({
 
     return (maxY + 1) * CHAR_HEIGHT;
   }, [photoLayout.rawBounds, photoModeEnabled]);
+
+  const forwardPhotoTouch = useCallback((event: TouchEvent) => {
+    forwardTouchToScroll(asciiContainerRef.current, event);
+  }, []);
 
   const forwardPhotoWheel = useCallback((event: WheelEvent) => {
     const container = asciiContainerRef.current;
@@ -378,6 +383,7 @@ function PhotorealisticProjectPage({
               opacityTransition={photoOpacityTransition}
               onLayerClick={requestPhotoExit}
               onLayerTouchEnd={requestPhotoExit}
+              onForwardTouch={forwardPhotoTouch}
               onForwardWheel={forwardPhotoWheel}
             />
           )}

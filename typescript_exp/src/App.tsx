@@ -1,55 +1,41 @@
 // src/App.tsx
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useCallback, useState } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
+import { loadCurrentPage } from './utils/siteUpdates';
 import './App.css'
 
-// Import page components from pages directory
-import BiodieseLLMPage from './pages/BiodieseLLMPage';
-import CameraPage from './pages/CameraPage';
+const lazyPage = (load: () => Promise<{ default: ComponentType }>) => lazy(() =>
+  loadCurrentPage(load, import.meta.env.PROD ? __SITE_BUILD_ID__ : 'development')
+);
+
+// Keep Home eager; load individual artwork pages on demand.
+const BiodieseLLMPage = lazyPage(() => import('./pages/BiodieseLLMPage'));
+const CameraPage = lazyPage(() => import('./pages/CameraPage'));
 import HomePage from './pages/HomePage'; // Make sure this points to the correct file
-import UpcomingPage from './pages/UpcomingPage';
-import ConstructionPage from './pages/ConstructionPage';
-import CoffeeMachinePage from './pages/CoffeeMachinePage';
-import MicrowavePage from './pages/MicrowavePage';
-import CopyMachinePage from './pages/CopyMachinePage';
-import FishPage from './pages/FishPage';
-import TouchingDistancePage from './pages/TouchingDistancePage';
-import LasersPage from './pages/LasersPage';
-import ShedrickPage from './pages/ShedrickPage';
-import ConversationsBeyondTheOrdinaryPage from './pages/ConversationsBeyondTheOrdinaryPage';
-import AboutPage from './pages/AboutPage';
-import AllPresentationsPage from './pages/AllPresentationsPage';
-import VendingMachineOrganoidPage from './pages/VendingMachineOrganoidPage';
-import PersonalAudioGuidePage from './pages/PersonalAudioGuidePage';
-import VendingDemoPage from './pages/VendingDemoPage';
-import CompatibilityOverlay from './components/CompatibilityOverlay';
-import {
-  COMPATIBILITY_MESSAGE,
-  hasSeenCompatibilityMessage,
-  supportsPrimaryExperienceBrowser,
-  markCompatibilityMessageSeen
-} from './utils/compatibility';
+const UpcomingPage = lazyPage(() => import('./pages/UpcomingPage'));
+const ConstructionPage = lazyPage(() => import('./pages/ConstructionPage'));
+const CoffeeMachinePage = lazyPage(() => import('./pages/CoffeeMachinePage'));
+const MicrowavePage = lazyPage(() => import('./pages/MicrowavePage'));
+const CopyMachinePage = lazyPage(() => import('./pages/CopyMachinePage'));
+const FishPage = lazyPage(() => import('./pages/FishPage'));
+const TouchingDistancePage = lazyPage(() => import('./pages/TouchingDistancePage'));
+const LasersPage = lazyPage(() => import('./pages/LasersPage'));
+const ShedrickPage = lazyPage(() => import('./pages/ShedrickPage'));
+const ConversationsBeyondTheOrdinaryPage = lazyPage(() => import('./pages/ConversationsBeyondTheOrdinaryPage'));
+const AboutPage = lazyPage(() => import('./pages/AboutPage'));
+const AllPresentationsPage = lazyPage(() => import('./pages/AllPresentationsPage'));
+const VendingMachineOrganoidPage = lazyPage(() => import('./pages/VendingMachineOrganoidPage'));
+const PersonalAudioGuidePage = lazyPage(() => import('./pages/PersonalAudioGuidePage'));
+const VendingDemoPage = lazyPage(() => import('./pages/VendingDemoPage'));
 
 function App() {
-  const [showCompatibilityOverlay, setShowCompatibilityOverlay] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    if (supportsPrimaryExperienceBrowser()) {
-      return false;
-    }
-    return !hasSeenCompatibilityMessage();
-  });
-  const handleCompatibilityComplete = useCallback(() => {
-    markCompatibilityMessageSeen();
-    setShowCompatibilityOverlay(false);
-  }, []);
   
   return (
     <>
+      <Suspense fallback={null}>
       <Routes>
         {/* Home page route */}
-        <Route path="/" element={<HomePage compatibilityOverlayActive={showCompatibilityOverlay} />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/up" element={<UpcomingPage />} />
         <Route path="/about" element={<AboutPage />} />
         
@@ -84,12 +70,7 @@ function App() {
         {/* Catch-all route for any undefined paths, redirects to the construction page */}
         <Route path="*" element={<Navigate to="/construction" replace />} />
       </Routes>
-      {showCompatibilityOverlay && (
-        <CompatibilityOverlay
-          message={COMPATIBILITY_MESSAGE}
-          onComplete={handleCompatibilityComplete}
-        />
-      )}
+      </Suspense>
     </>
   );
 }

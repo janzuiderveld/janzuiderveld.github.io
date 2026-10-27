@@ -11,6 +11,11 @@
     "sync:presentations": "node scripts/sync-upcoming-presentations.mjs",
     "preview": "vite preview",
     "profile:animation": "node scripts/profile-animation.mjs",
+    "check:browsers": "node scripts/check-browser-performance.mjs",
+    "check:touch": "node scripts/check-native-touch.mjs",
+    "check:updates": "node scripts/check-update-recovery.mjs",
+    "check:older-browsers": "node scripts/check-older-browser.mjs",
+    "check:visuals": "node scripts/check-visual-parity.mjs",
     "render:project-pdf": "node scripts/render-project-pdf.mjs",
     "render:project-pdf-collection": "node scripts/render-project-pdf-collection.mjs",
     "safari:webkit": "node scripts/safari-webkit-check.mjs",
@@ -18,6 +23,7 @@
     "safari:stp": "node scripts/safari-real-check.mjs --technology-preview"
   },
   "dependencies": {
+    "core-js": "^3.51.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.3.0"

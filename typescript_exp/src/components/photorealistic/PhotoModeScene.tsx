@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import AsciiArtGenerator from '../ascii-art2/AsciiArtGenerator';
+import { forwardTouchToScroll } from '../ascii-art2/hooks/useScrolling';
 import { AsciiLayoutInfo, TextContentItem } from '../ascii-art2/types';
 import { CHAR_HEIGHT, getCurrentCharMetrics } from '../ascii-art2/constants';
 import PhotorealisticLayer, {
@@ -720,6 +721,10 @@ const PhotoModeScene = ({
   useEffect(() => {
     hoverScrollOffsetRef.current = asciiScrollOffset;
   }, [asciiScrollOffset]);
+
+  const forwardPhotoTouch = useCallback((event: TouchEvent) => {
+    forwardTouchToScroll(asciiContainerRef.current, event);
+  }, []);
 
   const forwardVideoWheel = useCallback((event: WheelEvent) => {
     const container = asciiContainerRef.current;
@@ -1469,6 +1474,7 @@ const PhotoModeScene = ({
           opacityTransition={photoLayerTransition}
           onLayerClick={requestPhotoExit}
           onLayerTouchEnd={requestPhotoExit}
+          onForwardTouch={forwardPhotoTouch}
           onForwardWheel={forwardVideoWheel}
           zIndex={exportPhotoLayerVisible ? 0 : 2}
         />
