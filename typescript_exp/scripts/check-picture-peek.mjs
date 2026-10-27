@@ -8,6 +8,13 @@ await fs.mkdir(output, { recursive: true });
 const active = '[data-photo-peek-active="true"]';
 const photo = '[data-photorealistic-visible="true"]';
 const results = [];
+const peekWidth = async page => {
+  await page.waitForFunction(selector => document.querySelector(selector)?.style.clipPath.startsWith('polygon('), `${active} > div`);
+  return page.locator(`${active} > div`).evaluate(element => {
+    const xs = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number).filter((_, i) => i % 2 === 0);
+    return Math.max(...xs) - Math.min(...xs);
+  });
+};
 
 async function openHero(page, mobileWebKit = false) {
   await page.goto(`${base}/#/coffee`, { waitUntil: 'load' });
@@ -72,6 +79,8 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
       return image?.complete && image.naturalWidth > 0;
     });
     console.error(name, 'image loaded');
+    const fingerWidth = await peekWidth(page);
+    assert.ok(fingerWidth > 150 && fingerWidth < 300, `${name}: finger peek should be a small window (${fingerWidth}px)`);
     const polygonCenter = () => page.locator(`${active} > div`).evaluate(element => {
       const numbers = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number);
       return numbers.filter((_, i) => i % 2 === 0).reduce((sum, n) => sum + n, 0) / (numbers.length / 2);
@@ -125,11 +134,14 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     point = await openHero(desktopPage);
     await desktopPage.mouse.move(point.x, point.y);
     await desktopPage.waitForSelector(active);
+    const mouseWidth = await peekWidth(desktopPage);
+    assert.ok(mouseWidth > 650, `${name}: preserve the large mouse peek (${mouseWidth}px)`);
     await desktopPage.evaluate(() => document.dispatchEvent(new MouseEvent('mouseleave')));
     await desktopPage.waitForSelector(active, { state: 'hidden' });
     await desktop.close();
     assert.deepEqual(errors, []);
-    results.push({ engine: name, trustedTouch: !!cdp, fingerTracking: true, releaseAndCancel: true,
+    results.push({ engine: name, trustedTouch: !!cdp, fingerWidthPx: Math.round(fingerWidth), mouseWidthPx: Math.round(mouseWidth),
+      fingerTracking: true, releaseAndCancel: true,
       mouseHover: true, tapPhotoEntry: !!cdp });
     console.log(JSON.stringify(results.at(-1)));
     await context.close();

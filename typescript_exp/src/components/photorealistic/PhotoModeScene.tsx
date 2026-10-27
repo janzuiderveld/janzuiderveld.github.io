@@ -338,6 +338,7 @@ const PhotoModeScene = ({
   const photoHistoryPushedRef = useRef(false);
   const exitRequestedRef = useRef(false);
   const hoverCursorRef = useRef({ x: 0, y: 0 });
+  const hoverTouchRef = useRef(false);
   const hoverTargetRef = useRef<string | null>(null);
   const hoverFrameRef = useRef<number | null>(null);
   const hoverPointerActiveRef = useRef(false);
@@ -782,7 +783,7 @@ const PhotoModeScene = ({
       hoverItemsRef.current,
       clientX,
       clientY,
-      getPhotoHoverRadiusPx()
+      getPhotoHoverRadiusPx(hoverTouchRef.current)
     ),
     [resolvePhotoItemAtPoint]
   );
@@ -1118,8 +1119,9 @@ const PhotoModeScene = ({
 
     let touchId: number | null = null;
     let lastTouchTime = -Infinity;
-    const movePeek = (clientX: number, clientY: number) => {
+    const movePeek = (clientX: number, clientY: number, isTouch = false) => {
       hoverPointerActiveRef.current = true;
+      hoverTouchRef.current = isTouch;
       hoverCursorRef.current = { x: clientX, y: clientY };
       scheduleHoverUpdate();
     };
@@ -1147,7 +1149,7 @@ const PhotoModeScene = ({
         touchId = touch.identifier;
       }
       if (touch.identifier !== touchId) return;
-      movePeek(touch.clientX, touch.clientY);
+      movePeek(touch.clientX, touch.clientY, true);
     };
 
     const handleMouseLeave = () => {
@@ -1530,6 +1532,7 @@ const PhotoModeScene = ({
           layout={mergedPhotoLayout}
           scrollOffset={asciiScrollOffset}
           cursorRef={hoverCursorRef}
+          isTouchRef={hoverTouchRef}
           isActive={photoState === 'ascii' && hoverPreviewActive && !alignmentMode}
         />
       )}

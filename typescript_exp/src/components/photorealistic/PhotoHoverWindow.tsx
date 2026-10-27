@@ -11,6 +11,7 @@ type PhotoHoverWindowProps = {
   layout: PhotorealisticLayout;
   scrollOffset: number;
   cursorRef: React.MutableRefObject<{ x: number; y: number }>;
+  isTouchRef: React.MutableRefObject<boolean>;
   isActive: boolean;
 };
 
@@ -20,9 +21,10 @@ const NOISE_SCALE = 0.18;
 const MIN_RADIUS = 110;
 const RADIUS_SCALE = 4;
 
-export const getPhotoHoverRadiusPx = () => {
+export const getPhotoHoverRadiusPx = (isTouch = false) => {
   const { charWidth } = getCurrentCharMetrics();
-  return Math.max(charWidth * BLOB_RADIUS * RADIUS_SCALE, MIN_RADIUS * RADIUS_SCALE);
+  const radius = Math.max(charWidth * BLOB_RADIUS * RADIUS_SCALE, MIN_RADIUS * RADIUS_SCALE);
+  return isTouch ? radius / 4 : radius;
 };
 
 const buildBlobPolygon = (centerX: number, centerY: number, radius: number, time: number) => {
@@ -50,6 +52,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   layout,
   scrollOffset,
   cursorRef,
+  isTouchRef,
   isActive
 }) => {
   const clipRef = useRef<HTMLDivElement>(null);
@@ -71,7 +74,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
       smooth.x += (target.x - smooth.x) * SMOOTHING;
       smooth.y += (target.y - smooth.y) * SMOOTHING;
 
-      const baseRadius = getPhotoHoverRadiusPx();
+      const baseRadius = getPhotoHoverRadiusPx(isTouchRef.current);
       const polygon = buildBlobPolygon(smooth.x, smooth.y, baseRadius, time);
       const clipPath = `polygon(${polygon})`;
       element.style.clipPath = clipPath;
@@ -88,7 +91,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
       }
       animationRef.current = null;
     };
-  }, [cursorRef, isActive]);
+  }, [cursorRef, isTouchRef, isActive]);
 
   if (!item || item.mediaType === 'video') {
     return null;
