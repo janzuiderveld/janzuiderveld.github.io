@@ -98,8 +98,9 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     const fingerWidth = await peekWidth(page);
     const growth = await page.evaluate(() => window.__peekGrowth);
     assert.ok(growth.find(sample => sample.active)?.width < fingerWidth * 0.15, `${name}: touch peek must start near zero`);
-    assert.ok(growth.some(sample => sample.elapsed > 350 && sample.elapsed < 700
-      && sample.width > fingerWidth * 0.15 && sample.width < fingerWidth * 0.85), `${name}: grow gradually over a second`);
+    assert.ok(growth.some(sample => sample.elapsed > 80 && sample.elapsed < 220
+      && sample.width > fingerWidth * 0.15 && sample.width < fingerWidth * 0.9), `${name}: grow smoothly rather than appearing instantly`);
+    assert.ok(growth.some(sample => sample.elapsed < 550 && sample.width > fingerWidth * 0.9), `${name}: grow faster than one second`);
     const coverage = await page.locator(`${active} > div`).evaluate(element => {
       const numbers = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number);
       const polygon = numbers.filter((_, i) => i % 2 === 0).map((x, i) => [x, numbers[i * 2 + 1]]);
@@ -123,7 +124,18 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     if (!cdp) await page.evaluate(point => window.__peekTouchTarget.dispatchEvent(new MouseEvent('click', {
       bubbles: true, cancelable: true, detail: 1, clientX: point.x, clientY: point.y
     })), point);
-    await page.waitForTimeout(1600);
+    const closingWidth = await page.locator('[data-photo-peek] > div').evaluate(element => {
+      const xs = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number).filter((_, i) => i % 2 === 0);
+      return Math.max(...xs) - Math.min(...xs);
+    });
+    assert.ok(closingWidth > fingerWidth * 0.1, `${name}: release should shrink instead of disappearing instantly`);
+    await page.waitForTimeout(400);
+    const closedWidth = await page.locator('[data-photo-peek] > div').evaluate(element => {
+      const xs = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number).filter((_, i) => i % 2 === 0);
+      return Math.max(...xs) - Math.min(...xs);
+    });
+    assert.ok(closedWidth < 2, `${name}: release should finish shrinking quickly`);
+    await page.waitForTimeout(1200);
     assert.equal(await page.locator(active).count(), 0, 'Releasing a hold clears the peek');
     assert.equal(await page.locator(photo).count(), 0, 'Releasing a hold must not act like a quick tap');
     await touch('touchstart', point);
@@ -150,6 +162,28 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     await page.evaluate(point => window.dispatchEvent(new MouseEvent('mousemove', { clientX: point.x, clientY: point.y })), point);
     await page.waitForTimeout(50);
     assert.equal(await page.locator(active).count(), 0);
+
+    // The same final size must activate even when the finger starts farther
+    // from the artwork. Previously the activation radius was only 110 px.
+    point = await openHero(page, name === 'webkit');
+    let photoBounds = await page.locator('[data-photo-image]').first().boundingBox();
+    // Place the artwork below the test finger; route revisits can preserve a
+    // previous scroll position, so centering alone does not guarantee a gap.
+    const distanceSetupDelta = (photoBounds.y - 350) / 0.7;
+    if (name === 'webkit') {
+      await page.locator('pre').dispatchEvent('wheel', { deltaY: distanceSetupDelta, bubbles: true, cancelable: true });
+    } else await page.mouse.wheel(0, distanceSetupDelta);
+    await page.waitForTimeout(350);
+    photoBounds = await page.locator('[data-photo-image]').first().boundingBox();
+    const distantPoint = { x: point.x, y: Math.max(50, photoBounds.y - 300) };
+    assert.ok(photoBounds.y - distantPoint.y > 200);
+    await touch('touchstart', distantPoint);
+    await page.waitForSelector(active);
+    await page.waitForTimeout(800);
+    const distantWidth = await peekWidth(page);
+    assert.ok(Math.abs(distantWidth / fingerWidth - 1) < 0.2, `${name}: final size should not depend on finger distance`);
+    await touch('touchend', distantPoint);
+    await page.waitForTimeout(400);
 
     for (const ending of ['touchcancel', 'multitouch', 'blur']) {
       point = await openHero(page, name === 'webkit');

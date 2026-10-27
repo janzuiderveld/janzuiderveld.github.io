@@ -12,7 +12,6 @@ type PhotoHoverWindowProps = {
   scrollOffset: number;
   cursorRef: React.MutableRefObject<{ x: number; y: number }>;
   isTouchRef: React.MutableRefObject<boolean>;
-  touchStartedAtRef: React.MutableRefObject<number>;
   isActive: boolean;
 };
 
@@ -21,12 +20,28 @@ const SMOOTHING = 0.18;
 const NOISE_SCALE = 0.18;
 const MIN_RADIUS = 110;
 const RADIUS_SCALE = 4;
-const TOUCH_REVEAL_DURATION_MS = 1000;
+const TOUCH_RADIUS = 680;
 
 export const getPhotoHoverRadiusPx = (isTouch = false) => {
   const { charWidth } = getCurrentCharMetrics();
   const radius = Math.max(charWidth * BLOB_RADIUS * RADIUS_SCALE, MIN_RADIUS * RADIUS_SCALE);
-  return isTouch ? radius / 4 : radius;
+  return isTouch ? TOUCH_RADIUS : radius;
+};
+
+// An exact damped spring step keeps the response consistent at any frame rate.
+const advanceReveal = (amount: number, velocity: number, target: number, seconds: number) => {
+  const stiffness = target ? 225 : 420;
+  const damping = target ? 20 : 30;
+  const decayRate = damping / 2;
+  const frequency = Math.sqrt(stiffness - decayRate * decayRate);
+  const displacement = amount - target;
+  const decay = Math.exp(-decayRate * seconds);
+  const sine = Math.sin(frequency * seconds);
+  const cosine = Math.cos(frequency * seconds);
+  return {
+    amount: target + decay * (displacement * cosine + (velocity + decayRate * displacement) / frequency * sine),
+    velocity: decay * (velocity * cosine - (decayRate * velocity + stiffness * displacement) / frequency * sine)
+  };
 };
 
 const buildBlobPolygon = (centerX: number, centerY: number, radius: number, time: number) => {
@@ -55,57 +70,75 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   scrollOffset,
   cursorRef,
   isTouchRef,
-  touchStartedAtRef,
   isActive
 }) => {
   const clipRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const smoothPositionRef = useRef({ x: 0, y: 0 });
-  const peekBoundsRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
+  const revealRef = useRef({ amount: 0, velocity: 0 });
+  const previousTouchRef = useRef(false);
 
   useEffect(() => {
-    if (!isActive || !clipRef.current) {
+    if (!clipRef.current) {
+      revealRef.current = { amount: 0, velocity: 0 };
       return undefined;
     }
 
     const element = clipRef.current;
-    const start = cursorRef.current;
-    smoothPositionRef.current = { x: start.x, y: start.y };
+    if (isActive && revealRef.current.amount === 0) {
+      smoothPositionRef.current = { ...cursorRef.current };
+    }
+    let running = true;
+    let previousTime: number | null = null;
 
     const tick = (time: number) => {
+      if (!running) return;
+      const isTouch = isTouchRef.current;
+      if (isTouch !== previousTouchRef.current) {
+        revealRef.current = { amount: 0, velocity: 0 };
+        previousTouchRef.current = isTouch;
+        previousTime = null;
+      }
       const target = cursorRef.current;
       const smooth = smoothPositionRef.current;
       smooth.x += (target.x - smooth.x) * SMOOTHING;
       smooth.y += (target.y - smooth.y) * SMOOTHING;
 
-      let baseRadius = getPhotoHoverRadiusPx();
-      const bounds = peekBoundsRef.current;
-      if (isTouchRef.current && bounds) {
-        // Size the held reveal to this artwork, including a finger near an edge.
-        // Geometry comes from render state, avoiding layout reads during animation.
-        const dx = Math.max(Math.abs(smooth.x - bounds.left), Math.abs(smooth.x - bounds.left - bounds.width));
-        const dy = Math.max(Math.abs(smooth.y - bounds.top), Math.abs(smooth.y - bounds.top - bounds.height));
-        const progress = Math.max(0, Math.min(1, (time - touchStartedAtRef.current) / TOUCH_REVEAL_DURATION_MS));
-        const growth = progress * progress * (3 - 2 * progress);
-        baseRadius = Math.max(getPhotoHoverRadiusPx(true), Math.hypot(dx, dy)) * growth;
+      let baseRadius = isActive ? getPhotoHoverRadiusPx() : 0;
+      if (isTouch) {
+        const elapsed = previousTime === null ? 0 : Math.min((time - previousTime) / 1000, 0.1);
+        const reveal = advanceReveal(revealRef.current.amount, revealRef.current.velocity, isActive ? 1 : 0, elapsed);
+        if ((!isActive && reveal.amount <= 0) || document.hidden) {
+          reveal.amount = 0;
+          reveal.velocity = 0;
+        }
+        revealRef.current = reveal;
+        // Hit testing uses this same fixed radius, even far from the artwork.
+        baseRadius = getPhotoHoverRadiusPx(true) * Math.max(0, reveal.amount);
       }
+      previousTime = time;
       const polygon = buildBlobPolygon(smooth.x, smooth.y, baseRadius, time);
       const clipPath = `polygon(${polygon})`;
       element.style.clipPath = clipPath;
       element.style.setProperty('-webkit-clip-path', clipPath);
 
-      animationRef.current = requestAnimationFrame(tick);
+      if (!document.hidden && (isActive || (isTouch && revealRef.current.amount > 0))) {
+        animationRef.current = requestAnimationFrame(tick);
+      } else {
+        animationRef.current = null;
+      }
     };
 
     animationRef.current = requestAnimationFrame(tick);
 
     return () => {
+      running = false;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
       animationRef.current = null;
     };
-  }, [cursorRef, isTouchRef, touchStartedAtRef, isActive]);
+  }, [cursorRef, isTouchRef, isActive, item?.id]);
 
   if (!item || item.mediaType === 'video') {
     return null;
@@ -127,7 +160,6 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
   const top = (bounds.minY + (item.offsetY ?? 0)) * charHeight;
   const isFixed = item.fixed ?? bounds.fixed;
-  peekBoundsRef.current = { left, top: top - (isFixed ? 0 : scrollOffset), width, height };
   const cropFrameStyle = resolvePhotoCropFrameStyle(item.contentInsets);
   const image = (
     <img
@@ -158,7 +190,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
         inset: 0,
         zIndex: 3,
         pointerEvents: 'none',
-        opacity: isActive ? 1 : 0,
+        opacity: isActive || isTouchRef.current ? 1 : 0,
         transition: 'opacity 0.2s ease'
       }}
     >

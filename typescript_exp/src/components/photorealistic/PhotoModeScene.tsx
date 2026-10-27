@@ -756,7 +756,7 @@ const PhotoModeScene = ({
     }
     hoverPointerActiveRef.current = false;
     hoverTargetRef.current = null;
-    setHoveredPhotoItem(null);
+    // Retain the last image while the touch reveal springs closed.
     setHoverPreviewActive(false);
   }, []);
 
@@ -811,7 +811,7 @@ const PhotoModeScene = ({
       return;
     }
     hoverTargetRef.current = nextId;
-    setHoveredPhotoItem(nextItem);
+    if (nextItem) setHoveredPhotoItem(nextItem);
     setHoverPreviewActive(Boolean(nextItem));
   }, [resolveHoverItem]);
 
@@ -1554,7 +1554,6 @@ const PhotoModeScene = ({
           scrollOffset={asciiScrollOffset}
           cursorRef={hoverCursorRef}
           isTouchRef={hoverTouchRef}
-          touchStartedAtRef={hoverTouchStartedAtRef}
           isActive={photoState === 'ascii' && hoverPreviewActive && !alignmentMode}
         />
       )}
