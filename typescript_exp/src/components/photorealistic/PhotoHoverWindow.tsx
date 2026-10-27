@@ -12,6 +12,7 @@ type PhotoHoverWindowProps = {
   scrollOffset: number;
   cursorRef: React.MutableRefObject<{ x: number; y: number }>;
   isTouchRef: React.MutableRefObject<boolean>;
+  touchStartedAtRef: React.MutableRefObject<number>;
   isActive: boolean;
 };
 
@@ -20,6 +21,7 @@ const SMOOTHING = 0.18;
 const NOISE_SCALE = 0.18;
 const MIN_RADIUS = 110;
 const RADIUS_SCALE = 4;
+const TOUCH_REVEAL_DURATION_MS = 1000;
 
 export const getPhotoHoverRadiusPx = (isTouch = false) => {
   const { charWidth } = getCurrentCharMetrics();
@@ -53,11 +55,13 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   scrollOffset,
   cursorRef,
   isTouchRef,
+  touchStartedAtRef,
   isActive
 }) => {
   const clipRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const smoothPositionRef = useRef({ x: 0, y: 0 });
+  const peekBoundsRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
     if (!isActive || !clipRef.current) {
@@ -74,7 +78,17 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
       smooth.x += (target.x - smooth.x) * SMOOTHING;
       smooth.y += (target.y - smooth.y) * SMOOTHING;
 
-      const baseRadius = getPhotoHoverRadiusPx(isTouchRef.current);
+      let baseRadius = getPhotoHoverRadiusPx();
+      const bounds = peekBoundsRef.current;
+      if (isTouchRef.current && bounds) {
+        // Size the held reveal to this artwork, including a finger near an edge.
+        // Geometry comes from render state, avoiding layout reads during animation.
+        const dx = Math.max(Math.abs(smooth.x - bounds.left), Math.abs(smooth.x - bounds.left - bounds.width));
+        const dy = Math.max(Math.abs(smooth.y - bounds.top), Math.abs(smooth.y - bounds.top - bounds.height));
+        const progress = Math.max(0, Math.min(1, (time - touchStartedAtRef.current) / TOUCH_REVEAL_DURATION_MS));
+        const growth = progress * progress * (3 - 2 * progress);
+        baseRadius = Math.max(getPhotoHoverRadiusPx(true), Math.hypot(dx, dy)) * growth;
+      }
       const polygon = buildBlobPolygon(smooth.x, smooth.y, baseRadius, time);
       const clipPath = `polygon(${polygon})`;
       element.style.clipPath = clipPath;
@@ -91,7 +105,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
       }
       animationRef.current = null;
     };
-  }, [cursorRef, isTouchRef, isActive]);
+  }, [cursorRef, isTouchRef, touchStartedAtRef, isActive]);
 
   if (!item || item.mediaType === 'video') {
     return null;
@@ -113,6 +127,7 @@ const PhotoHoverWindow: React.FC<PhotoHoverWindowProps> = ({
   const left = (bounds.minX + (item.offsetX ?? 0)) * charWidth;
   const top = (bounds.minY + (item.offsetY ?? 0)) * charHeight;
   const isFixed = item.fixed ?? bounds.fixed;
+  peekBoundsRef.current = { left, top: top - (isFixed ? 0 : scrollOffset), width, height };
   const cropFrameStyle = resolvePhotoCropFrameStyle(item.contentInsets);
   const image = (
     <img

@@ -339,6 +339,7 @@ const PhotoModeScene = ({
   const exitRequestedRef = useRef(false);
   const hoverCursorRef = useRef({ x: 0, y: 0 });
   const hoverTouchRef = useRef(false);
+  const hoverTouchStartedAtRef = useRef(0);
   const hoverTargetRef = useRef<string | null>(null);
   const hoverFrameRef = useRef<number | null>(null);
   const hoverPointerActiveRef = useRef(false);
@@ -1119,6 +1120,7 @@ const PhotoModeScene = ({
 
     let touchId: number | null = null;
     let lastTouchTime = -Infinity;
+    let suppressHoldClickUntil = 0;
     const movePeek = (clientX: number, clientY: number, isTouch = false) => {
       hoverPointerActiveRef.current = true;
       hoverTouchRef.current = isTouch;
@@ -1138,6 +1140,11 @@ const PhotoModeScene = ({
     };
     const handleTouch = (event: TouchEvent) => {
       lastTouchTime = performance.now();
+      if (event.type === 'touchstart') suppressHoldClickUntil = 0;
+      if (event.type === 'touchend' && touchId !== null && hoverTargetRef.current !== null
+        && lastTouchTime - hoverTouchStartedAtRef.current >= 350) {
+        suppressHoldClickUntil = lastTouchTime + 800;
+      }
       if (event.type === 'touchend' || event.type === 'touchcancel' || event.touches.length !== 1) {
         touchId = null;
         clearHoverState();
@@ -1147,9 +1154,21 @@ const PhotoModeScene = ({
       if (event.type === 'touchstart') {
         if (!asciiContainerRef.current?.contains(event.target as Node)) return;
         touchId = touch.identifier;
+        hoverTouchStartedAtRef.current = performance.now();
       }
       if (touch.identifier !== touchId) return;
       movePeek(touch.clientX, touch.clientY, true);
+    };
+    const handleClick = (event: MouseEvent) => {
+      // Browsers can synthesize a click after a stationary long press. Releasing
+      // a held peek should close it; only a fresh quick tap should open the photo.
+      const pointerType = (event as PointerEvent).pointerType;
+      if (event.detail === 0 || (pointerType && pointerType !== 'touch')
+        || performance.now() >= suppressHoldClickUntil
+        || !asciiContainerRef.current?.contains(event.target as Node)) return;
+      suppressHoldClickUntil = 0;
+      event.preventDefault();
+      event.stopImmediatePropagation();
     };
 
     const handleMouseLeave = () => {
@@ -1169,6 +1188,7 @@ const PhotoModeScene = ({
     // Observe gestures without stealing them from scrolling or tap-to-open.
     // Capture sees touches even when the ASCII click layer stops propagation.
     const touchOptions = { capture: true, passive: true };
+    window.addEventListener('click', handleClick, { capture: true });
     for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
       window.addEventListener(type, handleTouch as EventListener, touchOptions);
     }
@@ -1181,6 +1201,7 @@ const PhotoModeScene = ({
     return () => {
       if (pointerEvents) window.removeEventListener('pointermove', handlePointerMove);
       else window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('click', handleClick, { capture: true });
       for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
         window.removeEventListener(type, handleTouch as EventListener, { capture: true });
       }
@@ -1533,6 +1554,7 @@ const PhotoModeScene = ({
           scrollOffset={asciiScrollOffset}
           cursorRef={hoverCursorRef}
           isTouchRef={hoverTouchRef}
+          touchStartedAtRef={hoverTouchStartedAtRef}
           isActive={photoState === 'ascii' && hoverPreviewActive && !alignmentMode}
         />
       )}

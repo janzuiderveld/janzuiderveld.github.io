@@ -71,6 +71,21 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     }) : syntheticTouch(page, type, point, count);
     let point = await openHero(page, name === 'webkit');
     console.error(name, 'hero', point);
+    await page.evaluate(() => {
+      window.__peekGrowth = [];
+      window.addEventListener('touchstart', () => {
+        const started = performance.now();
+        const sample = () => {
+          const element = document.querySelector('[data-photo-peek-active="true"] > div');
+          const xs = element?.style.clipPath.startsWith('polygon(')
+            ? element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number).filter((_, i) => i % 2 === 0) : [0];
+          const elapsed = performance.now() - started;
+          window.__peekGrowth.push({ elapsed, active: !!element, width: Math.max(...xs) - Math.min(...xs) });
+          if (elapsed < 1250) requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      }, { once: true, capture: true, passive: true });
+    });
     await touch('touchstart', point);
     await page.waitForSelector(active);
     console.error(name, 'peek active');
@@ -79,8 +94,42 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
       return image?.complete && image.naturalWidth > 0;
     });
     console.error(name, 'image loaded');
+    await page.waitForFunction(() => window.__peekGrowth.at(-1)?.elapsed >= 1200);
     const fingerWidth = await peekWidth(page);
-    assert.ok(fingerWidth > 150 && fingerWidth < 300, `${name}: finger peek should be a small window (${fingerWidth}px)`);
+    const growth = await page.evaluate(() => window.__peekGrowth);
+    assert.ok(growth.find(sample => sample.active)?.width < fingerWidth * 0.15, `${name}: touch peek must start near zero`);
+    assert.ok(growth.some(sample => sample.elapsed > 350 && sample.elapsed < 700
+      && sample.width > fingerWidth * 0.15 && sample.width < fingerWidth * 0.85), `${name}: grow gradually over a second`);
+    const coverage = await page.locator(`${active} > div`).evaluate(element => {
+      const numbers = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number);
+      const polygon = numbers.filter((_, i) => i % 2 === 0).map((x, i) => [x, numbers[i * 2 + 1]]);
+      const bounds = document.querySelector('[data-photo-image]').getBoundingClientRect();
+      let insideCount = 0;
+      for (let row = 0; row < 10; row++) for (let col = 0; col < 10; col++) {
+        const x = bounds.x + (col + 0.5) * bounds.width / 10;
+        const y = bounds.y + (row + 0.5) * bounds.height / 10;
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+          const [xi, yi] = polygon[i], [xj, yj] = polygon[j];
+          if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+        }
+        if (inside) insideCount++;
+      }
+      return insideCount / 100;
+    });
+    assert.ok(coverage >= 0.85, `${name}: held peek should cover nearly all the artwork (${coverage})`);
+    await page.screenshot({ path: `${output}/${name}-held.png` });
+    await touch('touchend', point);
+    if (!cdp) await page.evaluate(point => window.__peekTouchTarget.dispatchEvent(new MouseEvent('click', {
+      bubbles: true, cancelable: true, detail: 1, clientX: point.x, clientY: point.y
+    })), point);
+    await page.waitForTimeout(1600);
+    assert.equal(await page.locator(active).count(), 0, 'Releasing a hold clears the peek');
+    assert.equal(await page.locator(photo).count(), 0, 'Releasing a hold must not act like a quick tap');
+    await touch('touchstart', point);
+    await page.waitForSelector(active);
+    const restartedWidth = await peekWidth(page);
+    assert.ok(restartedWidth < fingerWidth * 0.15, 'A new hold restarts growth from zero');
     const polygonCenter = () => page.locator(`${active} > div`).evaluate(element => {
       const numbers = element.style.clipPath.match(/-?[\d.]+(?=px)/g).map(Number);
       return numbers.filter((_, i) => i % 2 === 0).reduce((sum, n) => sum + n, 0) / (numbers.length / 2);
@@ -140,7 +189,7 @@ for (const [name, engine] of [['chrome', chromium], ['firefox', firefox], ['webk
     await desktopPage.waitForSelector(active, { state: 'hidden' });
     await desktop.close();
     assert.deepEqual(errors, []);
-    results.push({ engine: name, trustedTouch: !!cdp, fingerWidthPx: Math.round(fingerWidth), mouseWidthPx: Math.round(mouseWidth),
+    results.push({ engine: name, trustedTouch: !!cdp, fingerWidthPx: Math.round(fingerWidth), mouseWidthPx: Math.round(mouseWidth), coverage,
       fingerTracking: true, releaseAndCancel: true,
       mouseHover: true, tapPhotoEntry: !!cdp });
     console.log(JSON.stringify(results.at(-1)));
