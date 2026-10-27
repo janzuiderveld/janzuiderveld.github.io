@@ -15,6 +15,7 @@
     "check:touch": "node scripts/check-native-touch.mjs",
     "check:peek": "node scripts/check-picture-peek.mjs",
     "check:transition": "node scripts/check-photo-transition.mjs",
+    "check:viewport": "node scripts/check-viewport.mjs",
     "check:updates": "node scripts/check-update-recovery.mjs",
     "check:older-browsers": "node scripts/check-older-browser.mjs",
     "check:visuals": "node scripts/check-visual-parity.mjs",

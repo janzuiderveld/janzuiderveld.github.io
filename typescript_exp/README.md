@@ -11,6 +11,7 @@ Design tests before changes. Run `npm test` and `npm run build`. On Node 25, sup
 | Command | What it verifies |
 | --- | --- |
 | `npm run check:browsers` | Chromium, Firefox, WebKit; 1280×720 and 390×844; home, coffee ASCII/photo, camera photo; actual ASCII redraw cadence, gestures, warnings, errors and media/link geometry. |
+| `npm run check:viewport` | Chrome, Firefox and WebKit; landscape/portrait rotation, desktop width, animated characters at both side edges, and the viewport opt-in required on notched iPhones. `PREVIEW_URL` selects the preview or live site. Headless engines do not reproduce physical iOS safe-area letterboxing. |
 | `npm run check:touch` | System Chrome's trusted touch input, normal and 4× CPU slowdown; fling, touch-to-stop, video controls and photo exit. |
 | `npm run check:peek` | Finger tracking, release/cancel/multi-touch cleanup, tap photo entry and desktop mouse peek. Uses trusted touch in Chrome and synthetic touch in Firefox/WebKit; `PREVIEW_URL` selects a local or deployed build. Captures are in `tmp/browser-verification/picture-peek/`. |
 | `npm run check:updates` | Stale entry recovery, hash/query preservation, reload-loop guard, unavailable-manifest fallback and recovery from removed lazy chunks in all three engines. |
