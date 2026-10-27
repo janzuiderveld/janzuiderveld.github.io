@@ -1,0 +1,1 @@
+import{j as e}from"./index-Djr4rKsU.js";const t="https://player.vimeo.com/video/1179367379?badge=0&autopause=0&player_id=0&app_id=58479";function o(){return e.jsx("iframe",{title:"Vending demo video",src:t,allow:"autoplay; fullscreen; picture-in-picture",allowFullScreen:!0,style:{display:"block",width:"100vw",height:"100vh",border:"0"}})}export{o as default};
