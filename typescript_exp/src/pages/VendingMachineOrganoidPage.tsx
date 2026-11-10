@@ -7,6 +7,7 @@ import vendingText from '../assets/vending/vending_text.txt?raw';
 import vendingMachine from '../assets/vending/pictures/vending-white-max.png';
 import vendingInstallation from '../assets/vending/pictures/conflux_installation_Gaiadrr.jpg';
 import vendingVisitor from '../assets/vending/pictures/conflux_visitor_Gaiadrr.jpg';
+import vendingKeypad from '../assets/vending/pictures/conflux_keypad_Gaiadrr.jpg';
 import { VENDING_ALIGN_DEFAULT } from '../assets/vending/align';
 
 const DISPLAY_TITLE = 'Vending Machine\nOrganoid';
@@ -45,7 +46,7 @@ const augmentVendingPhotoLayout = (layout: PhotorealisticLayout): Photorealistic
     frame(VENDING_VIDEO_ANCHOR_NAME, 0.62, 9 / 16, hero.minY, true);
   }
   let belowEdge = hero.maxY;
-  for (const [name, ratio] of [['hero-video-image-0', 2 / 3], ['hero-video-image-1', 1.5]] as const) {
+  for (const [name, ratio] of [['hero-video-image-0', 2 / 3], ['hero-video-image-1', 1.5], ['hero-video-image-2', 1.5]] as const) {
     if (rawBounds[name]) belowEdge = frame(name, 0.76, ratio, belowEdge).maxY;
   }
   return { rawBounds, paddedBounds };
@@ -96,6 +97,12 @@ function VendingMachineOrganoidPage() {
           gap: 8,
           maxHeight: 84,
           objectFit: 'contain'
+        },
+        {
+          src: vendingKeypad,
+          alt: "Keypad interaction with Vending Machine Organoid at Conflux — photo: Gaia D'Arrigo",
+          position: 'below', widthReference: 'page', widthScale: 0.76,
+          heightRatio: 1.5, gap: 8, maxHeight: 84, objectFit: 'contain'
         }
       ]}
       inlinePhotoLinkLabel='Video & Photos'

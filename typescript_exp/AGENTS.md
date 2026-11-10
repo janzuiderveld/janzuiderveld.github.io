@@ -192,3 +192,5 @@
   - photorealistic mode enters and exits cleanly
 
 ALWAYS UPDATE THIS FILE WHEN PROJECT GUIDELINES CHANGE, OR YOU LEARN NEW THINGS THAT SHOULD BE DOCUMENTED FOR FUTURE CONTRIBUTORS.
+
+- Vending's existing `conflux_visitor_Gaiadrr.jpg` is the same original as the AI Magazine selection `02-visitor-monitor-Gaia-D-Arrigo.jpg` (gaia-03). Compare image hashes before adding selected photos to avoid duplicate gallery entries.

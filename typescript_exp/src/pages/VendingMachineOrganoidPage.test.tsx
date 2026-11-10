@@ -56,7 +56,7 @@ describe('VendingMachineOrganoidPage', () => {
 
   it('retains both original Mondriaan photos as supplemental images', () => {
     const props = pageProps();
-    expect(props.photoImages).toHaveLength(2);
+    expect(props.photoImages).toHaveLength(3);
     expect(props.photoImages[0]).toMatchObject({
       src: expect.stringContaining('conflux_installation_Gaiadrr.jpg'),
       heightRatio: 2 / 3, position: 'below', objectFit: 'contain'
@@ -65,6 +65,17 @@ describe('VendingMachineOrganoidPage', () => {
       src: expect.stringContaining('conflux_visitor_Gaiadrr.jpg'),
       heightRatio: 1.5, position: 'below', objectFit: 'contain'
     });
+  });
+
+  it('adds the approved keypad portrait without cropping or duplicating the existing monitor photo', () => {
+    const photos = pageProps().photoImages.slice(2);
+    expect(photos.map((p: {src: string}) => p.src)).toEqual([
+      expect.stringContaining('conflux_keypad_Gaiadrr.jpg')
+    ]);
+    for (const photo of photos) {
+      expect(photo).toMatchObject({ heightRatio: 1.5, position: 'below', objectFit: 'contain' });
+      expect(photo.alt).toContain("Gaia D'Arrigo");
+    }
   });
 
   it('keeps the video and enters photo mode at the video', () => {
@@ -90,14 +101,15 @@ describe('VendingMachineOrganoidPage', () => {
       hero,
       'hero-video-0': { ...hero, minY: 60, maxY: 89 },
       'hero-video-image-0': { ...hero, minY: 152, maxY: 181 },
-      'hero-video-image-1': { ...hero, minY: 190, maxY: 253 }
+      'hero-video-image-1': { ...hero, minY: 190, maxY: 253 },
+      'hero-video-image-2': { ...hero, minY: 260, maxY: 323 }
     };
     const original = structuredClone(rawBounds);
     const result = props.photoLayoutAugmenter({ rawBounds, paddedBounds: rawBounds });
     expect(result.rawBounds.hero).toEqual(hero);
     expect(rawBounds).toEqual(original);
     let previous = hero;
-    for (const [name, ratio] of [['hero-video-image-0', 2 / 3], ['hero-video-image-1', 1.5]] as const) {
+    for (const [name, ratio] of [['hero-video-image-0', 2 / 3], ['hero-video-image-1', 1.5], ['hero-video-image-2', 1.5]] as const) {
       const b = result.rawBounds[name];
       expect(b.minY).toBe(previous.maxY + 9);
       expect(Math.abs((b.minX + b.maxX + 1) * charWidth / 2 - width / 2)).toBeLessThanOrEqual(charWidth);
